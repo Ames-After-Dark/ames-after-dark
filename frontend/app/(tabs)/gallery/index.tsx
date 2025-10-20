@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { useBars } from "../../hooks/useBars";
-import { Theme } from "../../constants/theme";
+import { useBars } from "../../../hooks/useBars";
+import { Theme } from "../../../constants/theme";
 
 export default function GalleryScreen() {
   const { bars, loading, error } = useBars();
@@ -23,7 +23,12 @@ export default function GalleryScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => router.push(`/gallery/${item.id}`)}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/gallery/[barId]",
+                params: { barId: item.id.toString(), barName: item.name },
+              })
+            }
           >
             <Text style={styles.barName}>{item.name}</Text>
             <Text style={styles.barLocation}>{item.location}</Text>
