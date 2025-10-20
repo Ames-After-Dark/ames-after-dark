@@ -5,9 +5,13 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("Hello from the backend!");
+
+const barRoutes = require('./src/routes/barRoutes');
+
+app.use('/api/bars', barRoutes);
+
+app.get('/', (req, res) => {
+  res.send('API is running...');
 });
 
 // Start server
