@@ -12,7 +12,6 @@ export default function GalleryScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bars Gallery</Text>
       <FlatList
         data={bars}
         keyExtractor={(item) => item.id.toString()}

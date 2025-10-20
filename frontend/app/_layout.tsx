@@ -18,9 +18,14 @@ export default function RootLayout() {
   const authenticated = useAuthenticationCheck();
   return (
     <ThemeProvider value={NavigationThemeDark as Theme}>
-      <Stack>
-            <Stack.Screen name = {authenticated ? "(tabs)" : "(auth)/login"} options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name={authenticated ? "(tabs)" : "(auth)/login"}
+        />
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: "modal", title: "Modal" }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
