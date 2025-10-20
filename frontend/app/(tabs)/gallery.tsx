@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { useBars } from "../../../hooks/useBars";
+import { useBars } from "../../hooks/useBars";
 
 export default function GalleryScreen() {
   const { bars, loading, error } = useBars();

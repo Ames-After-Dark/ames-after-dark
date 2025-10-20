@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { useBarPhotos } from "../../../hooks/useBarPhotos";
+import { useBarPhotos } from "../../hooks/useBarPhotos";
 
 export default function BarPhotosScreen() {
   const { barId } = useLocalSearchParams();
