@@ -1,9 +1,14 @@
 const express = require("express");
 const app = express();
+const cors = require('cors');
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+
+
+// Dev only
+app.use(cors());
 
 
 const barRoutes = require('./src/routes/barRoutes');

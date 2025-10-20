@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@react-navigation/native';
+import type { Theme } from '@react-navigation/native';
 import { Stack} from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -15,12 +16,16 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   const authenticated = useAuthenticationCheck();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? NavigationThemeDark : NavigationThemeLight}>
-      <Stack>
-            <Stack.Screen name = {authenticated ? "(tabs)" : "(auth)/login"} options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <ThemeProvider value={NavigationThemeDark as Theme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name={authenticated ? "(tabs)" : "(auth)/login"}
+        />
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: "modal", title: "Modal" }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
