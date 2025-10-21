@@ -1,0 +1,11 @@
+# Node dependencies
+node_modules/
+
+# Environment and security files
+.env
+.DS_Store
+
+# PM2 and other logs
+logs
+.pm2
+npm-debug.log
