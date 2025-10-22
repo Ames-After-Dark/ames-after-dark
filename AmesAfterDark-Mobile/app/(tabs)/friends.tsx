@@ -1,17 +1,17 @@
 import { View, Text, Image, StyleSheet } from 'react-native';
 
-export default function Tonight() {
+export default function Friends() {
   return (
     <View style={styles.container}>
 
-      <Text style={styles.title}>Tonight</Text>
-
+      <Text style={styles.title}>Friends</Text>
+      
       <Image
         source={require('../../assets/images/Logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />
-    
+      
     </View>
   );
 }
