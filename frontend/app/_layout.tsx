@@ -1,33 +1,15 @@
-import { ThemeProvider } from '@react-navigation/native';
-import type { Theme } from '@react-navigation/native';
-import { Stack} from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack, Slot} from 'expo-router';
+import {Auth0Provider} from 'react-native-auth0';
+import {View} from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuthenticationCheck } from '@/hooks/use-auth';
-import { NavigationThemeLight, NavigationThemeDark } from '@/constants/theme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
+export default function RootLayoutNav(){
+    return (
+        <Auth0Provider domain="dev-lz0c3j2voxj6hy6v.us.auth0.com" clientId="fQkKYY3zDeKaQZYEQdPt2IrCRgvA5eKN">
+            <Stack screenOptions={{ headerShown: false }}>
+                 <Stack.Screen name="(auth)" />
+                 <Stack.Screen name="(tabs)" />
+             </Stack>
+        </Auth0Provider>
+    );
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
-  const authenticated = useAuthenticationCheck();
-  return (
-    <ThemeProvider value={NavigationThemeDark as Theme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen
-          name={authenticated ? "(tabs)" : "(auth)/login"}
-        />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
-}
