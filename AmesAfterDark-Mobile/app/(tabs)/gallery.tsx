@@ -1,10 +1,10 @@
 import { View, Text, Image, StyleSheet } from 'react-native';
 
-export default function Tonight() {
+export default function Gallery() {
   return (
     <View style={styles.container}>
 
-      <Text style={styles.title}>Tonight</Text>
+      <Text style={styles.title}>Gallery</Text>
 
       <Image
         source={require('../../assets/images/Logo.png')}
