@@ -1,6 +1,7 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import { useRouter } from "expo-router";
 
 const mockBars = [
   {
@@ -10,7 +11,7 @@ const mockBars = [
     status: 'Open',
     closingTime: '2:00 AM',
     favorite: true,
-    image: require('../../assets/images/Logo.png'),
+    image: require('../../../assets/images/Logo.png'),
   },
   {
     id: '2',
@@ -19,7 +20,7 @@ const mockBars = [
     status: 'Open',
     closingTime: '3:00 AM',
     favorite: false,
-    image: require('../../assets/images/Logo.png'),
+    image: require('../../../assets/images/Logo.png'),
   },
   {
     id: '3',
@@ -28,7 +29,7 @@ const mockBars = [
     status: 'Closed',
     closingTime: '2:00 AM',
     favorite: false,
-    image: require('../../assets/images/Logo.png'),
+    image: require('../../../assets/images/Logo.png'),
   },
 ];
 
@@ -36,6 +37,7 @@ export default function Bars() {
   const [bars, setBars] = useState(mockBars);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const router = useRouter();
 
   // Filtering
   const filteredBars = bars
@@ -63,19 +65,21 @@ export default function Bars() {
   };
   
   const renderBar = ({ item }: { item: any }) => (
-    <View style={styles.barCard}>
-      <Image source={item.image} style={styles.barImage} resizeMode="cover" />
-      <View style={styles.barInfo}>
-        <Text style={styles.barName}>{item.name}</Text>
-        <Text style={styles.barStatus}>
-          {item.status === 'Open' ? `Open - Until ${item.closingTime}` : 'Closed'}
-        </Text>
-        <Text style={styles.barSpecials}>{item.specials}</Text>
+    <TouchableOpacity onPress={() => router.push(`/bars/${item.id}`)}>
+      <View style={styles.barCard}>
+        <Image source={item.image} style={styles.barImage} resizeMode="cover" />
+        <View style={styles.barInfo}>
+          <Text style={styles.barName}>{item.name}</Text>
+          <Text style={styles.barStatus}>
+            {item.status === 'Open' ? `Open - Until ${item.closingTime}` : 'Closed'}
+          </Text>
+          <Text style={styles.barSpecials}>{item.specials}</Text>
+        </View>
+        <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
+          <FontAwesome name="star" size={22} color={item.favorite ? '#33CCFF' : 'grey'} />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-        <FontAwesome name="star" size={22} color={item.favorite ? '#33CCFF' : 'grey'} />
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
