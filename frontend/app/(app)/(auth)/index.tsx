@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native"
-import { useRouter } from 'expo-router'
+
 
 export default function LoginScreen() {
     const { signIn, isLoading, error, isAuthenticated, isSwitching} = useAuth()

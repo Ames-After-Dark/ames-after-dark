@@ -1,6 +1,4 @@
-import { Redirect } from "expo-router"
 import { useColorScheme, View, ActivityIndicator, colorScheme } from "react-native";
-import { AuthProvider, useAuth } from "@/hooks/use-auth"
 
 export default function Index() {
   return (

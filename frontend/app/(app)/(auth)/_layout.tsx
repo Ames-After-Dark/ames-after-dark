@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
-import { AuthProvider, useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth"
 import { useColorScheme, View, ActivityIndicator, colorScheme } from "react-native";
-import { useEffect } from 'react'
 
 export default function AuthLayout() {
     const { isLoading} = useAuth()

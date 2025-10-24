@@ -1,9 +1,7 @@
-import { Auth0Provider } from "react-native-auth0"
 import { AuthProvider, useAuth } from "@/hooks/use-auth"
 import { NavigationContainer, DefaultTheme, DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { useColorScheme, View, ActivityIndicator, colorScheme } from "react-native";
 import {Stack, segments, useSegments, useRouter} from 'expo-router'
-import { config } from '@/auth0.config'
 import {useEffect, useState} from 'react'
 
 export default function AppLayout() {
