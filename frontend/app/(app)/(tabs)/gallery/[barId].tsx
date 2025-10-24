@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, StyleSheet, Dimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { useBarPhotos } from "../../../hooks/useBarPhotos";
-import { Theme } from "../../../constants/theme";
+import { useBarPhotos } from "../../../../hooks/useBarPhotos";
+import { Theme } from "../../../../constants/theme";
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;

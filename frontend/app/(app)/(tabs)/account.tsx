@@ -6,19 +6,15 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth0, Auth0Provider} from 'react-native-auth0';
 import { Button, View, Text } from 'react-native';
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AccountScreen() {
-
-  const {authorize, clearSession, user, getCredentials, error, isLoading} = useAuth0();
-
-  const onLogout = async () => {
-    await clearSession({}, {});
-  };
+  const { user, signOut, isLoading } = useAuth()
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
         <View style={styles.logoutButtonContainer}>
-            <Button title="Log Out" onPress={onLogout} />
+          <Button title="Log Out" onPress={signOut} />
         </View>
         <ParallaxScrollView
           headerBackgroundColor={{ light: '#2A2A2A', dark: '#2A2A2A' }}
@@ -38,9 +34,10 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
     logoutButtonContainer: {
         position: 'absolute',
-        top: 50,
+        top: 40,
         right: 20,
         zIndex: 10,
+        width: 100,
     },
     titleContainer: {
         flexDirection: 'row',
