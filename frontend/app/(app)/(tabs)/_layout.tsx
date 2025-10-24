@@ -42,7 +42,7 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="bars"
         options={{
           title: 'Bars',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
