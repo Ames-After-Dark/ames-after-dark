@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   Image,
   Pressable,
   ScrollView,
@@ -12,151 +11,156 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
-// ---------- Mock Data (Welch Ave, Ames) ----------
+// -------- Types --------
+type TabKey = "open" | "deals" | "friends";
+
 type TonightItem = {
   id: string;
   bar: string;
   event: string;
   specials?: string;
-  image?: any;           // require() image
   isOpen: boolean;
-  hasDeal: boolean;      // for "Deals Tonight"
-  friendsHere?: number;  // for "Friends near you"
+  hasDeal: boolean;
 };
 
-const MOCK_TONIGHT: TonightItem[] = [
+type FriendItem = {
+  id: string;
+  name: string;
+  bar: string;
+  avatar?: any;
+};
+
+// -------- Mock Data  --------
+const BARS: TonightItem[] = [
   {
     id: "1",
     bar: "Outlaws",
     event: "Live Band Tonight",
     specials: "No cover before 10pm",
-    image: require("../../assets/images/Logo.png"),
     isOpen: true,
     hasDeal: true,
-    friendsHere: 3,
   },
   {
     id: "2",
     bar: "Paddy's Irish Pub",
     event: "Beer Garden + DJ",
     specials: "2-for-1 Cocktails 9–11",
-    image: require("../../assets/images/Logo.png"),
     isOpen: true,
     hasDeal: true,
-    friendsHere: 1,
   },
   {
     id: "3",
     bar: "BNC Fieldhouse",
     event: "College Night",
     specials: "Free entry with ISU ID",
-    image: require("../../assets/images/Logo.png"),
     isOpen: false,
     hasDeal: false,
-    friendsHere: 0,
   },
   {
     id: "4",
     bar: "Welch Ave Station",
-    event: "Karaoke",
+    event: "Karaoke Night",
     specials: "$3 You-Call-Its",
-    image: require("../../assets/images/Logo.png"),
     isOpen: true,
     hasDeal: true,
-    friendsHere: 4,
   },
   {
     id: "5",
     bar: "Cy's Roost",
     event: "DJ + Dance Floor",
-    specials: "Ladies Night",
-    image: require("../../assets/images/Logo.png"),
+    specials: "Ladies Night Specials",
     isOpen: true,
     hasDeal: false,
-    friendsHere: 0,
+  },
+  {
+    id: "6",
+    bar: "AJ’s Ultra Lounge",
+    event: "Glow Party",
+    specials: "$5 Fishbowls All Night",
+    isOpen: true,
+    hasDeal: true,
+  },
+  {
+    id: "7",
+    bar: "Mickey’s Irish Pub",
+    event: "0",
+    specials: "$2 Domestic Drafts",
+    isOpen: true,
+    hasDeal: true,
+  },
+  {
+    id: "8",
+    bar: "Sips",
+    event: "Live DJ Set",
+    specials: "Half-Price Cherry Bombs 8-10pm",
+    isOpen: true,
+    hasDeal: true,
   },
 ];
 
-// ---------- Tabs ----------
-type TabKey = "open" | "deals" | "friends";
+const FRIENDS: FriendItem[] = [
+  { id: "f1", name: "Chase Anderson", bar: "Outlaws" },
+  { id: "f2", name: "Jaya Davis", bar: "Paddy's Irish Pub" },
+  { id: "f3", name: "Nathan Couture", bar: "Welch Ave Station" },
+  { id: "f4", name: "Nathan Krieger", bar: "BNC Fieldhouse" },
+  { id: "f5", name: "Analyn Seeman", bar: "Cy's Roost" },
+  { id: "f6", name: "Maggie Sullivan", bar: "Paddy's Irish Pub" },
+  { id: "f7", name: "Geni William", bar: "Outlaws" },
+].map((f) => ({
+  ...f,
+  avatar: require("../../assets/images/Logo.png"), // placeholder avatar
+}));
 
-const TABS: { key: TabKey; label: string }[] = [
+const TAB_META: { key: TabKey; label: string }[] = [
   { key: "open", label: "Open Now" },
   { key: "deals", label: "Deals Tonight" },
   { key: "friends", label: "Friends near you" },
 ];
 
-// ---------- Component ----------
 export default function Tonight() {
   const [activeTab, setActiveTab] = useState<TabKey>("open");
   const [query, setQuery] = useState("");
 
-  const filteredData = useMemo(() => {
+  const filteredBars = useMemo(() => {
     const q = query.trim().toLowerCase();
+    let data = BARS;
 
-    let data = MOCK_TONIGHT;
+    if (activeTab === "open") data = data.filter((d) => d.isOpen);
+    if (activeTab === "deals") data = data.filter((d) => d.hasDeal);
 
-    // tab filters
-    if (activeTab === "open") {
-      data = data.filter((d) => d.isOpen);
-    } else if (activeTab === "deals") {
-      data = data.filter((d) => d.hasDeal);
-    } else if (activeTab === "friends") {
-      data = data.filter((d) => (d.friendsHere ?? 0) > 0);
-    }
-
-    // search filter (bar or event)
-    if (q.length) {
+    if (q) {
       data = data.filter(
         (d) =>
           d.bar.toLowerCase().includes(q) ||
-          d.event.toLowerCase().includes(q)
+          d.event.toLowerCase().includes(q) ||
+          (d.specials ?? "").toLowerCase().includes(q)
       );
     }
-
     return data;
   }, [activeTab, query]);
 
-  const renderItem = ({ item }: { item: TonightItem }) => (
-    <View style={styles.card}>
-      <Image source={item.image} style={styles.cardImg} />
-      <View style={{ flex: 1 }}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.bar}</Text>
+  const filteredFriends = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let data = FRIENDS;
+    if (q) {
+      data = data.filter(
+        (f) =>
+          f.name.toLowerCase().includes(q) ||
+          f.bar.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }, [query]);
 
-          {/* Open/Closed pill */}
-          <View
-            style={[
-              styles.statusPill,
-              { backgroundColor: item.isOpen ? "#22c55e" : "#6b7280" }, // green/gray
-            ]}
-          >
-            <Text style={styles.statusPillText}>
-              {item.isOpen ? "Open" : "Closed"}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.cardSubtitle}>{item.event}</Text>
-        {!!item.specials && (
-          <Text style={styles.cardDetail}>{item.specials}</Text>
-        )}
-
-        {/* Friends indicator (only if > 0) */}
-        {(item.friendsHere ?? 0) > 0 && (
-          <Text style={styles.cardFriends}>
-            {item.friendsHere} friend{(item.friendsHere ?? 0) > 1 ? "s" : ""} nearby
-          </Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
-    </View>
-  );
+  // --- Navigation helpers (switch bottom tabs) ---
+  const goToBarsTab = () => router.navigate("/(tabs)/bars");
+  const goToFriendsTab = () => router.navigate("/(tabs)/friends");
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Top bar with logo */}
+      {/* Top bar */}
       <View style={styles.topBar}>
         <Image
           source={require("../../assets/images/LogoTopBar.png")}
@@ -166,77 +170,164 @@ export default function Tonight() {
         <Ionicons name="settings-outline" size={20} color="#d4d4d8" />
       </View>
 
-      {/* Image Carousel (3 x Logo.png placeholders) */}
+      {/* ScrollView with sticky tabs */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-        style={{ marginBottom: 12 }}
+        stickyHeaderIndices={[1]} // tabs strip sticks; carousel scrolls away
+        contentContainerStyle={{ paddingBottom: 28 }}
       >
-        {[1, 2, 3].map((n) => (
-          <Image
-            key={n}
-            source={require("../../assets/images/Logo.png")}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-        ))}
-      </ScrollView>
+        {/* Full, uncropped carousel */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+          style={{ marginBottom: 12 }}
+        >
+          {[1, 2, 3].map((n) => (
+            <Image
+              key={n}
+              source={require("../../assets/images/Logo.png")}
+              style={styles.heroImage}
+              resizeMode="contain" // show full image, no bottom cropping
+            />
+          ))}
+        </ScrollView>
 
-      {/* Section header + tabs */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Events Tonight</Text>
-        <View style={styles.tabsRow}>
-          {TABS.map((t) => {
-            const active = activeTab === t.key;
-            return (
-              <Pressable
-                key={t.key}
-                onPress={() => setActiveTab(t.key)}
-                style={[styles.tabBtn, active && styles.tabBtnActive]}
-              >
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                  {t.label}
-                </Text>
+        {/* Sticky Tabs */}
+        <View style={styles.stickyTabs}>
+          <Text style={styles.sectionTitle}>Events Tonight</Text>
+          <View style={styles.tabsRow}>
+            {TAB_META.map((t) => {
+              const active = activeTab === t.key;
+              return (
+                <Pressable
+                  key={t.key}
+                  onPress={() => setActiveTab(t.key)}
+                  style={[styles.tabBtn, active && styles.tabBtnActive]}
+                >
+                  <Text
+                    style={[styles.tabText, active && styles.tabTextActive]}
+                    numberOfLines={1}
+                  >
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Search */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={16} color="#a3a3a3" />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search"
+              placeholderTextColor="#9CA3AF"
+              style={styles.searchInput}
+              returnKeyType="search"
+            />
+            {!!query && (
+              <Pressable onPress={() => setQuery("")}>
+                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
               </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* Content by tab */}
+        {activeTab === "friends" ? (
+          <View style={styles.friendsList}>
+            {filteredFriends.map((f) => (
+              <Pressable
+                key={f.id}
+                onPress={goToFriendsTab}
+                style={styles.friendTile}
+              >
+                <Image source={f.avatar!} style={styles.friendAvatar} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.friendName}>{f.name}</Text>
+                  <Text style={styles.friendBar}>{f.bar}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
+              </Pressable>
+            ))}
+            {!filteredFriends.length && (
+              <Text style={styles.emptyText}>No nearby friends found.</Text>
+            )}
+          </View>
+        ) : (
+          <View style={styles.cardsList}>
+           {filteredBars.map((item) => {
+            const isDealsView = activeTab === "deals";
+
+            // NEW: compute texts per tab
+            const headerText   = isDealsView ? (item.specials || item.event) : item.bar;
+            const subtitleText = isDealsView ? item.bar : item.event;
+            const detailText   = isDealsView ? item.event : (item.specials ?? "");
+
+            return (
+              <View
+                key={item.id}
+                style={[styles.card, isDealsView && styles.cardDealsVariant]}
+              >
+                <Image
+                  source={require("../../assets/images/Logo.png")}
+                  style={styles.cardImg}
+                />
+
+                <View style={{ flex: 1 }}>
+                  {/* Header */}
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.cardTitle}>{headerText}</Text>
+
+                    {/* Open pill only on Open tab */}
+                    {activeTab === "open" && (
+                      <View
+                        style={[
+                          styles.statusPill,
+                          { backgroundColor: item.isOpen ? "#22c55e" : "#6b7280" },
+                        ]}
+                      >
+                        <Text style={styles.statusPillText}>
+                          {item.isOpen ? "Open" : "Closed"}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Subtitle */}
+                  <Text style={styles.cardSubtitle}>{subtitleText}</Text>
+
+                  {/* Detail (optional) */}
+                  {!!detailText && <Text style={styles.cardDetail}>{detailText}</Text>}
+
+                  {/* DEAL chip on Deals view */}
+                  {isDealsView && (
+                    <View style={styles.dealChip}>
+                      <Ionicons name="pricetags-outline" size={12} color="#22d3ee" />
+                      <Text style={styles.dealChipText}>DEAL</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Pressable onPress={goToBarsTab} hitSlop={8}>
+                  <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
+                </Pressable>
+              </View>
             );
           })}
-        </View>
-      </View>
 
-      {/* Search */}
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={16} color="#a3a3a3" />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search"
-          placeholderTextColor="#9CA3AF"
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        {!!query && (
-          <Pressable onPress={() => setQuery("")}>
-            <Ionicons name="close-circle" size={16} color="#9CA3AF" />
-          </Pressable>
+            {!filteredBars.length && (
+              <Text style={styles.emptyText}>No results for tonight.</Text>
+            )}
+          </View>
         )}
-      </View>
-
-      {/* List */}
-      <FlatList
-        data={filteredData}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 12 }}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No results for tonight.</Text>
-        }
-      />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ---------- Styles (dark + neon vibe) ----------
+// -------- Styles --------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0B0C12" },
 
@@ -251,40 +342,53 @@ const styles = StyleSheet.create({
   topLogo: { width: 160, height: 32 },
 
   heroImage: {
-    width: 260,
-    height: 120,
-    borderRadius: 14,
+    width: 280,
+    height: 140,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#1F2937",
+    backgroundColor: "#0f172a", // behind contain-fit
   },
 
-  sectionHeader: { paddingHorizontal: 16, marginBottom: 8 },
+  stickyTabs: {
+    backgroundColor: "#0B0C12",
+    paddingTop: 6,
+    paddingBottom: 10,
+  },
+
   sectionTitle: {
     color: "#E5E7EB",
     fontSize: 18,
     fontWeight: "700",
+    paddingHorizontal: 16,
     marginBottom: 8,
   },
 
-  tabsRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  tabsRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
   tabBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: "#1F2937",
-    borderWidth: 1,
-    borderColor: "#272A36",
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    borderWidth: 2, // outlined
+    borderColor: "#374151",
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBtnActive: {
-    backgroundColor: "#0ea5e9", // neon-ish blue
-    borderColor: "#38bdf8",
+    borderColor: "#38bdf8", // neon outline
   },
-  tabText: { color: "#cbd5e1", fontSize: 12, fontWeight: "600" },
-  tabTextActive: { color: "#05131a" },
+  tabText: { color: "#cbd5e1", fontSize: 12, fontWeight: "700" },
+  tabTextActive: { color: "#e0f2fe" },
 
   searchBox: {
     marginHorizontal: 16,
-    marginBottom: 4,
+    marginTop: 2,
     backgroundColor: "#111827",
     borderColor: "#1f2937",
     borderWidth: 1,
@@ -302,6 +406,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
+  cardsList: { padding: 16, gap: 12 },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -311,6 +416,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#1f2937",
+  },
+  cardDealsVariant: {
+    borderColor: "#164e63",
+    backgroundColor: "#0b1420",
   },
   cardImg: {
     width: 48,
@@ -323,11 +432,25 @@ const styles = StyleSheet.create({
   cardTitle: { color: "#f1f5f9", fontWeight: "800", fontSize: 14 },
   cardSubtitle: { color: "#cbd5e1", marginTop: 2, fontSize: 13 },
   cardDetail: { color: "#94a3b8", marginTop: 2, fontSize: 12 },
-  cardFriends: {
-    color: "#60a5fa",
-    marginTop: 6,
-    fontWeight: "600",
-    fontSize: 12,
+
+  dealChip: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "center",
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: "#0b2530",
+    borderWidth: 1,
+    borderColor: "#155e75",
+  },
+  dealChipText: {
+    color: "#22d3ee",
+    fontWeight: "700",
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
 
   statusPill: {
@@ -341,6 +464,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0.4,
+  },
+
+  friendsList: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
+  friendTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 10,
+    borderRadius: 14,
+    backgroundColor: "#0f172a",
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  },
+  friendAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  },
+  friendName: {
+    color: "#f1f5f9",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  friendBar: {
+    color: "#93c5fd",
+    fontWeight: "600",
+    fontSize: 12,
+    marginTop: 2,
   },
 
   emptyText: {
