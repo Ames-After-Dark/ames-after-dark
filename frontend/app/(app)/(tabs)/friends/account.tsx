@@ -1,11 +1,10 @@
-import { StyleSheet } from 'react-native';
-
+import {Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth0, Auth0Provider} from 'react-native-auth0';
-import { Button, View, Text } from 'react-native';
 import { useAuth } from "@/hooks/use-auth"
 
 export default function AccountScreen() {
