@@ -11,7 +11,7 @@ const mockBars = [
     status: 'Open',
     closingTime: '2:00 AM',
     favorite: true,
-    image: require('../../../assets/images/Logo.png'),
+    image: require('../../../../assets/images/Logo.png'),
   },
   {
     id: '2',
@@ -20,7 +20,7 @@ const mockBars = [
     status: 'Open',
     closingTime: '3:00 AM',
     favorite: false,
-    image: require('../../../assets/images/Logo.png'),
+    image: require('../../../../assets/images/Logo.png'),
   },
   {
     id: '3',
@@ -29,7 +29,7 @@ const mockBars = [
     status: 'Closed',
     closingTime: '2:00 AM',
     favorite: false,
-    image: require('../../../assets/images/Logo.png'),
+    image: require('../../../../assets/images/Logo.png'),
   },
 ];
 
