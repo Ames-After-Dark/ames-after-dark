@@ -11,7 +11,6 @@ import { router } from 'expo-router';
 export default function FriendsScreen() {
   // useState to manage the search input
   const [searchQuery, setSearchQuery] = useState('');
-
   return (
       <ParallaxScrollView
           headerBackgroundColor={{ light: '#2A2A2A', dark: '#2A2A2A' }}
@@ -23,7 +22,6 @@ export default function FriendsScreen() {
                       <IconSymbol name="gearshape.fill" size={25} color="#ccc" style={{ marginLeft: 'auto' }} />
                     </Pressable>
       </ThemedView>
-
       <ThemedView style={styles.container}>
         <ThemedView style={styles.searchContainer}>
           <IconSymbol name="search" size={18} color="#888" />
@@ -35,7 +33,6 @@ export default function FriendsScreen() {
             onChangeText={setSearchQuery}
           />
         </ThemedView>
-
         <ThemedText>no friends yet :(</ThemedText>
       </ThemedView>
     </ParallaxScrollView>

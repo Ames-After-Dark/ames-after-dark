@@ -22,10 +22,8 @@ export default function AccountScreen() {
           headerImage={<IconSymbol size={220} name="person.crop.circle" color="#808080" />}>
           <ThemedView style={styles.titleContainer}>
             <ThemedText type="title">Account</ThemedText>
-            <ThemedView style={styles.container}>
-                <ThemedText>Edit Account Details Below</ThemedText>
-            </ThemedView>
-              <TextInput
+          </ThemedView>
+              <TextInput //this will be changed to only be input on button press
                 placeholder="Name"
                 style={styles.input}
                 autoCapitalize="none"
@@ -33,7 +31,6 @@ export default function AccountScreen() {
                 onChangeText={setName}
                 placeholderTextColor="#888"
               />
-
               <TextInput
                 placeholder="Email"
                 style={styles.input}
@@ -56,6 +53,14 @@ const styles = StyleSheet.create({
         zIndex: 10,
         width: 100,
     },
+    input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    color: "#888"
+  },
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
