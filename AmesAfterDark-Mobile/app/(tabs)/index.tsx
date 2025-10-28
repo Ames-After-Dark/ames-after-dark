@@ -159,21 +159,12 @@ export default function Tonight() {
   const goToFriendsTab = () => router.navigate("/(tabs)/friends");
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <Image
-          source={require("../../assets/images/LogoTopBar.png")}
-          style={styles.topLogo}
-          resizeMode="contain"
-        />
-        <Ionicons name="settings-outline" size={20} color="#d4d4d8" />
-      </View>
-
+    <SafeAreaView style={styles.container} >
+    
       {/* ScrollView with sticky tabs */}
       <ScrollView
         stickyHeaderIndices={[1]} // tabs strip sticks; carousel scrolls away
-        contentContainerStyle={{ paddingBottom: 28 }}
+        contentContainerStyle={{ paddingBottom: 10 }}
       >
         {/* Full, uncropped carousel */}
         <ScrollView
@@ -333,7 +324,7 @@ const styles = StyleSheet.create({
 
   topBar: {
     paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 1,
     paddingBottom: 8,
     flexDirection: "row",
     alignItems: "center",
