@@ -1,5 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,75 +8,81 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { BARS_BASE, BarBase } from "@/data/mock";
-import { getNow, isActive, isBarOpen } from "@/constants/time";
+import { useBars } from "@/src/hooks/useBars";
+import { isActive } from "@/src/config/time";
+import type { Bar } from "@/src/types/bar";
+import { IMG } from "@/src/assets"
 
 export default function Bars() {
-  const [bars, setBars] = useState<BarBase[]>(BARS_BASE);
+  const router = useRouter();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const router = useRouter();
-  const now = getNow();
 
-  // ---------- Filtering ----------
-  const filteredBars = bars
-    .filter((bar) => {
-      if (filter === "All") return true;
-      if (filter === "Open Now") return isBarOpen(bar, now);
+  // Heavy filters you want backend to handle (now or later)
+  const wantsOpen = filter === "Open Now";
+  const wantsDeals = filter === "Specials";
+  const wantsLive = filter === "Live Music";
 
-      if (filter === "Specials") {
-        // Active scheduled deals OR any deals present
-        const hasActiveScheduled =
-          bar.dealsScheduled?.some((d) => isActive(d.rule, now)) ?? false;
-        const hasAnyDeals = (bar.dealsScheduled?.length ?? 0) > 0;
+  const { bars, loading, now } = useBars({
+    open: wantsOpen || undefined,
+    hasDeals: wantsDeals || undefined,
+    liveMusic: wantsLive || undefined,
+    q: search || undefined,
+  });
 
-        return hasActiveScheduled || hasAnyDeals;
-      }
+  // Light, view-only filters can stay client side (Favorites)
+  const visibleBars = useMemo(() => {
+    let data = bars;
 
-      if (filter === "Live Music") {
-        return (
-          bar.eventsScheduled?.some(
-            (e) =>
-              e.name.toLowerCase().includes("live") ||
-              e.name.toLowerCase().includes("band") ||
-              e.name.toLowerCase().includes("dj")
-          ) ?? false
-        );
-      }
+    if (filter === "Favorites") {
+      data = data.filter(b => !!b.favorite);
+    }
 
-      if (filter === "Favorites") return !!bar.favorite;
-      return true;
-    })
-    .filter(
-      (bar) =>
-        bar.name.toLowerCase().includes(search.toLowerCase()) ||
-        bar.description.toLowerCase().includes(search.toLowerCase())
-    )
+    // Local search is still fine for mock; when backend is ready your useBars already supports q=
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(
+        b =>
+          b.name.toLowerCase().includes(q) ||
+          b.description.toLowerCase().includes(q)
+      );
+    }
+
     // Favorites on top
-    .sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+    return data.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  }, [bars, filter, search]);
 
   const toggleFavorite = (id: string) => {
-    const updated = bars.map((bar) =>
-      bar.id === id ? { ...bar, favorite: !bar.favorite } : bar
-    );
-    setBars(updated);
+    // In mock mode this updates UI only. In live mode you’d call POST /bars/:id/favorite.
+    // We keep it local here for now to not break mocks.
+    // (Optimistic update pattern)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (bars as any[]).forEach(b => {
+      if (String(b.id) === String(id)) b.favorite = !b.favorite;
+    });
   };
 
-  // ---------- Render ----------
-  const renderBar = ({ item }: { item: BarBase }) => {
+  const renderBar = ({ item }: { item: Bar & { __openNow?: boolean } }) => {
     const firstDeal =
       item.dealsScheduled?.[0]?.title ??
       item.eventsScheduled?.[0]?.name ??
       "No specials tonight";
 
-    const openNow = isBarOpen(item, now);
+    const openNow = !!item.__openNow;
+
+    // prefer URL when backend arrives; fallback to mock image prop
+    const imageSource =
+    item.logoUrl ? { uri: item.logoUrl } :
+    //  item.logo    ? item.logo :
+    IMG.LOGO;
 
     return (
       <TouchableOpacity onPress={() => router.push(`/bars/${item.id}`)}>
         <View style={styles.barCard}>
-          <Image source={item.logo} style={styles.barImage} resizeMode="cover" />
+          <Image source={imageSource} style={styles.barImage} resizeMode="cover" />
           <View style={styles.barInfo}>
             <Text style={styles.barName}>{item.name}</Text>
             <Text style={styles.barStatus}>
@@ -84,7 +90,7 @@ export default function Bars() {
             </Text>
             <Text style={styles.barSpecials}>{firstDeal}</Text>
           </View>
-          <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
+          <TouchableOpacity onPress={() => toggleFavorite(String(item.id))}>
             <FontAwesome
               name="star"
               size={22}
@@ -96,18 +102,12 @@ export default function Bars() {
     );
   };
 
-  // ---------- UI ----------
   return (
     <View style={styles.container}>
       {/* Search & Filters */}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBar}>
-          <FontAwesome
-            name="search"
-            size={18}
-            color="#33CCFF"
-            style={styles.searchIcon}
-          />
+          <FontAwesome name="search" size={18} color="#33CCFF" style={styles.searchIcon} />
           <TextInput
             placeholder="Search bars or keywords"
             placeholderTextColor="#94A3B8"
@@ -116,125 +116,56 @@ export default function Bars() {
             style={styles.searchInput}
           />
         </View>
-
-        <View style={styles.filters}>
-          {["All", "Open Now", "Specials", "Live Music", "Favorites"].map(
-            (option) => (
-              <TouchableOpacity
-                key={option}
+        <View className="filters" style={styles.filters}>
+          {["All", "Open Now", "Specials", "Live Music", "Favorites"].map(option => (
+            <TouchableOpacity
+              key={option}
+              style={[styles.filterButton, filter === option && styles.activeFilter]}
+              onPress={() => setFilter(option)}
+            >
+              <Text
                 style={[
-                  styles.filterButton,
-                  filter === option && styles.activeFilter,
+                  styles.filterText,
+                  filter === option && { color: "black", fontWeight: "600" },
                 ]}
-                onPress={() => setFilter(option)}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === option && { color: "black", fontWeight: "600" },
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            )
-          )}
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      {/* Bar List */}
-      <FlatList
-        data={filteredBars}
-        renderItem={renderBar}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.barList}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 24 }} color="#33CCFF" />
+      ) : (
+        <FlatList
+          data={visibleBars}
+          renderItem={renderBar}
+          keyExtractor={item => String(item.id)}
+          contentContainerStyle={styles.barList}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
 
-// ---------- Styles ----------
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0b0b12",
-  },
-  searchFilterContainer: {
-    backgroundColor: "#1A1A1A",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 10,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    color: "#94A3B8",
-    fontSize: 14,
-  },
-  filters: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  filterButton: {
-    backgroundColor: "#1A1A1A",
-    borderColor: "#33CCFF",
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    marginHorizontal: 6,
-  },
-  activeFilter: {
-    backgroundColor: "#33CCFF",
-  },
-  filterText: {
-    color: "white",
-    fontSize: 13,
-  },
-  barList: {
-    paddingBottom: 80,
-  },
-  barCard: {
-    flexDirection: "row",
-    backgroundColor: "#1A1A1A",
-    borderRadius: 16,
-    padding: 12,
-    marginVertical: 6,
-    alignItems: "center",
-  },
-  barImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  barInfo: {
-    flex: 1,
-  },
-  barName: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  barStatus: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  barSpecials: {
-    color: "white",
-    fontSize: 14,
-    marginVertical: 2,
-  },
+  container: { flex: 1, backgroundColor: "#0b0b12" },
+  searchFilterContainer: { backgroundColor: "#1A1A1A", paddingVertical: 12, paddingHorizontal: 14 },
+  searchBar: { flexDirection: "row", alignItems: "center", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: "#94A3B8", fontSize: 14 },
+  filters: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
+  filterButton: { backgroundColor: "#1A1A1A", borderColor: "#33CCFF", borderWidth: 1, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginHorizontal: 6 },
+  activeFilter: { backgroundColor: "#33CCFF" },
+  filterText: { color: "white", fontSize: 13 },
+  barList: { paddingBottom: 80 },
+  barCard: { flexDirection: "row", backgroundColor: "#1A1A1A", borderRadius: 16, padding: 12, marginVertical: 6, alignItems: "center" },
+  barImage: { width: 70, height: 70, borderRadius: 12, marginRight: 12 },
+  barInfo: { flex: 1 },
+  barName: { color: "white", fontSize: 18, fontWeight: "600" },
+  barStatus: { color: "white", fontSize: 14, fontWeight: "500" },
+  barSpecials: { color: "white", fontSize: 14, marginVertical: 2 },
 });

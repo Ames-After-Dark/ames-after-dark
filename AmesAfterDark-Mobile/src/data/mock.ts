@@ -1,6 +1,6 @@
 // AmesAfterDark-Mobile/data/mock.ts
 // Updated mock data with scheduled deals/events support (hour-based)
-
+import {IMG} from "../assets"
 // ---------- Types ----------
 export type BarId = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8";
 
@@ -61,7 +61,7 @@ export type BarBase = {
 };
 
 // ---------- Placeholder Assets ----------
-const LOGO = require("../assets/images/Logo.png");
+const LOGO = IMG.LOGO
 const COVER = LOGO;
 const GALLERY = LOGO;
 const MAP = LOGO;
@@ -91,7 +91,7 @@ export const BARS_BASE: BarBase[] = [
           kind: "weekly",
           tz: CHICAGO_TZ,
           daysOfWeek: [3, 4, 5, 6],
-          startLocalTime: "20:00",
+          startLocalTime: "18:00",
           endLocalTime: "23:00",
         },
       },
@@ -131,13 +131,13 @@ export const BARS_BASE: BarBase[] = [
         id: "deal2",
         barId: "2",
         title: "Half-Price Cherry Bombs",
-        subtitle: "8–10PM",
+        subtitle: "7–9PM",
         rule: {
           kind: "weekly",
           tz: CHICAGO_TZ,
           daysOfWeek: [5, 6],
-          startLocalTime: "20:00",
-          endLocalTime: "22:00",
+          startLocalTime: "17:00",
+          endLocalTime: "21:00",
         },
       },
     ],

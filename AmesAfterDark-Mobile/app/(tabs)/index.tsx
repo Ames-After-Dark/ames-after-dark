@@ -13,8 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { BARS_BASE, FRIENDS, BarBase } from "@/data/mock";
-import { getNow, isActive, isBarOpen } from "@/constants/time";
+import { BARS_BASE, FRIENDS, BarBase } from "@/src/data/mock";
+import { getNow, isActive, isBarOpen } from "@/src/config/time";
 
 // Tabs
 const TAB_META = [
