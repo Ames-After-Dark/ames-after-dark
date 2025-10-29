@@ -2,10 +2,10 @@ import { TimeRule } from "@/src/data/mock";
 
 export const USE_FAKE_TIME = true;
 //export const FAKE_TIME = "2025-10-28T16:30:00-05:00"; // Tuesday 7:30 PM
-// export const FAKE_TIME = "2025-10-25T19:30:00-05:00"; // Saturday 7:30 PM
-export const FAKE_TIME = "2025-10-28T21:30:00-05:00"; // Tuesday 9:30 PM
-//export const FAKE_TIME = "2025-10-29T02:30:00-05:00"; // Tuesday 2:30 AM
-
+//export const FAKE_TIME = "2025-10-25T19:30:00-05:00"; // Saturday 7:30 PM
+//export const FAKE_TIME = "2025-10-28T21:30:00-05:00"; // Tuesday 9:30 PM
+//export const FAKE_TIME = "2025-10-25T02:30:00-05:00"; // Saturday 2:30 AM
+export const FAKE_TIME = "2025-10-25T01:30:00-05:00"; // Saturday 2:30 AM
 
 // ---------- Shared helpers ----------
 export const getNow = (): Date =>

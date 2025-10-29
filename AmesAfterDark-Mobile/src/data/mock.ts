@@ -2,7 +2,17 @@
 // Updated mock data with scheduled deals/events support (hour-based)
 import {IMG} from "../assets"
 // ---------- Types ----------
-export type BarId = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8";
+export type BarId = 
+  | "1"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "10";;
 
 export type ISODateTime = string;
 
@@ -65,6 +75,9 @@ const LOGO = IMG.LOGO
 const COVER = LOGO;
 const GALLERY = LOGO;
 const MAP = LOGO;
+const PinkIcon = IMG.PinkIcon;
+const BlueIcon = IMG.BlueIcon;
+const YellowIcon = IMG.YellowIcon;
 
 const CHICAGO_TZ = "America/Chicago";
 
@@ -202,6 +215,322 @@ export const BARS_BASE: BarBase[] = [
     galleryImage: GALLERY,
     mapImage: MAP,
   },
+  {
+  id: "4",
+  name: "AJ’s Ultra Lounge",
+  description: "Trendy nightclub on Welch Ave known for its LED dance floor and DJ sets.",
+  favorite: true,
+  openingTime: "8:00 PM",
+  closingTime: "2:00 AM",
+  visits: 320,
+  friends: 9,
+  favorites: 120,
+  dealsScheduled: [
+    {
+      id: "deal4",
+      barId: "4",
+      title: "$3 Bombs",
+      subtitle: "Fridays & Saturdays until 11PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [5, 6],
+        startLocalTime: "20:00",
+        endLocalTime: "23:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event4",
+      barId: "4",
+      name: "Ultra Fridays",
+      description: "Resident DJs spinning hip-hop and EDM all night long.",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [5],
+        startLocalTime: "22:00",
+        endLocalTime: "02:00",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "5",
+  name: "Paddy’s Irish Pub",
+  description: "Classic Irish pub with pool tables, cheap drinks, and trivia nights.",
+  favorite: false,
+  openingTime: "3:00 PM",
+  closingTime: "3:00 AM",
+  visits: 210,
+  friends: 6,
+  favorites: 84,
+  dealsScheduled: [
+    {
+      id: "deal5",
+      barId: "5",
+      title: "$3 Bomb Shots",
+      subtitle: "Trivia Shots 8–10PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [2],
+        startLocalTime: "20:00",
+        endLocalTime: "22:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event5",
+      barId: "5",
+      name: "Trivia Tuesday",
+      description: "Bring your friends for team trivia and prizes!",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [2],
+        startLocalTime: "19:00",
+        endLocalTime: "22:00",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "6",
+  name: "Blue Owl Bar",
+  description: "Cocktail and whiskey bar above Pizza Pit with a chill vibe and great music.",
+  favorite: true,
+  openingTime: "5:00 PM",
+  closingTime: "2:00 AM",
+  visits: 180,
+  friends: 4,
+  favorites: 99,
+  dealsScheduled: [
+    {
+      id: "deal6",
+      barId: "6",
+      title: "$4 Old Fashioneds",
+      subtitle: "Wednesdays 7–10PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [3],
+        startLocalTime: "19:00",
+        endLocalTime: "22:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event6",
+      barId: "6",
+      name: "Live Acoustic Thursdays",
+      description: "Local artists and chill vibes on the upper level.",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [4],
+        startLocalTime: "20:00",
+        endLocalTime: "23:30",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "7",
+  name: "Mickey’s Irish Pub",
+  description: "Welch Avenue staple with outdoor patio and live music.",
+  favorite: false,
+  openingTime: "4:00 PM",
+  closingTime: "2:00 AM",
+  visits: 165,
+  friends: 5,
+  favorites: 70,
+  dealsScheduled: [
+    {
+      id: "deal7",
+      barId: "7",
+      title: "Half-Price Apps & $3 Pints",
+      subtitle: "Daily 4–7PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [1, 2, 3, 4, 5],
+        startLocalTime: "16:00",
+        endLocalTime: "19:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event7",
+      barId: "7",
+      name: "Live Music Fridays",
+      description: "Acoustic and indie artists on the back stage.",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [5],
+        startLocalTime: "21:00",
+        endLocalTime: "23:59",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "8",
+  name: "Mother’s Pub",
+  description: "Classic dive bar with pool tables, darts, and cheap beer pitchers.",
+  favorite: false,
+  openingTime: "2:00 PM",
+  closingTime: "2:00 AM",
+  visits: 195,
+  friends: 6,
+  favorites: 77,
+  dealsScheduled: [
+    {
+      id: "deal8",
+      barId: "8",
+      title: "$5 Pitchers",
+      subtitle: "Every Monday 5–9PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [1],
+        startLocalTime: "17:00",
+        endLocalTime: "21:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event8",
+      barId: "8",
+      name: "Open Mic Night",
+      description: "Grab a drink and take the stage every Wednesday!",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [3],
+        startLocalTime: "20:00",
+        endLocalTime: "23:00",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "9",
+  name: "Thumbs",
+  description: "Laid-back Welch bar with signature drinks and darts in the back.",
+  favorite: false,
+  openingTime: "4:00 PM",
+  closingTime: "2:00 AM",
+  visits: 140,
+  friends: 3,
+  favorites: 58,
+  dealsScheduled: [
+    {
+      id: "deal9",
+      barId: "9",
+      title: "$2 Busch Lights & $4 Wells",
+      subtitle: "Thursday Power Hour 8–10PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [4],
+        startLocalTime: "20:00",
+        endLocalTime: "22:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event9",
+      barId: "9",
+      name: "DJ Saturdays",
+      description: "Dance floor and drink specials every weekend.",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [6],
+        startLocalTime: "21:00",
+        endLocalTime: "02:00",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+{
+  id: "10",
+  name: "Welch Ave Station",
+  description: "Neighborhood bar with pool tables, darts, and strong drinks.",
+  favorite: true,
+  openingTime: "3:00 PM",
+  closingTime: "2:00 AM",
+  visits: 280,
+  friends: 8,
+  favorites: 95,
+  dealsScheduled: [
+    {
+      id: "deal10",
+      barId: "10",
+      title: "$2 Wells & $2.50 Tallboys",
+      subtitle: "Happy Hour 3–7PM",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [3, 4, 5],
+        startLocalTime: "15:00",
+        endLocalTime: "19:00",
+      },
+    },
+  ],
+  eventsScheduled: [
+    {
+      id: "event10",
+      barId: "10",
+      name: "Karaoke Thursdays",
+      description: "Ames favorite karaoke night with rotating drink specials!",
+      rule: {
+        kind: "weekly",
+        tz: CHICAGO_TZ,
+        daysOfWeek: [4],
+        startLocalTime: "21:00",
+        endLocalTime: "23:59",
+      },
+    },
+  ],
+  logo: LOGO,
+  cover: COVER,
+  galleryImage: GALLERY,
+  mapImage: MAP,
+},
+
 ];
 
 // ---------- Derived Views (still used by app) ----------
@@ -251,11 +580,11 @@ export const BAR_DETAILS_BY_ID = Object.fromEntries(
 // ---------- Friends ----------
 export type FriendItem = { id: string; name: string; bar: string; avatar: any };
 export const FRIENDS: FriendItem[] = [
-  { id: "f1", name: "Chase Anderson", bar: "Outlaws", avatar: LOGO },
-  { id: "f2", name: "Jaya Davis", bar: "Paddy's Irish Pub", avatar: LOGO },
-  { id: "f3", name: "Nathan Couture", bar: "Welch Ave Station", avatar: LOGO },
-  { id: "f4", name: "Nathan Krieger", bar: "BNC Fieldhouse", avatar: LOGO },
-  { id: "f5", name: "Analyn Seeman", bar: "Cy's Roost", avatar: LOGO },
-  { id: "f6", name: "Maggie Sullivan", bar: "Paddy's Irish Pub", avatar: LOGO },
-  { id: "f7", name: "Geni William", bar: "Outlaws", avatar: LOGO },
+  { id: "f1", name: "Chase Anderson", bar: "Outlaws", avatar: PinkIcon },
+  { id: "f2", name: "Jaya Davis", bar: "Paddy's Irish Pub", avatar: BlueIcon },
+  { id: "f3", name: "Nathan Couture", bar: "Welch Ave Station", avatar: YellowIcon },
+  { id: "f4", name: "Nathan Krieger", bar: "BNC Fieldhouse", avatar: PinkIcon },
+  { id: "f5", name: "Analyn Seeman", bar: "Cy's Roost", avatar: BlueIcon },
+  { id: "f6", name: "Maggie Sullivan", bar: "Paddy's Irish Pub", avatar: YellowIcon },
+  { id: "f7", name: "Geni William", bar: "Outlaws", avatar: PinkIcon },
 ];

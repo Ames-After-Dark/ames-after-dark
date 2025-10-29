@@ -1,4 +1,10 @@
 // app/(tabs)/tonight.tsx
+// High-level: This screen renders the "Tonight" tab with 3 views:
+//  - Open Now (bars currently open)
+//  - Deals Tonight (bars with an active scheduled deal)
+//  - Friends near you (mock list of friends + where they are)
+// Data comes from local mock sources and time utilities to decide "open"/"active".
+
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -17,48 +23,69 @@ import { BARS_BASE, FRIENDS, BarBase } from "@/src/data/mock";
 import { getNow, isActive, isBarOpen } from "@/src/config/time";
 
 // Tabs
+// Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
   { key: "open", label: "Open Now" },
   { key: "deals", label: "Deals Tonight" },
   { key: "friends", label: "Friends near you" },
 ] as const;
 
+// Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = typeof TAB_META[number]["key"];
 
-
 export default function Tonight() {
+  // Which tab the user is on
   const [activeTab, setActiveTab] = useState<TabKey>("open");
+  // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
+  // "Now" is abstracted here so we can fake time in development via getNow()
   const now = getNow();
 
   // ----- Compute “active” and “hasDeal” dynamically -----
+  // We start from base bar data and compute per-bar values for *this moment*:
+  // - event: the first currently active event name (fallback to first scheduled)
+  // - specials: the first currently active deal title (if any)
+  // - isOpen: based on each bar's hours and "now"
+  // - hasDeal: whether there is at least 1 active deal right now
   const barsWithTonightData = useMemo(() => {
     return BARS_BASE.map((b) => {
+      // Filter deals that are active *right now*
       const activeDeals =
         b.dealsScheduled?.filter((d) => isActive(d.rule, now)) ?? [];
+      // Filter events that are active *right now*
       const activeEvents =
         b.eventsScheduled?.filter((e) => isActive(e.rule, now)) ?? [];
 
       return {
         id: b.id,
         bar: b.name,
+        // Prefer an event that's active right now; otherwise preview the first scheduled one
         event: activeEvents[0]?.name ?? b.eventsScheduled?.[0]?.name ?? "",
+        // Prefer a currently active deal title
         specials: activeDeals[0]?.title ?? "",
+        // Compute open/closed from hours
         isOpen: isBarOpen(b, now),
+        // Flag whether any deal is active
         hasDeal: activeDeals.length > 0,
+        // Local image handle (logo) to render in cards
         image: b.logo,
       };
     });
+    // Recompute only when "now" changes (e.g., dev fake time switch)
   }, [now]);
 
   // ----- Filter for active tab -----
+  // Take the computed list and filter based on the selected tab + text query.
   const filteredBars = useMemo(() => {
     const q = query.trim().toLowerCase();
     let data = barsWithTonightData;
 
+    // "Open Now" tab => only show bars that are currently open
     if (activeTab === "open") data = data.filter((d) => d.isOpen);
+    // "Deals" tab => only bars with an active deal
     if (activeTab === "deals") data = data.filter((d) => d.hasDeal);
 
+    // Text search across bar name, event name, and specials text
     if (q) {
       data = data.filter(
         (d) =>
@@ -71,6 +98,7 @@ export default function Tonight() {
   }, [activeTab, query, barsWithTonightData]);
 
   // ----- Filter friends -----
+  // If the "Friends" tab is active, we search FRIENDS by name or bar.
   const filteredFriends = useMemo(() => {
     const q = query.trim().toLowerCase();
     let data = FRIENDS;
@@ -84,16 +112,20 @@ export default function Tonight() {
     return data;
   }, [query]);
 
+  // Navigation helpers for row chevrons
   const goToBarsTab = () => router.navigate("/(tabs)/bars");
   const goToFriendsTab = () => router.navigate("/(tabs)/friends");
 
   return (
-    <SafeAreaView style={styles.container}>
+  <SafeAreaView style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]} edges={["left", "right"]}>
+      {/* Outer scroll so we can have a header carousel + sticky controls + list */}
       <ScrollView
-        stickyHeaderIndices={[1]}
-        contentContainerStyle={{ paddingBottom: 10 }}
+        stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
+        contentContainerStyle={{ paddingBottom: 1 }}
+        contentInsetAdjustmentBehavior="never"
       >
-        {/* Deals carousel */}
+        {/* Deals carousel (currently placeholder images). 
+            Horizontal scroll shows promotional cards. */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -110,9 +142,11 @@ export default function Tonight() {
           ))}
         </ScrollView>
 
-        {/* Sticky Tabs + Search */}
+        {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
         <View style={styles.stickyTabs}>
           <Text style={styles.sectionTitle}>Events Tonight</Text>
+
+          {/* Tab row: renders from TAB_META and toggles activeTab */}
           <View style={styles.tabsRow}>
             {TAB_META.map((t) => {
               const active = activeTab === t.key;
@@ -133,6 +167,7 @@ export default function Tonight() {
             })}
           </View>
 
+          {/* Search box filters either bars or friends depending on the tab */}
           <View style={styles.searchBox}>
             <Ionicons name="search" size={16} color="#a3a3a3" />
             <TextInput
@@ -151,13 +186,14 @@ export default function Tonight() {
           </View>
         </View>
 
-        {/* Content */}
+        {/* Content area switches between "friends list" and "bars list" */}
         {activeTab === "friends" ? (
+          // -------- Friends View --------
           <View style={styles.friendsList}>
             {filteredFriends.map((f) => (
               <Pressable
                 key={f.id}
-                onPress={goToFriendsTab}
+                onPress={goToFriendsTab} // For now, tapping a friend routes to the Friends tab
                 style={styles.friendTile}
               >
                 <Image source={f.avatar!} style={styles.friendAvatar} />
@@ -168,13 +204,16 @@ export default function Tonight() {
                 <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
               </Pressable>
             ))}
+            {/* Empty-state message if no search results */}
             {!filteredFriends.length && (
               <Text style={styles.emptyText}>No nearby friends found.</Text>
             )}
           </View>
         ) : (
+          // -------- Bars/Deals View --------
           <View style={styles.cardsList}>
             {filteredBars.map((item) => {
+              // If we’re on "deals", emphasize the deal/event rather than the bar
               const isDealsView = activeTab === "deals";
               const headerText = isDealsView
                 ? item.specials || item.event
@@ -189,22 +228,25 @@ export default function Tonight() {
                   key={item.id}
                   style={[styles.card, isDealsView && styles.cardDealsVariant]}
                 >
+                  {/* Left: bar logo (or any image) */}
                   <Image
                     source={item.image}
                     style={styles.cardImg}
                     resizeMode="cover"
                   />
+                  {/* Middle: title, subtitle, details, and optionally pills */}
                   <View style={{ flex: 1 }}>
                     <View style={styles.cardHeader}>
                       <Text style={styles.cardTitle}>{headerText}</Text>
+                      {/* On "Open Now" tab, show an Open/Closed pill */}
                       {activeTab === "open" && (
                         <View
                           style={[
                             styles.statusPill,
                             {
                               backgroundColor: item.isOpen
-                                ? "#22c55e"
-                                : "#6b7280",
+                                ? "#22c55e" // green
+                                : "#6b7280", // gray
                             },
                           ]}
                         >
@@ -218,6 +260,7 @@ export default function Tonight() {
                     {!!detailText && (
                       <Text style={styles.cardDetail}>{detailText}</Text>
                     )}
+                    {/* On "Deals" tab, also show a small "DEAL" chip */}
                     {isDealsView && (
                       <View style={styles.dealChip}>
                         <Ionicons
@@ -229,12 +272,14 @@ export default function Tonight() {
                       </View>
                     )}
                   </View>
+                  {/* Right chevron navigating to Bars tab (detail view TBD) */}
                   <Pressable onPress={goToBarsTab} hitSlop={8}>
                     <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
                   </Pressable>
                 </View>
               );
             })}
+            {/* Empty-state for bar/deals search results */}
             {!filteredBars.length && (
               <Text style={styles.emptyText}>No results for tonight.</Text>
             )}
@@ -246,6 +291,8 @@ export default function Tonight() {
 }
 
 // -------- Styles --------
+// Colors are mostly dark mode with subtle borders and neon-ish accents.
+// A few variants (e.g., cardDealsVariant) tweak tone for the Deals view.
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0B0C12" },
   heroImage: {
