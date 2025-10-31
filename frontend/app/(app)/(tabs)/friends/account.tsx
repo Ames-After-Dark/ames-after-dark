@@ -1,15 +1,16 @@
-import { StyleSheet } from 'react-native';
-
+import {Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth0, Auth0Provider} from 'react-native-auth0';
-import { Button, View, Text } from 'react-native';
 import { useAuth } from "@/hooks/use-auth"
 
 export default function AccountScreen() {
   const { user, signOut, isLoading } = useAuth()
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   return (
     <View style={{ flex: 1 }}>
@@ -22,10 +23,23 @@ export default function AccountScreen() {
           <ThemedView style={styles.titleContainer}>
             <ThemedText type="title">Account</ThemedText>
           </ThemedView>
-          <ThemedView style={styles.container}>
-            <ThemedText>Account details will go here.</ThemedText>
-          </ThemedView>
-        </ParallaxScrollView>
+              <TextInput //this will be changed to only be input on button press
+                placeholder="Name"
+                style={styles.input}
+                autoCapitalize="none"
+                value={name}
+                onChangeText={setName}
+                placeholderTextColor="#888"
+              />
+              <TextInput
+                placeholder="Email"
+                style={styles.input}
+                secureTextEntry
+                value={email}
+                onChangeText={setEmail}
+                placeholderTextColor="#888"
+              />
+        </ParallaxScrollView>`
     </View>
   );
 }
@@ -39,6 +53,14 @@ const styles = StyleSheet.create({
         zIndex: 10,
         width: 100,
     },
+    input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    color: "#888"
+  },
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',

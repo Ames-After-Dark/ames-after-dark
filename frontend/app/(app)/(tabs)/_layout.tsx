@@ -63,12 +63,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="account"
+        name="friends/friends"
         options={{
+          title: 'Friends',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="friends/account"
+        options={{
+          href: null, // hidden from tab bar, opened through settings gear
           title: 'Account',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.crop.circle" color={color} />
-          ),
         }}
       />
     </Tabs>

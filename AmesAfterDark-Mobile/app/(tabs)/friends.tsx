@@ -1,17 +1,17 @@
 import { View, Text, Image, StyleSheet } from 'react-native';
 
-export default function Friends() {
+export default function Gallery() {
   return (
     <View style={styles.container}>
 
       <Text style={styles.title}>Friends</Text>
-      
+
       <Image
         source={require('../../assets/images/Logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />
-      
+    
     </View>
   );
 }

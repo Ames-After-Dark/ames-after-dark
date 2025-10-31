@@ -23,8 +23,6 @@ const MAPPING = {
   'map.fill': 'map',
   'photo.fill': 'photo',
   'person.crop.circle': 'person',
-  'person.2.fill': 'group',
-  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**
