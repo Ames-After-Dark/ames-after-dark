@@ -4,5 +4,6 @@ export const IMG = {
   MAP: require("../assets/images/map.jpg"),   
   PinkIcon: require("../assets/images/PinkIcon.png"), 
   BlueIcon: require("../assets/images/BlueIcon.png"),  
-  YellowIcon: require("../assets/images/YellowIcon.png"),    
+  YellowIcon: require("../assets/images/YellowIcon.png"), 
+  fakeMap: require("../assets/images/map.jpg"),
 };
