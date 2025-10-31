@@ -40,12 +40,6 @@
           }
         }
       ],
-      [
-        "react-native-auth0",
-        {
-          "domain": "dev-lz0c3j2voxj6hy6v.us.auth0.com"
-        }
-      ],
       "expo-web-browser"
     ],
     "experiments": {
