@@ -76,11 +76,10 @@ jobs:
           key: backend-${{ hashFiles('backend/package-lock.json') }}
       - run: cd backend && npm test
 
-  # deploy:
-  #   runs-on: [self-hosted, linux, x64]
-  #   needs: [test_frontend, test_backend]
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - run: |
-  #        #todo
+  deploy:
+    runs-on: [self-hosted]
+    needs: [test_frontend, test_backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd backend && node index.js
