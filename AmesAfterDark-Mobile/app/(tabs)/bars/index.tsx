@@ -1,47 +1,66 @@
 import { FontAwesome } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
-  ActivityIndicator,
+  View, Text, Image, StyleSheet, TouchableOpacity,
+  FlatList, TextInput, ActivityIndicator
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useBars } from "@/src/hooks/useBars";
-import { isActive } from "@/src/config/time";
 import type { Bar } from "@/src/types/bar";
-import { IMG } from "@/src/assets"
+import { IMG } from "@/src/assets";
 
 export default function Bars() {
   const router = useRouter();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-  // Heavy filters you want backend to handle (now or later)
   const wantsOpen = filter === "Open Now";
   const wantsDeals = filter === "Specials";
   const wantsLive = filter === "Live Music";
 
-  const { bars, loading, now } = useBars({
+  const { bars, loading } = useBars({
     open: wantsOpen || undefined,
     hasDeals: wantsDeals || undefined,
     liveMusic: wantsLive || undefined,
     q: search || undefined,
   });
 
-  // Light, view-only filters can stay client side (Favorites)
+  // --- favorites overlay fix ---
+  const [fav, setFav] = useState<Record<string, boolean>>({});
+  // Seed/extend local favorites from incoming bars without looping
+// ✅ Safe seeding: runs only when bar IDs or their initial favorite states actually change
+// Make a stable signature of just the bar IDs
+const barIdsSig = useMemo(
+  () => (bars && bars.length ? bars.map(b => String(b.id)).join(",") : ""),
+  [bars]
+);
+
+// Seed local favorites ONLY when new IDs appear
+useEffect(() => {
+  if (!barIdsSig) return;
+  setFav(prev => {
+    let changed = false;
+    const next = { ...prev };
+    for (const b of bars) {
+      const id = String(b.id);
+      if (!(id in next)) {
+        next[id] = !!b.favorite; // initial value; won't overwrite local toggles
+        changed = true;
+      }
+    }
+    return changed ? next : prev; // no change → no re-render
+  });
+}, [barIdsSig]); // <-- depends ONLY on IDs, not on entire bars objects
+
+
+
+  const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
+  const toggleFavorite = (id: string) =>
+    setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
+
   const visibleBars = useMemo(() => {
     let data = bars;
-
-    if (filter === "Favorites") {
-      data = data.filter(b => !!b.favorite);
-    }
-
-    // Local search is still fine for mock; when backend is ready your useBars already supports q=
+    if (filter === "Favorites") data = data.filter(b => isFav(b));
     if (search.trim()) {
       const q = search.toLowerCase();
       data = data.filter(
@@ -50,34 +69,18 @@ export default function Bars() {
           b.description.toLowerCase().includes(q)
       );
     }
-
-    // Favorites on top
-    return data.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
-  }, [bars, filter, search]);
-
-  const toggleFavorite = (id: string) => {
-    // In mock mode this updates UI only. In live mode you’d call POST /bars/:id/favorite.
-    // We keep it local here for now to not break mocks.
-    // (Optimistic update pattern)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (bars as any[]).forEach(b => {
-      if (String(b.id) === String(id)) b.favorite = !b.favorite;
-    });
-  };
+    return [...data].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
+  }, [bars, filter, search, fav]);
 
   const renderBar = ({ item }: { item: Bar & { __openNow?: boolean } }) => {
     const firstDeal =
       item.dealsScheduled?.[0]?.title ??
       item.eventsScheduled?.[0]?.name ??
       "No specials tonight";
-
     const openNow = !!item.__openNow;
-
-    // prefer URL when backend arrives; fallback to mock image prop
-    const imageSource =
-    item.logoUrl ? { uri: item.logoUrl } :
-    //  item.logo    ? item.logo :
-    IMG.LOGO;
+    const imageSource = item.logoUrl ? { uri: item.logoUrl } : IMG.LOGO;
+    const id = String(item.id);
+    const favOn = isFav(item);
 
     return (
       <TouchableOpacity onPress={() => router.push(`/bars/${item.id}`)}>
@@ -90,12 +93,8 @@ export default function Bars() {
             </Text>
             <Text style={styles.barSpecials}>{firstDeal}</Text>
           </View>
-          <TouchableOpacity onPress={() => toggleFavorite(String(item.id))}>
-            <FontAwesome
-              name="star"
-              size={22}
-              color={item.favorite ? "#33CCFF" : "grey"}
-            />
+          <TouchableOpacity onPress={() => toggleFavorite(id)}>
+            <FontAwesome name="star" size={22} color={favOn ? "#33CCFF" : "grey"} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -104,7 +103,6 @@ export default function Bars() {
 
   return (
     <View style={styles.container}>
-      {/* Search & Filters */}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color="#33CCFF" style={styles.searchIcon} />
@@ -116,7 +114,7 @@ export default function Bars() {
             style={styles.searchInput}
           />
         </View>
-        <View className="filters" style={styles.filters}>
+        <View style={styles.filters}>
           {["All", "Open Now", "Specials", "Live Music", "Favorites"].map(option => (
             <TouchableOpacity
               key={option}
@@ -151,6 +149,7 @@ export default function Bars() {
   );
 }
 
+// your original styles block re-attached 👇
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0b12" },
   searchFilterContainer: { backgroundColor: "#1A1A1A", paddingVertical: 12, paddingHorizontal: 14 },

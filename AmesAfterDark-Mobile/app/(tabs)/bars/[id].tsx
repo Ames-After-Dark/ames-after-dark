@@ -150,7 +150,7 @@ export default function BarProfile() {
         <TouchableOpacity style={styles.bottomCard} onPress={() => router.push("/map")}>
           <View style={styles.bottomCardHeader}>
             <Text style={styles.bottomCardTitle}>Map</Text>
-            <Text style={styles.bottomCardArrow}>{">"}</Text>
+            <Text style={styles.bottomCardArrow}></Text>
           </View>
           <Image source={mapSrc} style={styles.bottomCardImage} />
         </TouchableOpacity>
@@ -158,7 +158,7 @@ export default function BarProfile() {
         <TouchableOpacity style={styles.bottomCard} onPress={() => router.push("/gallery")}>
           <View style={styles.bottomCardHeader}>
             <Text style={styles.bottomCardTitle}>Gallery</Text>
-            <Text style={styles.bottomCardArrow}>{">"}</Text>
+            <Text style={styles.bottomCardArrow}></Text>
           </View>
           <Image source={gallerySrc} style={styles.bottomCardImage} />
         </TouchableOpacity>
