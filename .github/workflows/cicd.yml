@@ -79,7 +79,7 @@ jobs:
   print_runner_info:
     runs-on: [self-hosted]
     steps:
-      run: echo "Current user $(whoami)"
+      - run: echo "Current user $(whoami)"
 
   # deploy:
   #   runs-on: [self-hosted]
