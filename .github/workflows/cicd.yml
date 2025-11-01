@@ -82,5 +82,4 @@ jobs:
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - run: pm2 stop ames-after-dark && rsync -av --delete backend /home/aad_admin/deployment/ && pm2 restart ames-after-dark
-#dummy commit
+      - run: pm2 stop ames-after-dark && rsync -av --delete backend /home/aad_admin/deployment/ && npm ci && pm2 restart ames-after-dark
