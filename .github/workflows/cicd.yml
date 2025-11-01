@@ -79,12 +79,14 @@ jobs:
   print_runner_info:
     runs-on: [self-hosted]
     steps:
-      run: echo "Current user: $(whoami)" && echo "Groups: $(groups)"
+      run: |
+        echo "Current user: $(whoami)"
+        echo "Groups: $(groups)"
 
-  deploy:
-    runs-on: [self-hosted]
-    needs: [test_frontend, test_backend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - run: pm2 stop ames_after_dark && cd backend && pm2 start 
+  # deploy:
+  #   runs-on: [self-hosted]
+  #   needs: [test_frontend, test_backend]
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: pm2 stop ames_after_dark && cd backend && pm2 start 
