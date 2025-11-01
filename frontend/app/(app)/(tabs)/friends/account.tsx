@@ -1,16 +1,12 @@
-import { Button, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useState } from 'react';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-// import { useAuth0, Auth0Provider } from 'react-native-auth0';
-// import { useAuth } from "@/hooks/use-auth"
+import React, { useState } from 'react';
+import { View, Text, Image, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+// import { useAuth } from '@/hooks/use-auth';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function AccountScreen() {
-  // const { user, signOut, isLoading } = useAuth()
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  // const { user, signOut } = useAuth();
+  // const [name, setName] = useState(user?.name || '');
+  // const [email, setEmail] = useState(user?.email || '');
 
   //removed this from return statement:
   //  <View style={styles.logoutButtonContainer}>
@@ -18,58 +14,179 @@ export default function AccountScreen() {
   //  </View>
 
   return (
-    <View style={{ flex: 1 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+      {/* Cover Photo */}
+      <Image source={require('../../../../assets/images/Logo.png')} style={styles.coverPhoto} resizeMode="cover" />
 
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#2A2A2A', dark: '#2A2A2A' }}
-        headerImage={<IconSymbol size={220} name="person.crop.circle" color="#808080" />}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title">Account</ThemedText>
-        </ThemedView>
-        <TextInput //this will be changed to only be input on button press
-          placeholder="Name"
-          style={styles.input}
-          autoCapitalize="none"
-          value={name}
-          onChangeText={setName}
-          placeholderTextColor="#888"
-        />
+      {/* Header Section */}
+      <View style={styles.headerRow}>
+        <Image source={require('../../../../assets/images/Logo.png')} style={styles.profileImage} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.profileName}>{'Your Name'}</Text>
+          <Text style={styles.profileEmail}>{'your@email.com'}</Text>
+        </View>
+        <TouchableOpacity>
+          <FontAwesome name="sign-out" size={24} color="#33CCFF" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Stats Section */}
+      <View style={styles.statsRow}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>12</Text>
+          <Text style={styles.statLabel}>Friends</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>5</Text>
+          <Text style={styles.statLabel}>Events</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>8</Text>
+          <Text style={styles.statLabel}>Achievements</Text>
+        </View>
+      </View>
+
+      {/* Account Details */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Edit Account Details</Text>
+
+        <Text style={styles.inputLabel}>Name</Text>
         <TextInput
-          placeholder="Email"
+          placeholder="Enter your name"
+          placeholderTextColor="#777"
+          value="EmptyName"
+          // onChangeText={setName}
           style={styles.input}
-          secureTextEntry
-          value={email}
-          onChangeText={setEmail}
-          placeholderTextColor="#888"
         />
-      </ParallaxScrollView>`
-    </View>
+
+        <Text style={styles.inputLabel}>Email</Text>
+        <TextInput
+          placeholder="Enter your email"
+          placeholderTextColor="#777"
+          value={"email"}
+          // onChangeText={setEmail}
+          style={styles.input}
+        />
+      </View>
+
+      {/* Settings Section */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Settings</Text>
+        <TouchableOpacity style={styles.settingItem}>
+          <Text style={styles.settingText}>Privacy Preferences</Text>
+          <Text style={styles.arrow}>{'>'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.settingItem}>
+          <Text style={styles.settingText}>Notification Settings</Text>
+          <Text style={styles.arrow}>{'>'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Log Out Button */}
+      <TouchableOpacity style={styles.logoutButton}>
+        <Text style={styles.logoutText}>Log Out</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
-
 const styles = StyleSheet.create({
-  logoutButtonContainer: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 10,
-    width: 100,
+  container: {
+    flex: 1,
+    backgroundColor: '#0b0b12',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    color: "#888"
+  coverPhoto: {
+    width: '100%',
+    height: 180,
   },
-  titleContainer: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    padding: 16,
   },
-  container: {
-    padding: 8,
+  profileImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  profileName: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    color: 'white',
+    fontSize: 14,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginHorizontal: 12,
+  },
+  statBox: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  statLabel: {
+    color: 'white',
+    fontSize: 12,
+  },
+  sectionContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 14,
+    marginHorizontal: 12,
+    marginVertical: 6,
+  },
+  sectionTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  inputLabel: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#2A2A2A',
+    color: 'white',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  settingText: {
+    color: '#E5E5E5',
+    fontSize: 14,
+  },
+  arrow: {
+    color: '#E5E5E5',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  logoutButton: {
+    backgroundColor: '#33CCFF',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  logoutText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
