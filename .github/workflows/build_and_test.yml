@@ -1,8 +1,6 @@
 name: CICD
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
 
 jobs:
@@ -75,11 +73,3 @@ jobs:
           path: backend/node_modules
           key: backend-${{ hashFiles('backend/package-lock.json') }}
       - run: cd backend && npm test
-
-  deploy:
-    runs-on: [self-hosted]
-    needs: [test_frontend, test_backend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - run: pm2 stop ames-after-dark && rsync -av --delete backend /home/aad_admin/deployment/ && cd /home/aad_admin/deployment/backend && npm ci && pm2 restart ames-after-dark
