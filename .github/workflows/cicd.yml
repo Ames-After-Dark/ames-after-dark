@@ -76,15 +76,15 @@ jobs:
           key: backend-${{ hashFiles('backend/package-lock.json') }}
       - run: cd backend && npm test
 
-  print_runner_info:
-    runs-on: [self-hosted]
-    steps:
-      - run: echo "Current user $(whoami)"
-
-  # deploy:
+  # print_runner_info:
   #   runs-on: [self-hosted]
-  #   needs: [test_frontend, test_backend]
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - run: pm2 stop ames_after_dark && cd backend && pm2 start 
+  #     - run: echo "Current user $(whoami)"
+
+  deploy:
+    runs-on: [self-hosted]
+    needs: [test_frontend, test_backend]
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - run: rsync -av --delete --exclude 'node_modules' backend /deployment/backend
