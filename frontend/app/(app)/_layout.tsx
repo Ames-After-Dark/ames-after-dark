@@ -1,7 +1,7 @@
 // import { AuthProvider, useAuth } from "@/hooks/use-auth"
 import { NavigationContainer, DefaultTheme, DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { useColorScheme, View, ActivityIndicator, colorScheme } from "react-native";
-import { Stack, segments, useSegments, useRouter } from 'expo-router'
+import { Stack, segments, useSegments, useRouter, Redirect } from 'expo-router'
 import { useEffect, useState } from 'react'
 
 export default function AppLayout() {
@@ -49,10 +49,19 @@ export default function AppLayout() {
   //       </Stack>
   //     </ThemeProvider>
   // )
+  const isIndex = segments.length === 1 && segments[0] === "(app)"
+
+  // Use declarative redirect instead of imperative navigation
+
+  if (isIndex) {
+    return <Redirect href="/(app)/(tabs)" />
+  }
+
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   )
