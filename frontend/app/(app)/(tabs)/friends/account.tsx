@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useAuth } from '@/hooks/use-auth';
+// import { useAuth } from '@/hooks/use-auth';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function AccountScreen() {
-  const { user, signOut } = useAuth();
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  // const { user, signOut } = useAuth();
+  // const [name, setName] = useState(user?.name || '');
+  // const [email, setEmail] = useState(user?.email || '');
+
+  //removed this from return statement:
+  //  <View style={styles.logoutButtonContainer}>
+  //    <Button title="Log Out" onPress={signOut} />
+  //  </View>
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
@@ -17,10 +22,10 @@ export default function AccountScreen() {
       <View style={styles.headerRow}>
         <Image source={require('../../../../assets/images/Logo.png')} style={styles.profileImage} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>{name || 'Your Name'}</Text>
-          <Text style={styles.profileEmail}>{email || 'your@email.com'}</Text>
+          <Text style={styles.profileName}>{'Your Name'}</Text>
+          <Text style={styles.profileEmail}>{'your@email.com'}</Text>
         </View>
-        <TouchableOpacity onPress={signOut}>
+        <TouchableOpacity>
           <FontAwesome name="sign-out" size={24} color="#33CCFF" />
         </TouchableOpacity>
       </View>
@@ -49,8 +54,8 @@ export default function AccountScreen() {
         <TextInput
           placeholder="Enter your name"
           placeholderTextColor="#777"
-          value={name}
-          onChangeText={setName}
+          value="EmptyName"
+          // onChangeText={setName}
           style={styles.input}
         />
 
@@ -58,8 +63,8 @@ export default function AccountScreen() {
         <TextInput
           placeholder="Enter your email"
           placeholderTextColor="#777"
-          value={email}
-          onChangeText={setEmail}
+          value={"email"}
+          // onChangeText={setEmail}
           style={styles.input}
         />
       </View>
@@ -78,7 +83,7 @@ export default function AccountScreen() {
       </View>
 
       {/* Log Out Button */}
-      <TouchableOpacity onPress={signOut} style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton}>
         <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
     </ScrollView>
