@@ -1,69 +1,172 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
-
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export default function FriendsScreen() {
-  // useState to manage the search input
   const [searchQuery, setSearchQuery] = useState('');
+
+  const friends = [
+    {
+      id: '1',
+      name: 'Sarah Johnson',
+      status: 'Online',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 12,
+    },
+    {
+      id: '2',
+      name: 'Ethan Williams',
+      status: 'Offline',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 5,
+    },
+    {
+      id: '3',
+      name: 'Maya Chen',
+      status: 'Online',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 8,
+    },
+    {
+      id: '4',
+      name: 'Alex Carter',
+      status: 'Offline',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 3,
+    },
+  ];
+
+  const filteredFriends = friends.filter(f =>
+    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-      <ParallaxScrollView
-          headerBackgroundColor={{ light: '#2A2A2A', dark: '#2A2A2A' }}
-          headerImage={<IconSymbol size={220} name="person.2.fill" color="#808080" />}
-       >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Friends</ThemedText>
-                    <Pressable onPress={() => router.push('/friends/account')}>
-                      <IconSymbol name="gearshape.fill" size={25} color="#ccc" style={{ marginLeft: 'auto' }} />
-                    </Pressable>
-      </ThemedView>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.searchContainer}>
-          <IconSymbol name="search" size={18} color="#888" />
-          <TextInput
-            style={styles.searchBar}
-            placeholder="Search..."
-            placeholderTextColor="#888"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </ThemedView>
-        <ThemedText>no friends yet :(</ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>Friends</Text>
+        <TouchableOpacity onPress={() => router.push('/friends/account')}>
+          <FontAwesome name="gear" size={24} color="#ccc" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <FontAwesome name="search" size={18} color="#888" />
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Search..."
+          placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+
+      {/* Friends List */}
+      {filteredFriends.length > 0 ? (
+        filteredFriends.map(friend => (
+          <View key={friend.id} style={styles.friendCard}>
+            <Image source={friend.avatar} style={styles.friendAvatar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.friendName}>{friend.name}</Text>
+              <Text
+                style={[
+                  styles.friendStatus,
+                  { color: friend.status === 'Online' ? '#33CCFF' : '#aaa' },
+                ]}
+              >
+                {friend.status}
+              </Text>
+              <Text style={styles.mutualText}>{friend.mutualFriends} mutual friends</Text>
+            </View>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No friends found :(</Text>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#0b0b12',
+    paddingHorizontal: 12,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%', //spans screen
-    gap: 8,
-    padding: 16,
+    paddingVertical: 16,
   },
-  container: {
-    padding: 16,
+  headerTitle: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#444',
-    borderWidth: 1,
+    backgroundColor: '#1A1A1A',
     borderRadius: 10,
     paddingHorizontal: 10,
-    marginBottom: 16,
     height: 40,
+    marginBottom: 16,
   },
   searchBar: {
     flex: 1,
     marginLeft: 8,
-    color: '#fff', // makes text visible in dark mode
+    color: 'white',
+  },
+  friendCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  friendAvatar: {
+    width: 55,
+    height: 55,
+    borderRadius: 50,
+    marginRight: 12,
+  },
+  friendName: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  friendStatus: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  mutualText: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  messageButton: {
+    backgroundColor: '#33CCFF',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  messageButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  emptyText: {
+    color: '#ccc',
+    fontSize: 16,
   },
 });

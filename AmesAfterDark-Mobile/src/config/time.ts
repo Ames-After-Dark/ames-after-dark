@@ -2,9 +2,13 @@ import { TimeRule } from "@/src/data/mock";
 
 export const USE_FAKE_TIME = true;
 //export const FAKE_TIME = "2025-10-28T16:30:00-05:00"; // Tuesday 7:30 PM
-// export const FAKE_TIME = "2025-10-25T19:30:00-05:00"; // Saturday 7:30 PM
-export const FAKE_TIME = "2025-10-28T21:30:00-05:00"; // Tuesday 9:30 PM
-//export const FAKE_TIME = "2025-10-29T02:30:00-05:00"; // Tuesday 2:30 AM
+//export const FAKE_TIME = "2025-10-28T21:30:00-05:00"; // Tuesday 9:30 PM
+//export const FAKE_TIME = "2025-10-25T12:30:00-05:00"; // Saturday 12:30 PM
+//export const FAKE_TIME = "2025-10-25T19:30:00-05:00"; // Saturday 7:30 PM
+export const FAKE_TIME = "2025-10-25T21:30:00-05:00"; // Saturday 9:30 PM
+//export const FAKE_TIME = "2025-10-25T01:30:00-05:00"; // Saturday 1:30 AM
+//export const FAKE_TIME = "2025-10-25T02:30:00-05:00"; // Saturday 2:30 AM
+//export const FAKE_TIME = "2025-10-25T04:30:00-05:00"; // Saturday 4:30 AM
 
 
 // ---------- Shared helpers ----------
@@ -77,15 +81,12 @@ export function isBarOpen(
 ): boolean {
   const openStr = bar.openingTime?.trim();
   const closeStr = bar.closingTime?.trim();
-
-  // If either time is missing, fall back to static status
   if (!openStr || !closeStr) return bar.status === "Open";
 
-  // Parse "4:00 PM" etc.
   const parseTime = (timeStr: string) => {
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
     if (!match) return null;
-    let [_, h, m, ampm] = match;
+    let [, h, m, ampm] = match;
     let hour = parseInt(h, 10);
     const minute = parseInt(m, 10);
     if (ampm.toUpperCase() === "PM" && hour !== 12) hour += 12;
@@ -103,8 +104,21 @@ export function isBarOpen(
   const closeDate = new Date(now);
   closeDate.setHours(close.hour, close.minute, 0, 0);
 
-  // Handle bars that close after midnight (e.g., 2:00 AM)
-  if (close.hour < open.hour) closeDate.setDate(closeDate.getDate() + 1);
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  const openM = open.hour * 60 + open.minute;
+  const closeM = close.hour * 60 + close.minute;
+
+  // Cross-midnight window (e.g., 16:00 → 02:00)
+  if (closeM <= openM) {
+    // If we're after midnight but before close, the "open" was yesterday
+    if (nowM < closeM) {
+      openDate.setDate(openDate.getDate() - 1);
+    } else {
+      // If we're after open on the same calendar day, push close to tomorrow
+      closeDate.setDate(closeDate.getDate() + 1);
+    }
+  }
 
   return now >= openDate && now < closeDate;
 }
+
