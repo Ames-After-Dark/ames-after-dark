@@ -1,0 +1,85 @@
+name: CICD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  install_frontend:
+    runs-on: [self-hosted]
+    # container: node:18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: frontend-${{ hashFiles('frontend/package-lock.json') }}
+      - run: cd frontend && npm install
+
+  install_backend:
+    runs-on: [self-hosted]
+    # container: node:18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: backend-${{ hashFiles('backend/package-lock.json') }}
+      - run: cd backend && npm install
+
+  lint_frontend:
+    runs-on: [self-hosted]
+    # container: node:18)
+    needs: install_frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: frontend-${{ hashFiles('frontend/package-lock.json') }}
+      - run: cd frontend && npm run lint
+
+  lint_backend:
+    runs-on: [self-hosted]
+    # container: node:18
+    needs: install_backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: backend-${{ hashFiles('backend/package-lock.json') }}
+      - run: cd backend && npm run lint
+
+  test_frontend:
+    runs-on: [self-hosted]
+    # container: node:18
+    needs: lint_frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: frontend-${{ hashFiles('frontend/package-lock.json') }}
+      - run: cd frontend && npm test
+
+  test_backend:
+    runs-on: [self-hosted]
+    # container: node:18
+    needs: lint_backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: backend-${{ hashFiles('backend/package-lock.json') }}
+      - run: cd backend && npm test
+
+  deploy:
+    runs-on: [self-hosted]
+    needs: [test_frontend, test_backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - run: pm2 stop ames-after-dark && rsync -av --delete backend /home/aad_admin/deployment/ && cd /home/aad_admin/deployment/backend && npm ci && pm2 restart ames-after-dark
