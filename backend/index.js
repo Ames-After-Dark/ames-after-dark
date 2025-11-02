@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(cors());
 
 // Example API Endpoint: Check database connection
-app.get('/status', checkJwt, async (req, res) => {
+app.get('/status', async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
