@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
   user: 'amesdb_admin',
-  host: 'localhost', // Since it's on the same server
+  host: 'localhost', // need to configure tunnel - NK
   database: 'amesdb',
   password: 'l1quorSTORE_$$',
   port: 5432,

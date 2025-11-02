@@ -1,9 +1,12 @@
-// src/routes/barRoutes.js
 const express = require('express');
 const router = express.Router();
 const barController = require('../controllers/barController');
 
-// GET /api/bars
-router.get('/', barController.getBars);
+// CRUD routes
+router.get('/', barController.getBars);         // Read all
+router.get('/:id', barController.getBarById);  // Read one
+router.post('/', barController.createBar);     // Create
+router.put('/:id', barController.updateBar);   // Update
+router.delete('/:id', barController.deleteBar);// Delete
 
 module.exports = router;
