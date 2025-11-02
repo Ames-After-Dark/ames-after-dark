@@ -1,36 +1,12 @@
-/**
- * This is provider-agnostic.
- */
+const express = require("express");
+const app = express();
+const { auth, requiredScopes } = require('express-oauth2-jwt-bearer');
 
-const authMiddleware = (verifyToken) => {
-  if (typeof verifyToken !== 'function') {
-    throw new Error('authMiddleware requires a verifyToken function');
-  }
+// Authorization middleware. When used, the Access Token must
+// exist and be verified against the Auth0 JSON Web Key Set.
+const checkJwt = auth({
+    audience: 'https://dev-lz0c3j2voxj6hy6v.us.auth0.com/api/v2/',
+    issuerBaseURL: 'https://dev-lz0c3j2voxj6hy6v.us.auth0.com/',
+});
 
-  return async (req, res, next) => {
-    try {
-      const authHeader = req.headers.authorization || '';
-      const token = authHeader.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : null;
-
-      if (!token) {
-        return res.status(401).json({ error: 'Missing or invalid Authorization header' });
-      }
-
-      const decodedUser = await verifyToken(token);
-
-      if (!decodedUser) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
-      }
-
-      req.user = decodedUser;
-      next();
-    } catch (err) {
-      console.error('Auth middleware error:', err);
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  };
-};
-
-module.exports = authMiddleware;
+module.exports = checkJwt

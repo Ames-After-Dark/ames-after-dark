@@ -2,6 +2,9 @@ const express = require("express");
 const app = express();
 const cors = require('cors');
 const { Pool } = require('pg');
+//To use checkJwt, simply insert it into your app.get()'s
+//Example: app.get('/status', checkJwt, async (req, res) => {
+const checkJwt = require('./src/middleware/authMiddleware')
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,12 +19,11 @@ const pool = new Pool({
 // Middleware
 app.use(express.json());
 
-
 // Dev only
 app.use(cors());
 
 // Example API Endpoint: Check database connection
-app.get('/status', async (req, res) => {
+app.get('/status', checkJwt, async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query('SELECT NOW()');
