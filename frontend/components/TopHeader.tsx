@@ -3,6 +3,7 @@ import { View, Image, Pressable, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getNow } from "@/config/time"; // import shared helper
+import { router } from 'expo-router';
 
 export default function TopHeader() {
   const now = getNow();
@@ -26,8 +27,8 @@ export default function TopHeader() {
 
         {/* Settings button (disabled for now) */}
         <Pressable
-          onPress={() => {}}
-          disabled={true}
+          onPress={() => router.push('/friends/account')}
+          disabled={false}
           hitSlop={8}
           accessibilityLabel="Settings"
         >
