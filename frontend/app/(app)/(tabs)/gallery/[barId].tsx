@@ -1,15 +1,15 @@
 import React from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, StyleSheet, Dimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { useBarPhotos } from "../../../../hooks/useBarPhotos";
-import { Theme } from "../../../../constants/theme";
+import { useBarPhotos } from "@/hooks/useBarPhotos";
+import { Theme } from "@/constants/theme";
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
 
 export default function BarPhotosScreen() {
   const { barId, barName } = useLocalSearchParams();
-  const { photos, loading, error } = useBarPhotos(Number(barId));
+  const { photos, loading, error } = useBarPhotos(String(barId));
 
   if (loading)
     return (
@@ -34,7 +34,7 @@ export default function BarPhotosScreen() {
 
       <FlatList
         data={photos}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => String(item.id)}
         numColumns={3}
         renderItem={({ item }) => (
           <Image source={item.image} style={styles.photo} resizeMode="cover" />
@@ -45,16 +45,16 @@ export default function BarPhotosScreen() {
   );
 }
 
-export const screenOptions = {
-  headerShown: true,
-  headerTitle: "Bar Photos",
-  headerStyle: {
-    backgroundColor: Theme.dark.surface,
-  },
-  headerTitleStyle: {
-    color: Theme.dark.primary,
-  },
-};
+// export const screenOptions = {
+//   headerShown: true,
+//   headerTitle: "Bar Photos",
+//   headerStyle: {
+//     backgroundColor: Theme.dark.surface,
+//   },
+//   headerTitleStyle: {
+//     color: Theme.dark.primary,
+//   },
+// };
 
 const styles = StyleSheet.create({
   header: {

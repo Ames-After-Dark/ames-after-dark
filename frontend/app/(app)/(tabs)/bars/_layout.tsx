@@ -1,17 +1,10 @@
 import { Stack } from "expo-router";
-import { Theme } from "@/constants/theme";
 
 export default function BarsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: Theme.dark.surface,
-        },
-        headerTitleStyle: {
-          color: Theme.dark.primary,
-        },
-        headerTintColor: Theme.dark.primary,
+        headerStyle: { backgroundColor: "#0b0b12" },
       }}
     >
       {/* Bars directory */}
@@ -22,7 +15,7 @@ export default function BarsLayout() {
         }}
       />
 
-      {/* Bar info */}
+      {/* Individual bar info page */}
       <Stack.Screen
         name="[id]"
         options={{
