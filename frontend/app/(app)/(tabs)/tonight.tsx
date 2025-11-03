@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchInput: { flex: 1, color: "#E5E7EB", fontSize: 14, paddingVertical: 0 },
-  cardsList: { padding: 16, gap: 12 },
+  cardsList: { padding: 16, gap: 12, paddingBottom: 92, },
   card: {
     flexDirection: "row",
     alignItems: "center",
