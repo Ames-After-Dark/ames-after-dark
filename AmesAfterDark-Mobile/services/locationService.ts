@@ -20,7 +20,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
   return new Promise((resolve, reject) => {
 
     // Simulate a 1% chance of a network error
-    if (Math.random() < 0.01) {
+    if (Math.random() < 0.00) {
         // Reject the promise
         reject(new Error("Failed to fetch locations from the server. Please try again."));
     }
