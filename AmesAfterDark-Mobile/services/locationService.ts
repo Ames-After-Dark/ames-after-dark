@@ -6,6 +6,7 @@ export interface Location {
   name: string;
   latitude: number;
   longitude: number;
+  hours: string;
 }
 
 /**
@@ -30,15 +31,15 @@ export const fetchLocations = async (): Promise<Location[]> => {
         setTimeout(() => {
           const mockLocations: Location[] = [
     //         { id: '1', name: 'Cy\'s Roost', latitude: 42.0220836666669, longitude: -93.65038310323678 },            // Cy's Roost: 42.0220836666669, -93.65038310323678
-            { id: '1', name: 'Cy\'s Roost', latitude: 42.0220836666669, longitude: -93.65038310323678 },            // Cy's Roost: 42.0220836666669, -93.65038310323678
+            { id: '1', name: 'Cy\'s Roost', latitude: 42.0220836666669, longitude: -93.65038310323678, hours: "Open until 2:00 AM" },            // Cy's Roost: 42.0220836666669, -93.65038310323678
     //         { id: '2', name: 'Sips', latitude: 42.02196000761982, longitude: -93.65000079345538 },                  // Sips: 42.02200782956225, -93.65003297996454
-            { id: '2', name: 'Sips', latitude: 42.02196000761982, longitude: -93.65000079345538 },                  // Sips: 42.02200782956225, -93.65003297996454
+            { id: '2', name: 'Sips', latitude: 42.02196000761982, longitude: -93.65000079345538, hours: "Open until 2:00 AM" },                  // Sips: 42.02200782956225, -93.65003297996454
     //         { id: '3', name: 'Outlaws', latitude: 42.02147706795947, longitude: -93.65122397440044 },               // Outlaws: 42.02147706795947, -93.65122397440044
-            { id: '3', name: 'Outlaws', latitude: 42.02147706795947, longitude: -93.65122397440044 },               // Outlaws: 42.02147706795947, -93.65122397440044
+            { id: '3', name: 'Outlaws', latitude: 42.02147706795947, longitude: -93.65122397440044, hours: "Open until 2:00 AM" },               // Outlaws: 42.02147706795947, -93.65122397440044
     //         { id: '4', name: 'Welch Ave. Station', latitude: 42.02125404643046, longitude: -93.65033330801657 },    // Welch Ave. Station: 42.02125404643046, -93.65033330801657
-            { id: '4', name: 'Welch Ave. Station', latitude: 42.02125404643046, longitude: -93.65033330801657 },    // Welch Ave. Station: 42.02125404643046, -93.65033330801657
+            { id: '4', name: 'Welch Ave. Station', latitude: 42.02125404643046, longitude: -93.65033330801657, hours: "Open until 2:00 AM" },    // Welch Ave. Station: 42.02125404643046, -93.65033330801657
     //         { id: '5', name: 'AJ\'s Ultra Lounge', latitude: 42.021736089656294, longitude: -93.64858947254572 },   // AJ's Ultra Lounge : 42.021736089656294, -93.64858947254572
-            { id: '5', name: 'AJ\'s Ultra Lounge', latitude: 42.02158, longitude: -93.64902 },                      // AJ's Ultra Lounge : 42.02158, -93.64902
+            { id: '5', name: 'AJ\'s Ultra Lounge', latitude: 42.02158, longitude: -93.64902, hours: "Open until 2:00 AM" },                      // AJ's Ultra Lounge : 42.02158, -93.64902
           ];
           resolve(mockLocations);
         }, 1500);

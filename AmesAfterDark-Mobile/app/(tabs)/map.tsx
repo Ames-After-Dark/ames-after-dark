@@ -1,183 +1,180 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ActivityIndicator, Image, TouchableOpacity, Modal, Pressable } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { type Location } from '@/services/locationService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+const ZOOM_THRESHOLD = 0.01;
+
 export default function MapScreen() {
-  const { locations, isLoading, error } = useMapLocations();
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
-  const router = useRouter();
+    const { locations, isLoading, error } = useMapLocations();
+    const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
-  const handleGoToBarPage = () => {
-      if (!selectedLocation) return;
+    const [currentDelta, setCurrentDelta] = useState(0.1);
 
-      // Navigate to the bar's page (e.g., /bars/1)
-      router.push(`/bars/${selectedLocation.id}`);
+    const router = useRouter();
 
-      // Close the modal after navigating
-      setSelectedLocation(null);
-  };
+    const handleGoToBarPage = () => {
+        if (!selectedLocation) return;
 
-  const renderMapContent = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.infoText}>Loading Locations...</Text>
-        </View>
-      );
-    }
+        // Navigate to the bar's page
+        router.push(`/bars/${selectedLocation.id}`);
 
-    if (error) {
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>Error: {error}</Text>
-        </View>
-      );
-    }
+        // Close the modal after leaving the maps page
+        setSelectedLocation(null);
+    };
+
+    // Handle the user zooming in / out on the map changing the delta
+    const handleRegionChange = (region: Region) => {
+        setCurrentDelta(region.latitudeDelta);
+    };
+
+    const renderMapContent = () => {
+
+        if (isLoading) {
+            return (
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" />
+                    <Text style={styles.infoText}>Loading Locations...</Text>
+                </View>
+            );
+        }
+
+        if (error) {
+            return (
+                <View style={styles.centered}>
+                    <Text style={styles.errorText}>Error: {error}</Text>
+                </View>
+            );
+        }
+
+        const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
+
+        return (
+            <MapView
+                style={styles.map}
+                initialRegion={{
+                    // Centered on Ames, IA
+                    latitude: 42.03,
+                    longitude: -93.63,
+                    latitudeDelta: 0.1,
+                    longitudeDelta: 0.05,
+                }}
+                showsPointsOfInterest={
+                    false // This is how to remove the pre-set pins on apple / google maps -- can set to true or false
+                }
+                onPress={() =>
+                    setSelectedLocation(null) // Deselect pin when the map is pressed
+                }
+                onRegionChangeComplete={handleRegionChange}
+            >
+                {locations.map((location) => (
+                <Marker
+                    key={location.id}
+                    coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+                    anchor={{ x: 0.5, y: 1 }}
+                >
+                    <TouchableOpacity onPress={() => setSelectedLocation(location)}>
+                        <View style={styles.markerContainer}>
+                            {isZoomedIn && (
+                                <Text style={styles.markerText}>{location.name}</Text>
+                            )}
+                            <Ionicons name="location-sharp" size={32} color="#c70000" />
+                        </View>
+                    </TouchableOpacity>
+                </Marker>
+            ))}
+            </MapView>
+        );
+    };
 
     return (
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          // Centered on Ames, IA
-          latitude: 42.03,
-          longitude: -93.63,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.05,
-        }}
-        showsPointsOfInterest={
-            false // This is how to remove the pre-set pins on apple / google maps -- can set to true or false
-        }
-        onPress={() =>
-            setSelectedLocation(null) // Deselect pin when the map is pressed
-        }
-      >
-        {locations.map((location) => (
-            <Marker
-                key={location.id}
-                coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                anchor={{ x: 0.5, y: 1 }}
+
+        <View style={styles.container}>
+            <View style={styles.mapContainer}>
+                {renderMapContent()}
+            </View>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={selectedLocation !== null}
+                onRequestClose={() => setSelectedLocation(null)}
             >
-                <TouchableOpacity onPress={() => setSelectedLocation(location)}>
-                    <View style={styles.markerContainer}>
-                        <Text style={styles.markerText}>{location.name}</Text>
-                        <Ionicons name="location-sharp" size={32} color="#c70000" />
-                    </View>
-                </TouchableOpacity>
-            </Marker>
-        ))}
-      </MapView>
-    );
-  };
-
-  return (
-
-    <View style={styles.container}>
-      <View style={styles.mapContainer}>
-        {renderMapContent()}
-      </View>
-
-      <Modal
-              animationType="fade"
-              transparent={true}
-              visible={selectedLocation !== null}
-              onRequestClose={() => setSelectedLocation(null)}
-            >
-              {/* This Pressable is the semi-transparent backdrop */}
-              <Pressable
-                style={styles.modalBackdrop}
-                onPress={() => setSelectedLocation(null)}
-              >
-                {/* This Pressable is the white popup card */}
-                <Pressable style={styles.modalContainer} onPress={() => {}}>
-                  <Text style={styles.modalTitle}>{selectedLocation?.name}</Text>
-
-                  <Pressable style={styles.button} onPress={handleGoToBarPage}>
-                    <Text style={styles.buttonText}>Go to Bar's Page</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[styles.button, styles.closeButton]}
+                <Pressable
+                    style={styles.modalBackdrop}
                     onPress={() => setSelectedLocation(null)}
-                  >
-                    <Text style={styles.buttonText}>Close</Text>
-                  </Pressable>
+                >
+                <Pressable style={styles.modalContainer} onPress={() => {}}>
+                    <Text style={styles.modalTitle}>{selectedLocation?.name}</Text>
+                    <Text style={styles.modalBodyText}>{selectedLocation?.hours}</Text>
+
+                    <Pressable style={styles.button} onPress={handleGoToBarPage}>
+                        <Text style={styles.buttonText}>Go to Bar's Page</Text>
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.button, styles.closeButton]}
+                        onPress={() => setSelectedLocation(null)}
+                    >
+                        <Text style={styles.buttonText}>Close</Text>
+                    </Pressable>
+                    </Pressable>
                 </Pressable>
-              </Pressable>
-            </Modal>
-    </View>
-  );
+                </Modal>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  titleContainer: {
-    padding: 16,
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#11181C',
-  },
-  infoText: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#687076',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-  },
-  markerText: {
-      fontWeight: 'bold',
-      color: '#ffffff',
+    container: {
+        flex: 1,
+    },
+    titleContainer: {
+        padding: 16,
+    },
+    titleText: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: '#11181C',
+    },
+    infoText: {
+        marginTop: 8,
+        fontSize: 16,
+        color: '#687076',
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 16,
+    },
+    markerText: {
+        fontWeight: 'bold',
+        color: '#ffffff',
 //       backgroundColor: 'rgba(255, 255, 255, 0.7)', // put a background for the text, not sure we need this but j in case
-      paddingHorizontal: 5,
-      paddingVertical: 2,
-      borderRadius: 5,
-      marginBottom: 2,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
+        borderRadius: 5,
+        marginBottom: 2,
     },
-  mapContainer: {
-    flex: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginTop: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  snackbarContainer: {
-      position: 'absolute',
-      bottom: 20,
-      left: 20,
-      right: 20,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      borderRadius: 8,
-      padding: 16,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      zIndex: 10,
-    },
-    snackbarText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
+    mapContainer: {
+        flex: 1,
+        borderRadius: 8,
+        overflow: 'hidden',
+        marginTop: 16,
+        marginHorizontal: 16,
+        marginBottom: 16,
     },
     modalBackdrop: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-      },
-      modalContainer: {
+    },
+    modalContainer: {
         width: '80%',
         backgroundColor: 'white',
         borderRadius: 12,
@@ -188,35 +185,40 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-      },
-      modalTitle: {
+    },
+    modalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: '#11181C',
         marginBottom: 20,
-      },
-      button: {
+    },
+    modalBodyText: {
+        fontSize: 16,
+        color: '#374151',
+        marginBottom: 20,
+    },
+    button: {
         backgroundColor: '#153940',
         borderRadius: 8,
         paddingVertical: 12,
         width: '100%',
         alignItems: 'center',
         marginBottom: 10,
-      },
-      buttonText: {
+    },
+    buttonText: {
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
-      },
-      closeButton: {
+    },
+    closeButton: {
         backgroundColor: '#687076',
-      },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    },
+    map: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
