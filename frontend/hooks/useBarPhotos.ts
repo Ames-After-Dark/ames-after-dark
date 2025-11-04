@@ -19,11 +19,13 @@ export function useBarPhotos(barId?: string) {
         if (!bar) throw new Error("Bar not found");
 
         // Mock gallery grid
-        const mockPhotos = Array.from({ length: 9 }).map((_, i) => ({
-          id: `${bar.id}-photo-${i + 1}`,
-          image:
-            bar.galleryImage ?? require("@/assets/images/Logo.png"), // placeholder if undefined
-        }));
+        const mockPhotos = (bar.photos && bar.photos.length > 0
+          ? bar.photos.map((p) => ({ id: p.id, image: { uri: p.uri } }))
+          : Array.from({ length: 6 }, (_, i) => ({
+              id: `${barId}-photo-${i + 1}`,
+              image: bar.galleryImage
+          }))
+        );
 
         if (!canceled) setPhotos(mockPhotos);
       } catch (err: any) {

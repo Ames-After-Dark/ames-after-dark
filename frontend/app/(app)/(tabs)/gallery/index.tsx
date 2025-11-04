@@ -24,7 +24,7 @@ export default function GalleryScreen() {
             style={styles.card}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/gallery/[barId]",
+                pathname: "/(app)/(tabs)/gallery/[barId]",
                 params: { barId: item.id, barName: item.name },
               })
             }
