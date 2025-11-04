@@ -1,24 +1,23 @@
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { useBars } from "../../../../hooks/useBars";
-import { Theme } from "../../../../constants/theme";
+import { useBars } from "@/hooks/useBars";
+import { Theme } from "@/constants/theme";
 
 export default function GalleryScreen() {
-  const { bars, loading, error } = useBars();
+  const { bars, loading } = useBars();
   const router = useRouter();
 
   if (loading)
-    return <ActivityIndicator style={{ flex: 1, justifyContent: "center" }} size="large" color={Theme.dark.primary} />;
-
-  if (error)
-    return <Text style={styles.error}>Error: {error}</Text>;
+    return (
+      <ActivityIndicator style={{ flex: 1, justifyContent: "center" }} size="large" color={Theme.dark.primary} />
+    );
 
   return (
     <View style={styles.container}>
       <FlatList
         data={bars}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ paddingVertical: 12 }}
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -26,12 +25,12 @@ export default function GalleryScreen() {
             onPress={() =>
               router.push({
                 pathname: "/(tabs)/gallery/[barId]",
-                params: { barId: item.id.toString(), barName: item.name },
+                params: { barId: item.id, barName: item.name },
               })
             }
           >
             <Text style={styles.barName}>{item.name}</Text>
-            <Text style={styles.barLocation}>{item.location}</Text>
+            <Text style={styles.barLocation}>{item.description}</Text>
           </TouchableOpacity>
         )}
       />
@@ -50,11 +49,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4, // Android shadow
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 6,
+    // elevation: 4, // Android shadow
   },
   barName: {
     fontSize: 18,
@@ -66,9 +65,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Theme.dark.muted,
   },
-  error: {
-    color: Theme.dark.error,
-    textAlign: "center",
-    marginTop: 20,
-  },
+  // error: {
+  //   color: Theme.dark.error,
+  //   textAlign: "center",
+  //   marginTop: 20,
+  // },
 });
