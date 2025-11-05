@@ -68,6 +68,7 @@ export type BarBase = {
   cover: any;
   galleryImage: any;
   mapImage: any;
+  photos?: { id: string; uri: string }[];
 };
 
 // ---------- Placeholder Assets ----------
@@ -128,6 +129,20 @@ export const BARS_BASE: BarBase[] = [
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    photos: [
+      {
+        id: "1-1",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Cys-10-17/i-Hhf5TKW/0/LnHBxTs6LphJ7GCNdhntx72XchCjj28hJVm2Kzn8D/X3/_DSC2937-X3.jpg"
+      },
+      {
+        id: "1-2",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Cys-10-17/i-LH4Z9db/0/NVCDTJVdbg7KxXhVKJsKK2vfd9M3HChkF8hFgpkxQ/X3/_DSC2946-X3.jpg"
+      },
+      {
+        id: "1-3",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Cys-10-17/i-9HsLbrp/0/MGZQJ5K53rzSq9G6W5dzrHMpv9kJ3VtHcFt3RMw7T/X3/_DSC2958-X3.jpg"
+      },
+    ]
   },
   {
     id: "2",
@@ -173,6 +188,20 @@ export const BARS_BASE: BarBase[] = [
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    photos: [
+      {
+        id: "2-1",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Sips-10-17/i-5rstkrr/0/KKSsC6S23hx67m3gn5sXsp9S5Vmx8vzZWWSVMbcwV/X3/_DSC3296-X3.jpg"
+      },
+      {
+        id: "2-2",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Sips-10-17/i-K6hL9mM/0/KWSdnrCKmMXdfr3zSLrsm6DpkMNQCRvQsjKWDNTCH/X3/_DSC3330-X3.jpg"
+      },
+      {
+        id: "2-3",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Sips-10-17/i-WCx4wDp/0/Nc34Z4DskWRqrphM4q86Z7VvqcR6ZcxWTjr7mCjQx/X3/_DSC3372-X3.jpg"
+      }
+    ]
   },
   {
     id: "3",
@@ -214,6 +243,20 @@ export const BARS_BASE: BarBase[] = [
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    photos: [
+      {
+        id: "3-1",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Outlaws-10-18/i-Xbz77cP/0/KKrFt82j2QttC4WSd6FRwMtLRbXHBJSdFdz8b5FN8/X3/_DSC4308-X3.jpg"
+      },
+      {
+        id: "3-2",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Outlaws-10-18/i-R6vWdF9/0/KSkcZ3Wn7pzW2H2QJs9mPLJq2FbFHxRJKNGk8h825/X3/_DSC4839-X3.jpg"
+      },
+      {
+        id: "3-3",
+        uri: "https://photos.smugmug.com/Big-4-10-1718/Outlaws-10-18/i-QmWbXP4/0/MbZGrHZ7WFn298jWs48c9wKgk3V8d9j44w73VqCkK/X3/_DSC4883-X3.jpg"
+      }
+    ]
   },
   {
   id: "4",
@@ -259,6 +302,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "4-1",
+      uri: "https://photos.smugmug.com/Big-4-10-310-4/Paddys-10-3/i-mxGLkQ2/0/LPfMWVTvf7RsWDrJbPzhBNCHjnWkhRPhhcgdGr3ZN/X3/_DSC0660-X3.jpg"
+    },
+    {
+      id: "4-2",
+      uri: "https://photos.smugmug.com/Big-4-10-310-4/Paddys-10-3/i-tVS6K6F/0/MM4TFGbxCwXbt5nJS4KFBNQk6z7BbWTbjWQPJzb5N/X3/_DSC0668-X3.jpg"
+    },
+    {
+      id: "4-3",
+      uri: "https://photos.smugmug.com/Big-4-10-310-4/Paddys-10-3/i-g4MgQkF/0/KJB6DD3nBp4tngvFPxC97VhWrVN2CWSG7wTWLN3qc/X3/_DSC0798-X3.jpg"
+    }
+  ]
 },
 {
   id: "5",
@@ -304,6 +361,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "5-1",
+      uri: "https://photos.smugmug.com/Big-4-10-1718/Paddys-10-18/i-FhDtBG5/0/Kr99bGShFz7vFwTGFFk2KGk6q8XBPZWHVHgWb8GLr/X3/_DSC4578-X3.jpg"
+    },
+    {
+      id: "5-2",
+      uri: "https://photos.smugmug.com/Big-4-10-1718/Paddys-10-18/i-zXgQNVH/0/KnbpDdFt9fvvzkbt6QTdGDjhFSBDjcMngfrkwsV8j/X3/_DSC4583-X3.jpg"
+    },
+    {
+      id: "5-3",
+      uri: "https://photos.smugmug.com/Big-4-10-1718/Paddys-10-18/i-3cMbsMH/0/LHQRpKGCHmjBnHGWHWzD6qM9mH83qQPCCRs4XbPpS/X3/_DSC4562-X3.jpg"
+    }
+  ]
 },
 {
   id: "6",
@@ -349,6 +420,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "6-1",
+      uri: "https://photos.smugmug.com/Big4-919-920/Cys-9-19/i-hKp6NRG/0/LG9n7V3Sm8qgVqj3XCz72FGcWP9Bx5KvRdKWRQTwV/X3/_DSC8634-X3.jpg"
+    },
+    {
+      id: "6-2",
+      uri: "https://photos.smugmug.com/Big4-919-920/Cys-9-19/i-Fc8Xg2B/0/NhXnSwr8mhTZFnVBLM2X5dXZ4qxVfgLfPGVjc5gbD/X3/_DSC8639-X3.jpg"
+    },
+    {
+      id: "6-3",
+      uri: "https://photos.smugmug.com/Big4-919-920/Cys-9-19/i-qc9CRwP/0/LhWt4dbQVxdDMCGRpSMnBwHcz4w2MKqHRgFL4P5jG/X3/_DSC8668-X3.jpg"
+    }
+  ]
 },
 {
   id: "7",
@@ -394,6 +479,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "7-1",
+      uri: "https://photos.smugmug.com/Big4-919-920/Outlaws-9-19/i-NcWPHS7/0/MbM7Hb39DCGpJ4nFxThZVLnfrXcQwrTxrJ8MSNDxf/X3/_DSC9266-X3.jpg"
+    },
+    {
+      id: "7-2",
+      uri: "https://photos.smugmug.com/Big4-919-920/Outlaws-9-19/i-nxNTKkk/0/KRGxcCZGFbS5sPQbJw47wGB6tc9g3sRjkHgDJ5xQn/X3/_DSC9275-X3.jpg"
+    },
+    {
+      id: "7-3",
+      uri: "https://photos.smugmug.com/Big4-919-920/Outlaws-9-19/i-H2kxCBG/0/MXVMPgXXQRCdCMqPbJd62dgrj6K57d4WnDPmxsHVS/X3/_DSC9287-X3.jpg"
+    }
+  ]
 },
 {
   id: "8",
@@ -439,6 +538,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "8-1",
+      uri: "https://photos.smugmug.com/Big4-919-920/Paddys-9-19/i-TQRG4tT/0/M2hJdtHXrmrVk2HfcjKM4Sh7Q9WPmGbFt89QjmXMH/X3/_DSC8789-X3.jpg"
+    },
+    {
+      id: "8-2",
+      uri: "https://photos.smugmug.com/Big4-919-920/Paddys-9-19/i-s9xw5d3/0/MbbMMmcr66kMggLsqdpDjqnChXjLxNwR7K2rCKXbr/X3/_DSC8822-X3.jpg"
+    },
+    {
+      id: "8-3",
+      uri: "https://photos.smugmug.com/Big4-919-920/Paddys-9-19/i-rTbV4JK/0/Mhz9NphFkDDLDMWNRRXhD3gkB3d3gJqbFKQrkmjSr/X3/_DSC8833-X3.jpg"
+    }
+  ]
 },
 {
   id: "9",
@@ -484,6 +597,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "9-1",
+      uri: "https://photos.smugmug.com/Big4-919-920/Cys-9-20/i-Vf4Qmhm/0/KZnBJcF2jPpzhkJvn7LS2V9bJxQB6B4GCfFQQZn4k/X3/_DSC9505-X3.jpg"
+    },
+    {
+      id: "9-2",
+      uri: "http://photos.smugmug.com/Big4-919-920/Cys-9-20/i-XVDfkmx/0/LLdfgXbkzTfPG22rjHkFd68qtVSL9hRR5LHddp8sf/X3/_DSC9604-X3.jpg"
+    },
+    {
+      id: "9-3",
+      uri: "https://photos.smugmug.com/Big4-919-920/Cys-9-20/i-BkXqf8x/0/KPxX8zTXMkm9fpJwwVhhjzp7RzZ7R4qfd7DsS2dhr/X3/_DSC9791-X3.jpg"
+    }
+  ]
 },
 {
   id: "10",
@@ -529,6 +656,20 @@ export const BARS_BASE: BarBase[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  photos: [
+    {
+      id: "10-1",
+      uri: "https://photos.smugmug.com/Big-4-94/Beer-Garden-9-5/i-X6Wjt9x/0/KM24rV3tDmmhMh7P64k5cD5hfJr5vG4XPVL9JNvpV/X3/_DSC7734-X3.jpg"
+    },
+    {
+      id: "10-2",
+      uri: "https://photos.smugmug.com/Big-4-94/Beer-Garden-9-5/i-zq5fWq7/0/KdfwtC9NBbnCm3QF2qpVMGCjWt4g9fnwbvQKLmJ7d/X3/_DSC7740-X3.jpg"
+    },
+    {
+      id: "10-3",
+      uri: "https://photos.smugmug.com/Big-4-94/Beer-Garden-9-5/i-pgcn9Jk/0/Lr2BL2bWJDvFnCG5vMBrS67HdmkNb7rZX9R2VNWxb/X3/_DSC7748-X3.jpg"
+    }
+  ]
 },
 
 ];
