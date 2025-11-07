@@ -42,8 +42,10 @@ app.get('/status', async (req, res) => {
 });
 
 const locationRoutes = require('./src/routes/locationRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 
 app.use('/api/locations', locationRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

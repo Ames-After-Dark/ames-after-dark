@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -10,16 +9,16 @@ datasource db {
 }
 
 model deals {
-  id         Int        @id
-  repeating  Boolean?
-  date       DateTime?  @db.Date
-  start_time String?    @db.VarChar
-  end_time   String?    @db.VarChar
-  name       String?    @db.VarChar
-  bar_id     Int?
-  weekday_id Int?
-  locations  locations? @relation(fields: [bar_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bars")
-  weekdays   weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+  id          Int        @id
+  repeating   Boolean?
+  date        DateTime?  @db.Date
+  start_time  String?    @db.VarChar
+  end_time    String?    @db.VarChar
+  name        String?    @db.VarChar
+  location_id Int?
+  weekday_id  Int?
+  locations   locations? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bars")
+  weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
 
   @@schema("app")
 }

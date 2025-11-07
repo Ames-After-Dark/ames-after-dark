@@ -2,52 +2,52 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.getLocations = async () => {
-  return await prisma.locations.findMany({
-    orderBy: { id: 'asc' }
+  return prisma.locations.findMany({
+    orderBy: { id: 'asc' },
+    include: {
+      deals: { include: { weekdays: true } },
+      events: { include: { weekdays: true } },
+      location_hours: { include: { weekdays: true } },
+      location_types: true,
+      user_favorites: { include: { users: true } },
+    },
   });
 };
 
 exports.getLocationById = async (id) => {
-  return await prisma.locations.findUnique({
-    where: { id: Number(id) }
+  return prisma.locations.findUnique({
+    where: { id: Number(id) },
+    include: {
+      deals: { include: { weekdays: true } },
+      events: { include: { weekdays: true } },
+      location_hours: { include: { weekdays: true } },
+      location_types: true,
+      user_favorites: { include: { users: true } },
+    },
   });
 };
 
 exports.createLocation = async (location) => {
-  return await prisma.locations.create({
+  return prisma.locations.create({
     data: {
-      name: location.name,
-      address: location.address ?? null,
-      latitude: location.latitude ?? null,
-      longitude: location.longitude ?? null,
-      description: location.description ?? null,
-      open: location.open ?? null,
-      tags: location.tags ?? null,
+      ...location,
       views: location.views ?? 0,
-      nickname: location.nickname ?? null
-    }
+    },
   });
 };
 
 exports.updateLocation = async (id, location) => {
-  return await prisma.locations.update({
+  return prisma.locations.update({
     where: { id: Number(id) },
     data: {
-      name: location.name,
-      address: location.address ?? null,
-      latitude: location.latitude ?? null,
-      longitude: location.longitude ?? null,
-      description: location.description ?? null,
-      open: location.open ?? null,
-      tags: location.tags ?? null,
+      ...location,
       views: location.views ?? 0,
-      nickname: location.nickname ?? null
-    }
+    },
   });
 };
 
 exports.deleteLocation = async (id) => {
-  return await prisma.locations.delete({
-    where: { id: Number(id) }
+  return prisma.locations.delete({
+    where: { id: Number(id) },
   });
 };
