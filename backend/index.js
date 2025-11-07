@@ -43,9 +43,13 @@ app.get('/status', async (req, res) => {
 
 const locationRoutes = require('./src/routes/locationRoutes');
 const userRoutes = require('./src/routes/userRoutes');
+const eventRoutes = require('./src/routes/eventRoutes');
+const dealRoutes = require('./src/routes/dealRoutes');
 
 app.use('/api/locations', locationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/deals', dealRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
