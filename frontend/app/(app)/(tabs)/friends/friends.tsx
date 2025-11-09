@@ -1,69 +1,92 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 export default function FriendsScreen() {
-  const navigation = useNavigation();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const friends = [
     {
       id: '1',
-      name: 'Ava Johnson',
-      image: require('../../../../assets/images/Logo.png'),
-      bio: 'Loves hiking and photography',
-      stats: { friends: 22, events: 4, achievements: 6 },
+      name: 'Sarah Johnson',
+      status: 'Online',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 12,
     },
     {
       id: '2',
-      name: 'Liam Carter',
-      image: require('../../../../assets/images/Logo.png'),
-      bio: 'Coffee addict ☕ and night owl 🌙',
-      stats: { friends: 17, events: 7, achievements: 3 },
+      name: 'Ethan Williams',
+      status: 'Offline',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 5,
     },
     {
       id: '3',
-      name: 'Sophia Lee',
-      image: require('../../../../assets/images/Logo.png'),
-      bio: 'Music, travel, and good vibes 🎶✈️',
-      stats: { friends: 30, events: 5, achievements: 8 },
+      name: 'Maya Chen',
+      status: 'Online',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 8,
+    },
+    {
+      id: '4',
+      name: 'Alex Carter',
+      status: 'Offline',
+      avatar: require('../../../../assets/images/Logo.png'),
+      mutualFriends: 3,
     },
   ];
 
-  const handleViewProfile = (friend) => {
-    navigation.navigate('FriendProfile', { friend });
-  };
-
-  const goToAccount = () => {
-    navigation.navigate('Account');
-  };
+  const filteredFriends = friends.filter(f =>
+    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Friends</Text>
-        <TouchableOpacity onPress={goToAccount}>
-          <FontAwesome name="gear" size={24} color="#33CCFF" />
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>Friends</Text>
+        <TouchableOpacity onPress={() => router.push('/friends/account')}>
+          <FontAwesome name="gear" size={24} color="#ccc" />
         </TouchableOpacity>
       </View>
 
-      {/* Friend List */}
-      <View style={styles.friendList}>
-        {friends.map((friend) => (
-          <TouchableOpacity
-            key={friend.id}
-            style={styles.friendCard}
-            onPress={() => handleViewProfile(friend)}
-          >
-            <Image source={friend.image} style={styles.friendImage} />
-            <View style={styles.friendInfo}>
-              <Text style={styles.friendName}>{friend.name}</Text>
-              <Text style={styles.friendSubtitle}>{friend.bio}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <FontAwesome name="search" size={18} color="#888" />
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Search..."
+          placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
+
+      {/* Friends List */}
+      {filteredFriends.length > 0 ? (
+        filteredFriends.map(friend => (
+          <View key={friend.id} style={styles.friendCard}>
+            <Image source={friend.avatar} style={styles.friendAvatar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.friendName}>{friend.name}</Text>
+              <Text
+                style={[
+                  styles.friendStatus,
+                  { color: friend.status === 'Online' ? '#33CCFF' : '#aaa' },
+                ]}
+              >
+                {friend.status}
+              </Text>
+              <Text style={styles.mutualText}>{friend.mutualFriends} mutual friends</Text>
+            </View>
+          </View>
+        ))
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No friends found :(</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -72,46 +95,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0b0b12',
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingHorizontal: 12,
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    paddingVertical: 16,
   },
-  title: {
+  headerTitle: {
     color: 'white',
     fontSize: 24,
     fontWeight: '700',
   },
-  friendList: {
-    gap: 12,
-  },
-  friendCard: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1A1A1A',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flex: 1,
+    marginLeft: 8,
+    color: 'white',
+  },
+  friendCard: {
+    backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
   },
-  friendImage: {
+  friendAvatar: {
     width: 55,
     height: 55,
-    borderRadius: 10,
+    borderRadius: 50,
     marginRight: 12,
-  },
-  friendInfo: {
-    flex: 1,
   },
   friendName: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
-  friendSubtitle: {
-    color: '#AAA',
+  friendStatus: {
     fontSize: 13,
+    marginTop: 2,
+  },
+  mutualText: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  messageButton: {
+    backgroundColor: '#33CCFF',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  messageButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  emptyText: {
+    color: '#ccc',
+    fontSize: 16,
   },
 });

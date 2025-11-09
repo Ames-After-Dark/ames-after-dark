@@ -3,14 +3,15 @@ import { NavigationContainer, DefaultTheme, DarkTheme, ThemeProvider } from "@re
 import { useColorScheme, View, ActivityIndicator, colorScheme } from "react-native";
 import {Stack, segments, useSegments, useRouter} from 'expo-router'
 import {useEffect, useState} from 'react'
+import CollectUserInfo from "./(auth)/collect-user-info";
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading, isSwitching, setIsSwitching} = useAuth()
+  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, needsDataCollection} = useAuth()
   const segments = useSegments()
   const router = useRouter()
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading || needsDataCollection) {
       return
     }
 
@@ -25,7 +26,7 @@ export default function AppLayout() {
       console.log("Switching to (auth) screen")
       router.navigate("/(app)/(auth)")
     }
-  }, [isAuthenticated, isLoading, segments])
+  }, [isAuthenticated, isLoading, segments, needsDataCollection])
 
   if (isLoading){
     return (
@@ -38,6 +39,10 @@ export default function AppLayout() {
         <ActivityIndicator size="large" color="#2563eb" />
       </View>
     )
+  }
+
+  if (needsDataCollection){
+    return <CollectUserInfo/>
   }
 
   return (
