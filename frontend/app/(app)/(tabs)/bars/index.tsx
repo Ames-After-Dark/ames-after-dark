@@ -8,22 +8,32 @@ import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
 import type { Bar } from "@/types/bar";
 import { IMG } from "../../../../assets/assets.ts";
+import { getNow, isBarOpen } from "@/config/time";
 
 export default function Bars() {
   const router = useRouter();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-  const wantsOpen = filter === "Open Now";
+//   const wantsOpen = filter === "Open Now";
   const wantsDeals = filter === "Specials";
   const wantsLive = filter === "Live Music";
 
   const { bars, loading } = useBars({
-    open: wantsOpen || undefined,
+//     open: wantsOpen || undefined,
     hasDeals: wantsDeals || undefined,
     liveMusic: wantsLive || undefined,
     q: search || undefined,
   });
+
+    const [now, setNow] = useState(getNow());
+
+        useEffect(() => {
+            const interval = setInterval(() => {
+            setNow(getNow());
+        }, 10000); // 10 seconds
+        return () => clearInterval(interval);
+    }, []);
 
   // --- favorites overlay fix ---
   const [fav, setFav] = useState<Record<string, boolean>>({});
@@ -55,22 +65,57 @@ useEffect(() => {
 
 
   const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
-  const toggleFavorite = (id: string) =>
-    setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
+//   const toggleFavorite = (id: string) =>
+//     setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
+//
+//   const visibleBars = useMemo(() => {
+//     let data = bars;
+//     if (filter === "Favorites") data = data.filter(b => isFav(b));
+//     if (search.trim()) {
+//       const q = search.toLowerCase();
+//       data = data.filter(
+//         b =>
+//           b.name.toLowerCase().includes(q) ||
+//           b.description.toLowerCase().includes(q)
+//       );
+//     }
+//     return [...data].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
+//   }, [bars, filter, search, fav]);
 
-  const visibleBars = useMemo(() => {
-    let data = bars;
-    if (filter === "Favorites") data = data.filter(b => isFav(b));
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      data = data.filter(
-        b =>
-          b.name.toLowerCase().includes(q) ||
-          b.description.toLowerCase().includes(q)
-      );
-    }
-    return [...data].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
-  }, [bars, filter, search, fav]);
+    const visibleBars = useMemo(() => {
+        if (!bars) return [];
+
+        const q = search.trim().toLowerCase();
+
+        const filteredBars = bars
+            .map(bar => ({
+                ...bar,
+                __openNow: isBarOpen(bar, now),
+            }))
+            .filter(b => {
+                if (filter === "Open Now" && !b.__openNow) {
+                    return false;
+                }
+
+                if (filter === "Favorites" && !isFav(b)) {
+                    return false;
+                }
+
+                if (q) {
+                    const inName = b.name.toLowerCase().includes(q);
+                    const inDesc = b.description.toLowerCase().includes(q);
+                    if (!inName && !inDesc) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+        return filteredBars.sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
+
+    }, [bars, filter, search, fav, now]);
+
 
   const renderBar = ({ item }: { item: Bar & { __openNow?: boolean } }) => {
     const firstDeal =
@@ -134,17 +179,29 @@ useEffect(() => {
         </View>
       </View>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 24 }} color="#33CCFF" />
-      ) : (
-        <FlatList
-          data={visibleBars}
-          renderItem={renderBar}
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={styles.barList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+            {loading ? (
+                <ActivityIndicator style={{ marginTop: 24 }} color="#33CCFF" />
+            ) : (
+                visibleBars.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>
+                            {filter === "Open Now"
+                            ? "No bars are open right now"
+                            : filter === "Favorites"
+                            ? "You don't have any favorite bars yet"
+                            : "No bars match your filters"}
+                        </Text>
+                    </View>
+                ) : (
+                <FlatList
+                    data={visibleBars}
+                    renderItem={renderBar}
+                    keyExtractor={item => String(item.id)}
+                    contentContainerStyle={styles.barList}
+                    showsVerticalScrollIndicator={false}
+                />
+              )
+            )}
     </View>
   );
 }
@@ -167,4 +224,13 @@ const styles = StyleSheet.create({
   barName: { color: "white", fontSize: 18, fontWeight: "600" },
   barStatus: { color: "white", fontSize: 14, fontWeight: "500" },
   barSpecials: { color: "white", fontSize: 14, marginVertical: 2 },
+  emptyContainer: {
+      flex: 1,
+      justifyContent: "center",
+    },
+    emptyText: {
+      color: "#94A3B8",
+      fontSize: 13,
+      textAlign: "center",
+    },
 });
