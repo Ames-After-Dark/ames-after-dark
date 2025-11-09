@@ -97,6 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
+    //This is incorrect - I need to have this talk to the backend instead
+    //It will basically send the user info along with bday and phone #
+    //Then the backend will create a user with this info and role
+    //Will assume that all user creation will come from this
+    //And that no users are without bday and phone number
     const completeDataCollection = async (birthday: string, phoneNumber: string) => {
         if (!dataCollectionParams?.state) {
             throw new Error("Missing state parameter for data collection");
