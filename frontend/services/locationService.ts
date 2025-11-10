@@ -30,11 +30,15 @@ export const fetchLocations = async (): Promise<Location[]> => {
 
             setTimeout(() => {
                 const mockLocations: Location[] = [
-                    { id: '1', name: 'Cy\'s Roost', latitude: 42.0220836666669, longitude: -93.65038310323678, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/Cys_Roost.png') },                    // Cy's Roost: 42.0220836666669, -93.65038310323678
-                    { id: '2', name: 'Sips', latitude: 42.02196000761982, longitude: -93.65000079345538, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/sips.png') },                               // Sips: 42.02200782956225, -93.65003297996454
-                    { id: '3', name: 'Outlaws', latitude: 42.02147706795947, longitude: -93.65122397440044, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/outlaws.png') },                         // Outlaws: 42.02147706795947, -93.65122397440044
-                    { id: '4', name: 'Welch Ave. Station', latitude: 42.02125404643046, longitude: -93.65033330801657, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/Welch_Ave_Station.png') },    // Welch Ave. Station: 42.02125404643046, -93.65033330801657
-                    { id: '5', name: 'AJ\'s Ultra Lounge', latitude: 42.02158, longitude: -93.64902, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/AJs_Ultra_Lounge.png') },                       // AJ's Ultra Lounge : 42.02158, -93.64902
+                    { id: '1', name: 'AJ\'s Ultra Lounge', latitude: 42.02158, longitude: -93.64902, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/AJs_Ultra_Lounge.png') },       // AJ's Ultra Lounge: 42.02158, -93.64902
+                    { id: '2', name: 'BNC Field House', latitude: 42.02120, longitude: -93.64967, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/bnc.png') },                       // BNC Field House: 42.02120, -93.64967
+                    { id: '3', name: 'Cy\'s Roost', latitude: 42.02192, longitude: -93.65038, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/Cys_Roost.png') },                     // Cy's Roost: 42.02192, -93.65038
+                    { id: '4', name: 'Welch Ave. Station', latitude: 42.02108, longitude: -93.65031, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/Welch_Ave_Station.png') },      // Welch Ave. Station: 42.02108, -93.65031
+                    { id: '5', name: 'The Blue Owl', latitude: 42.02047, longitude: -93.65042, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/blue_owl.png') },                     // The Blue Owl: 42.02047, -93.65042
+                    { id: '6', name: 'Paddy\'s Irish Pub', latitude: 42.02185, longitude: -93.65005, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/paddy.png') },                  // Paddy's Irish Pub: 42.02185, -93.65005
+                    { id: '7', name: 'Sips', latitude: 42.02185, longitude: -93.65001, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/sips.png') },                                 // Sips: 42.02185, -93.65001
+                    { id: '8', name: 'Mickey\'s Irish Pub', latitude: 42.16093, longitude: -93.60647, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/mickey.png') },                // Mickey's Irish Pub: 42.16093, -93.60647
+                    { id: '9', name: 'Outlaws', latitude: 42.02139, longitude: -93.65123, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/outlaws.png') },                           // Outlaws: 42.02139, -93.65123
                 ];
                 resolve(mockLocations);
             }, 1500);
