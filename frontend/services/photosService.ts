@@ -36,8 +36,6 @@ export async function getPhotosByBar(barName: string): Promise<Photo[]> {
     );
     if (!album) throw new Error(`No album found for ${barName}`);
 
-    console.log("Album Uris:", album.Uris);
-
     // fetch image info
     const imagesRes = await fetch(
       `https://api.smugmug.com${album.Uris.AlbumImages.Uri}?APIKey=${SMUGMUG_API_KEY}`,
@@ -68,5 +66,102 @@ export async function getPhotosByBar(barName: string): Promise<Photo[]> {
       id: `mock-${i}`,
       image: require("@/assets/images/Logo.png"),
     }));
+  }
+}
+
+export async function getAlbums() {
+  try {
+    const foldersRes = await fetch(
+      `${SMUGMUG_API_BASE}/folder/user/${USER}!folders?APIKey=${SMUGMUG_API_KEY}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "AmesAfterDark/1.0",
+        },
+      }
+    );
+    if (!foldersRes.ok)
+      throw new Error(`Folders fetch failed: ${foldersRes.statusText}`);
+
+    const foldersData = await foldersRes.json();
+    const folders = foldersData?.Response?.Folder ?? [];
+
+    // only include Big 4 folders
+    const validFolders = folders.filter((f: any) => {
+      const name = f.Name?.toLowerCase() || "";
+      return name.startsWith("big 4") || name.startsWith("big4");
+    });
+
+    console.log("Found Big 4 folders:", validFolders.map((f: any) => f.Name));
+
+    const allAlbums: any[] = [];
+    for (const folder of validFolders) {
+      const albumsUrl = `https://api.smugmug.com${folder.Uris.FolderAlbums.Uri}?APIKey=${SMUGMUG_API_KEY}`;
+      const albumsRes = await fetch(albumsUrl, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "AmesAfterDark/1.0",
+        },
+      });
+      if (!albumsRes.ok) continue;
+
+      const albumsData = await albumsRes.json();
+      const albums = albumsData?.Response?.Album ?? [];
+      allAlbums.push(...albums);
+  }
+
+  console.log("Total albums found:", allAlbums.length);
+
+    // // Exclude engineers' week just in case
+    // const validAlbums = allAlbums.filter(
+    //   (a) => !a.Name?.toLowerCase().includes("engineers")
+    // );
+
+    // fetch image cover
+    const enriched = await Promise.all(
+      allAlbums.map(async (a: any) => {
+        let coverUrl = null;
+        try {
+          if (a.Uris?.HighlightImage?.Uri) {
+            const coverRes = await fetch(
+              `https://api.smugmug.com${a.Uris.HighlightImage.Uri}?APIKey=${SMUGMUG_API_KEY}`,
+              {
+                headers: {
+                  Accept: "application/json",
+                  "User-Agent": "AmesAfterDark/1.0",
+                },
+              }
+            );
+            if (coverRes.ok) {
+              const coverData = await coverRes.json();
+              coverUrl =
+                coverData?.Response?.Image?.LargestImage?.Url ||
+                coverData?.Response?.Image?.ArchivedUri ||
+                null;
+            }
+          }
+        } catch {
+          // ignore
+        }
+
+        const parts = a.Name.split(" ");
+        const bar = parts[0]?.includes("Big") ? parts[1] : parts[0];
+        const date = parts.slice(-1)[0] || "";
+
+        return {
+          id: a.AlbumKey,
+          name: a.Name,
+          barName: bar,
+          date,
+          coverUrl,
+          albumUri: a.Uris?.AlbumImages?.Uri,
+        };
+      })
+    );
+    
+    return enriched;
+  } catch (err) {
+    console.warn("Album fetch failed:", err);
+    return [];
   }
 }
