@@ -37,7 +37,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
                     { id: '5', name: 'The Blue Owl', latitude: 42.02047, longitude: -93.65042, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/blue_owl.png') },                     // The Blue Owl: 42.02047, -93.65042
                     { id: '6', name: 'Paddy\'s Irish Pub', latitude: 42.02185, longitude: -93.65005, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/paddy.png') },                  // Paddy's Irish Pub: 42.02185, -93.65005
                     { id: '7', name: 'Sips', latitude: 42.02185, longitude: -93.65001, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/sips.png') },                                 // Sips: 42.02185, -93.65001
-                    { id: '8', name: 'Mickey\'s Irish Pub', latitude: 42.16093, longitude: -93.60647, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/mickey.png') },                // Mickey's Irish Pub: 42.16093, -93.60647
+                    { id: '8', name: 'Mickey\'s Irish Pub', latitude: 42.02234, longitude: -93.65031, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/mickey.png') },                // Mickey's Irish Pub: 42.02234, -93.65031
                     { id: '9', name: 'Outlaws', latitude: 42.02139, longitude: -93.65123, hours: "Open until 2:00 AM", logo: require('../assets/images/logos/outlaws.png') },                           // Outlaws: 42.02139, -93.65123
                 ];
                 resolve(mockLocations);
