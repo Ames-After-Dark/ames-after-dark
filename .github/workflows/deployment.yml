@@ -9,4 +9,25 @@ jobs:
     runs-on: [self-hosted]
     steps:
       - uses: actions/checkout@v4
-      - run: pm2 stop ames-after-dark && rsync -av --delete backend /home/aad_admin/deployment/ && cd /home/aad_admin/deployment/backend && npm ci && pm2 restart ames-after-dark
+      - name: Deploy backend files
+        run: |
+          pm2 stop ames-after-dark || true
+          rsync -av --delete backend/ /home/aad_admin/deployment/backend/
+      - name: Install backend dependencies
+        run: |
+          cd /home/aad_admin/deployment/backend
+          npm ci
+      - name: Generate Prisma client
+        run: |
+          cd /home/aad_admin/deployment/backend
+          npx prisma generate
+      - name: Run Prisma migrations (hardcoded DB URL)
+        env:
+          DATABASE_URL: "postgresql://amesdb_admin:l1quorSTORE_$$@localhost:5432/amesdb"
+        run: |
+          cd /home/aad_admin/deployment/backend
+          npx prisma migrate deploy --schema=prisma/schema.prisma || npx prisma db push --schema=prisma/schema.prisma
+      - name: Restart app
+        run: |
+          cd /home/aad_admin/deployment/backend
+          pm2 restart ames-after-dark || pm2 start ecosystem.config.js --name ames-after-dark

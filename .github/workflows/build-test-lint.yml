@@ -24,7 +24,11 @@ jobs:
         with:
           path: backend/node_modules
           key: backend-${{ hashFiles('backend/package-lock.json') }}
-      - run: cd backend && npm install
+      - run: |
+          cd backend
+          npm install
+          # generate Prisma client so tests/linters that import @prisma/client work
+          npx prisma generate || true
 
   lint_frontend:
     runs-on: [self-hosted]
