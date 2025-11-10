@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://amesdb_admin:l1quorSTORE_$$@localhost:5432/amesdb"
   schemas  = ["app"]
 }
 
