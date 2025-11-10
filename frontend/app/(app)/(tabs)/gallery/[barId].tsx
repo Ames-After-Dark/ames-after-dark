@@ -9,7 +9,7 @@ const PHOTO_SIZE = windowWidth / 3;
 
 export default function BarPhotosScreen() {
   const { barId, barName } = useLocalSearchParams();
-  const { photos, loading, error } = useBarPhotos(String(barId));
+  const { photos, loading, error } = useBarPhotos(String(barName));
 
   if (loading)
     return (
