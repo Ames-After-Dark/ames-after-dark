@@ -123,7 +123,7 @@ useEffect(() => {
       item.eventsScheduled?.[0]?.name ??
       "No specials tonight";
     const openNow = !!item.__openNow;
-    const imageSource = item.logoUrl ? { uri: item.logoUrl } : IMG.LOGO;
+    const imageSource = item.logoUrl ? { uri: item.logoUrl } : item.logo;
     const id = String(item.id);
     const favOn = isFav(item);
 
