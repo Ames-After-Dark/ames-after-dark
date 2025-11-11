@@ -54,7 +54,15 @@ export default function BarMenuScreen() {
   return (
     
     <>
-       
+      <Stack.Screen
+        options={{
+          title: "", // removes “[id]”
+          headerStyle: { backgroundColor: "#0b0b12" },
+          headerTintColor: "#33CCFF",       // back arrow + back label
+          headerTitleStyle: { color: "#33CCFF" }, // title color (if you set one)
+        }}
+      />
+  
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 48 }}>
       <Text style={styles.title}>{bar.name} Menu</Text>
       {bar.menu?.updatedAt ? (

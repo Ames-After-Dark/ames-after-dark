@@ -3,54 +3,9 @@
 import {IMG} from "@/assets/assets"
 import type { Bar } from "@/types/bars";
 // ---------- Types ----------
-export type BarId =
-  | "1"
-  | "2"
-  | "3"
-  | "4"
-  | "5"
-  | "6"
-  | "7"
-  | "8"
-  | "9"
-  | "10";;
 
 export type ISODateTime = string;
 
-export type TimeRule =
-  | {
-      kind: "one-time";
-      start: ISODateTime;
-      end: ISODateTime;
-      tz: string;
-    }
-  | {
-      kind: "weekly";
-      tz: string;
-      daysOfWeek: number[];
-      startLocalTime: string;
-      endLocalTime: string;
-    };
-
-export type ScheduledDeal = {
-  id: string;
-  barId: BarId;
-  title: string;
-  subtitle?: string;
-  image?: any;
-  priority?: number;
-  rule: TimeRule;
-};
-
-export type ScheduledEvent = {
-  id: string;
-  barId: BarId;
-  name: string;
-  description?: string;
-  image?: any;
-  priority?: number;
-  rule: TimeRule;
-};
 
 // ---------- Placeholder Assets ----------
 const LOGO = IMG.LOGO
@@ -194,7 +149,36 @@ export const BARS_BASE: Bar[] = [
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
-    
+    menu: {
+      updatedAt: "2025-10-12",
+      sections: [
+        {
+          id: "sips-sig",
+          title: "Signature Cocktails",
+          items: [
+            { id: "sips-s1", name: "Velvet Espresso Martini", price: "$10.00", desc: "Vodka, espresso, coffee liqueur.", tag: "signature" },
+            { id: "sips-s2", name: "Pink Lemonade Spritz", price: "$9.00", tag: "signature" },
+          ],
+        },
+        {
+          id: "sips-bombs",
+          title: "Bombs",
+          items: [
+            { id: "sips-b1", name: "Cherry Bomb", price: "Half-Price 7–9PM", desc: "Deal nights only.", tag: "shot" },
+            { id: "sips-b2", name: "Vegas Bomb", price: "$6.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "sips-wine",
+          title: "Wine & Bubbles",
+          items: [
+            { id: "sips-w1", name: "Prosecco Split", price: "$8.00" },
+            { id: "sips-w2", name: "House Red/White", price: "$7.00" },
+          ],
+        },
+      ],
+    }
+
   },
   {
     id: "3",
@@ -236,6 +220,36 @@ export const BARS_BASE: Bar[] = [
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-10",
+      sections: [
+        {
+          id: "owl-whiskey",
+          title: "Whiskey & Bourbon",
+          items: [
+            { id: "owl-w1", name: "Jack Daniel’s", price: "$6.00" },
+            { id: "owl-w2", name: "Buffalo Trace", price: "$8.00" },
+          ],
+        },
+        {
+          id: "owl-signature",
+          title: "Signature (Country)",
+          items: [
+            { id: "owl-s1", name: "Outlaw Old Fashioned", price: "$9.00", tag: "signature" },
+            { id: "owl-s2", name: "Boot Scoot Mule", price: "$8.00", desc: "Whiskey, ginger beer, lime." },
+          ],
+        },
+        {
+          id: "owl-beer",
+          title: "Beer",
+          items: [
+            { id: "owl-b1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+            { id: "owl-b2", name: "Import Bottle", price: "$4.50", tag: "bottle" },
+          ],
+        },
+      ],
+    }
+
   },
   {
   id: "4",
@@ -281,6 +295,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+      updatedAt: "2025-10-20",
+      sections: [
+        {
+          id: "aj-ultra",
+          title: "Ultralight Signatures",
+          items: [
+            { id: "aj-u1", name: "Neon Berry Fizz", price: "$10.00", tag: "signature" },
+            { id: "aj-u2", name: "LED Lemon Drop", price: "$9.00", tag: "signature" },
+          ],
+        },
+        {
+          id: "aj-bombs",
+          title: "Bombs",
+          items: [
+            { id: "aj-b1", name: "$3 Bombs (until 11PM Fri/Sat)", price: "$3.00", tag: "shot" },
+            { id: "aj-b2", name: "Jäger Bomb", price: "$5.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "aj-draft",
+          title: "Draft & Seltzer",
+          items: [
+            { id: "aj-d1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+            { id: "aj-d2", name: "Hard Seltzer", price: "$4.50" },
+          ],
+        },
+      ],
+    }
+
 },
 {
   id: "5",
@@ -326,6 +370,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+    menu: {
+    updatedAt: "2025-10-05",
+    sections: [
+      {
+        id: "pad-pub",
+        title: "Pub Staples",
+        items: [
+          { id: "pad-p1", name: "Guinness Draught", price: "$6.00", tag: "draft" },
+          { id: "pad-p2", name: "Smithwick’s", price: "$6.00", tag: "draft" },
+        ],
+      },
+      {
+        id: "pad-bombs",
+        title: "Bombs & Shots",
+        items: [
+          { id: "pad-b1", name: "$3 Bomb Shots (Trivia)", price: "$3.00", tag: "shot" },
+          { id: "pad-b2", name: "Irish Slammer", price: "$6.00", tag: "shot" },
+        ],
+      },
+      {
+        id: "pad-food",
+        title: "Bar Bites",
+        items: [
+          { id: "pad-f1", name: "Soft Pretzel", price: "$5.00", tag: "food" },
+          { id: "pad-f2", name: "Fries", price: "$4.00", tag: "food" },
+        ],
+      },
+    ],
+  }
+
 },
 {
   id: "6",
@@ -371,6 +445,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+    updatedAt: "2025-10-08",
+    sections: [
+      {
+        id: "bowl-classics",
+        title: "Classics",
+        items: [
+          { id: "bowl-c1", name: "Old Fashioned", price: "$8.00" },
+          { id: "bowl-c2", name: "Manhattan", price: "$9.00" },
+        ],
+      },
+      {
+        id: "bowl-signature",
+        title: "Signatures",
+        items: [
+          { id: "bowl-s1", name: "Blue Owl", price: "$10.00", desc: "Gin, elderflower, lemon.", tag: "signature" },
+          { id: "bowl-s2", name: "Upper Room Sour", price: "$9.00", tag: "signature" },
+        ],
+      },
+      {
+        id: "bowl-draft",
+        title: "Draft",
+        items: [
+          { id: "bowl-d1", name: "Pint – Domestic", price: "$4.00", tag: "draft" },
+          { id: "bowl-d2", name: "Pint – Craft Rotator", price: "$6.00", tag: "draft" },
+        ],
+      },
+    ],
+  }
+
 },
 {
   id: "7",
@@ -416,6 +520,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+    updatedAt: "2025-10-09",
+    sections: [
+      {
+        id: "mic-drafts",
+        title: "Drafts",
+        items: [
+          { id: "mic-d1", name: "Hazy IPA", price: "$6.50", tag: "draft" },
+          { id: "mic-d2", name: "Lager", price: "$4.50", tag: "draft" },
+        ],
+      },
+      {
+        id: "mic-apps",
+        title: "Half-Price Apps (4–7PM)",
+        items: [
+          { id: "mic-a1", name: "Mozz Sticks", price: "$5.00", tag: "food" },
+          { id: "mic-a2", name: "Wings (6pc)", price: "$6.00", tag: "food" },
+        ],
+      },
+      {
+        id: "mic-cocktails",
+        title: "Cocktails",
+        items: [
+          { id: "mic-c1", name: "Irish Mule", price: "$8.00" },
+          { id: "mic-c2", name: "Whiskey Sour", price: "$8.00" },
+        ],
+      },
+    ],
+  }
+
 },
 {
   id: "8",
@@ -461,6 +595,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+    updatedAt: "2025-10-07",
+    sections: [
+      {
+        id: "mom-pitchers",
+        title: "Pitchers",
+        items: [
+          { id: "mom-p1", name: "$5 Pitchers (Mondays 5–9PM)", price: "$5.00" },
+          { id: "mom-p2", name: "Domestic Pitcher", price: "$8.00" },
+        ],
+      },
+      {
+        id: "mom-shots",
+        title: "Shots",
+        items: [
+          { id: "mom-s1", name: "Green Tea", price: "$4.00", tag: "shot" },
+          { id: "mom-s2", name: "Lemon Drop", price: "$4.00", tag: "shot" },
+        ],
+      },
+      {
+        id: "mom-games",
+        title: "Bar Snacks",
+        items: [
+          { id: "mom-g1", name: "Nachos", price: "$7.00", tag: "food" },
+          { id: "mom-g2", name: "Pizza Slices", price: "$4.00", tag: "food" },
+        ],
+      },
+    ],
+  }
+
 },
 {
   id: "9",
@@ -506,6 +670,28 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+    updatedAt: "2025-10-06",
+    sections: [
+      {
+        id: "thu-power",
+        title: "Power Hour Specials",
+        items: [
+          { id: "thu-p1", name: "$2 Busch Lights", price: "$2.00", tag: "draft" },
+          { id: "thu-p2", name: "$4 Wells", price: "$4.00", tag: "well" },
+        ],
+      },
+      {
+        id: "thu-cocktails",
+        title: "House Cocktails",
+        items: [
+          { id: "thu-c1", name: "Thumbs Up", price: "$8.00", tag: "signature" },
+          { id: "thu-c2", name: "Backroom Mule", price: "$7.50" },
+        ],
+      },
+    ],
+  }
+
 },
 {
   id: "10",
@@ -551,6 +737,36 @@ export const BARS_BASE: Bar[] = [
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
+  menu: {
+  updatedAt: "2025-10-18",
+  sections: [
+    {
+      id: "was-happy",
+      title: "Happy Hour (3–7PM)",
+      items: [
+        { id: "was-h1", name: "$2 Wells", price: "$2.00", tag: "well" },
+        { id: "was-h2", name: "$2.50 Tallboys", price: "$2.50", tag: "draft" },
+      ],
+    },
+    {
+      id: "was-karaoke",
+      title: "Karaoke Night Specials",
+      items: [
+        { id: "was-k1", name: "Singer’s Shot", price: "$3.00", tag: "shot" },
+        { id: "was-k2", name: "Station Soda", price: "$6.00", tag: "signature" },
+      ],
+    },
+    {
+      id: "was-regular",
+      title: "Regulars",
+      items: [
+        { id: "was-r1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+        { id: "was-r2", name: "Well Cocktail", price: "$5.00", tag: "well" },
+      ],
+    },
+  ],
+}
+
 },
 
 ];
