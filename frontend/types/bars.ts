@@ -18,6 +18,28 @@ export type ScheduleRule =
 export type ScheduledDeal  = { title: string; subtitle?: string; rule: ScheduleRule };
 export type ScheduledEvent = { name: string; rule: ScheduleRule };
 
+// types/bar.ts
+export type Money = `${number}${"" | "."}${number}${"" | "0" | "00"}`;
+
+export type MenuItem = {
+  id: string;
+  name: string;
+  price?: Money | string;   // keep flexible for things like "Mkt" or "$2 Wells (7–9)"
+  desc?: string;
+  tag?: "signature" | "draft" | "bottle" | "shot" | "well" | "food" | "nonalcoholic";
+};
+
+export type MenuSection = {
+  id: string;
+  title: string;            // e.g., "Signature Cocktails"
+  items: MenuItem[];
+};
+
+export type BarMenu = {
+  updatedAt?: string;
+  sections: MenuSection[];
+};
+
 export type Bar = {
   id: BarId;
   name: string;
@@ -44,6 +66,7 @@ export type Bar = {
   logoUrl?: string;
   coverUrl?: string;
   mapImageUrl?: string;
+  menu?: BarMenu;  
   galleryImageUrl?: string;
 
   // derived (client)

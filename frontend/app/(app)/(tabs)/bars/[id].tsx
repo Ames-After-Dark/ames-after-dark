@@ -14,7 +14,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { getNow, isActive, isBarOpen } from "@/config/time";
-import { IMG } from "../../../../assets/assets.ts"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
+import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
 
 export default function BarProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -117,6 +117,15 @@ export default function BarProfile() {
         </View>
       </View>
 
+     <View style={{ marginHorizontal: 12, marginTop: 8 }}>
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => router.push({ pathname: "/bars/menu", params: { id } })}
+      >
+        <Text style={styles.menuButtonText}>View Menu</Text>
+      </TouchableOpacity>
+    </View>
+
       {/* Current Events */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Current Events</Text>
@@ -201,4 +210,7 @@ const styles = StyleSheet.create({
   bottomCardTitle: { color: "white", fontSize: 16, fontWeight: "600" },
   bottomCardArrow: { color: "white", fontSize: 18, fontWeight: "800" },
   bottomCardImage: { width: "100%", height: 100, borderRadius: 8 },
+  menuButton: { backgroundColor: "#33CCFF", paddingVertical: 10,borderRadius: 10,alignItems: "center",},
+menuButtonText: {color: "#0b0b12", fontWeight: "800", fontSize: 16, letterSpacing: 0.3,},
+
 });

@@ -6,8 +6,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
-import type { Bar } from "@/types/bar";
-import { IMG } from "../../../../assets/assets.ts";
+import type { Bar } from "@/types/bars";
+import { IMG } from "../../../../assets/assets";
 import { getNow, isBarOpen } from "@/config/time";
 
 export default function Bars() {
@@ -65,8 +65,8 @@ useEffect(() => {
 
 
   const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
-//   const toggleFavorite = (id: string) =>
-//     setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
+   const toggleFavorite = (id: string) =>
+     setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
 //
 //   const visibleBars = useMemo(() => {
 //     let data = bars;

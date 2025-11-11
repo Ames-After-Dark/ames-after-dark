@@ -1,6 +1,7 @@
 // AmesAfterDark-Mobile/data/mock.ts
 // Updated mock data with scheduled deals/events support (hour-based)
-import {IMG} from "@/assets/assets.ts"
+import {IMG} from "@/assets/assets"
+import type { Bar } from "@/types/bars";
 // ---------- Types ----------
 export type BarId =
   | "1"
@@ -51,25 +52,6 @@ export type ScheduledEvent = {
   rule: TimeRule;
 };
 
-export type BarBase = {
-  id: BarId;
-  name: string;
-  description: string;
-  favorite?: boolean;
-  openingTime?: string;   // e.g., "4:00 PM"
-  closingTime?: string;   // e.g., "2:00 AM"
-  status?: "Open" | "Closed"; // optional manual override
-  visits?: number;
-  friends?: number;
-  favorites?: number;
-  dealsScheduled?: ScheduledDeal[];
-  eventsScheduled?: ScheduledEvent[];
-  logo: any;
-  cover: any;
-  galleryImage: any;
-  mapImage: any;
-};
-
 // ---------- Placeholder Assets ----------
 const LOGO = IMG.LOGO
 const COVER = LOGO;
@@ -78,11 +60,20 @@ const MAP = IMG.fakeMap;
 const PinkIcon = IMG.PinkIcon;
 const BlueIcon = IMG.BlueIcon;
 const YellowIcon = IMG.YellowIcon;
+const cy = IMG.CysRoost;
+const aj = IMG.AJs;
+const Blue = IMG.BlueOwl;
+const bnc = IMG.bnc;
+const mickeys = IMG.Mickey;
+const outlaws = IMG.Outlaws;
+const paddys = IMG.Paddys;
+const sips = IMG.Sips;
+const welchAve = IMG.Welch;
 
 const CHICAGO_TZ = "America/Chicago";
 
 // ---------- Mock Time-Aware Data ----------
-export const BARS_BASE: BarBase[] = [
+export const BARS_BASE: Bar[] = [
   {
     id: "1",
     name: "Cy's",
@@ -124,10 +115,40 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: cy,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-15",
+      sections: [
+        {
+          id: "cys-sig",
+          title: "Signature Cocktails",
+          items: [
+            { id: "cys-sig-1", name: "Cy Cyclone", price: "$8.00", desc: "Vodka, lime, blue curaçao, lemon-lime soda." , tag: "signature"},
+            { id: "cys-sig-2", name: "Welch Wave", price: "$9.00", desc: "Rum, pineapple, coconut, grenadine.", tag: "signature" },
+          ],
+        },
+        {
+          id: "cys-wells",
+          title: "Wells & Bombs",
+          items: [
+            { id: "cys-w-1", name: "$2 Wells (Happy Hour)", price: "$2.00", desc: "Until 11PM when active.", tag: "well" },
+            { id: "cys-b-1", name: "Cherry Bomb", price: "$4.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "cys-draft",
+          title: "Drafts",
+          items: [
+            { id: "cys-d-1", name: "Busch Light Pint", price: "$3.00", tag: "draft" },
+            { id: "cys-d-2", name: "Local Rotator", price: "$5.50", tag: "draft" },
+          ],
+        },
+      ],
+    }
+
   },
   {
     id: "2",
@@ -169,10 +190,11 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: sips,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    
   },
   {
     id: "3",
@@ -210,7 +232,7 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: outlaws,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
@@ -255,7 +277,7 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: aj,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
@@ -300,7 +322,7 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: paddys,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
@@ -345,7 +367,7 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: Blue,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
@@ -390,7 +412,7 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: mickeys,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
@@ -525,7 +547,7 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: welchAve,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
