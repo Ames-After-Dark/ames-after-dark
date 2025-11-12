@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    backgroundColor: Theme.dark.surface,
+    backgroundColor: Theme.dark.background,
   },
   backArrow: {
     color: Theme.container.titleText,

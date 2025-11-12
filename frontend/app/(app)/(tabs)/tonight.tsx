@@ -176,7 +176,7 @@ export default function Tonight() {
               value={query}
               onChangeText={setQuery}
               placeholder="Search"
-              placeholderTextColor={Theme.search.inactiveText}
+              placeholderTextColor={Theme.search.inactiveInput}
               style={styles.searchInput}
               returnKeyType="search"
             />

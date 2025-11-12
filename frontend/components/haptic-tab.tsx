@@ -1,15 +1,14 @@
-
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { PlatformPressable } from '@react-navigation/elements';
 import * as Haptics from 'expo-haptics';
 import { StyleProp, ViewStyle } from 'react-native'; // Import style types
 
 export function HapticTab(props: BottomTabBarButtonProps) {
+
   // Destructure pointerEvents, style, and onPressIn from props
   const { pointerEvents, style, onPressIn, ...restProps } = props;
 
   // Create a new style object
-  // We need to handle `style` being an object, an array, or undefined
   const combinedStyle: StyleProp<ViewStyle> = [
     style,
     // Add pointerEvents to the style object if it exists
@@ -30,22 +29,3 @@ export function HapticTab(props: BottomTabBarButtonProps) {
     />
   );
 }
-
-// import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
-// import { PlatformPressable } from '@react-navigation/elements';
-// import * as Haptics from 'expo-haptics';
-//
-// export function HapticTab(props: BottomTabBarButtonProps) {
-//   return (
-//     <PlatformPressable
-//       {...props}
-//       onPressIn={(ev) => {
-//         if (process.env.EXPO_OS === 'ios') {
-//           // Add a soft haptic feedback when pressing down on the tabs.
-//           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-//         }
-//         props.onPressIn?.(ev);
-//       }}
-//     />
-//   );
-// }

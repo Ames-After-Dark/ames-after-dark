@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
       justifyContent: "center",
     },
     emptyText: {
-      color: Theme.search.inactiveText, // "#94A3B8",
+      color: Theme.search.inactiveInput, // "#94A3B8",
       fontSize: 13,
       textAlign: "center",
     },

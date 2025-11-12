@@ -1,19 +1,14 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native'; // <-- Import Platform
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-// import { IconSymbol } from '@/components/ui/icon-symbol'; // This import was unused, removing
-// Import the Theme object, Colors is no longer needed here
 import { Theme } from '@/constants/theme';
-// useColorScheme is no longer needed if we're consistently using Theme.dark
-// import { useColorScheme } from '@/hooks/use-color-scheme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 // import { AuthProvider, useAuth } from "@/hooks/use-auth"
 
-import TopHeader from "@/components/TopHeader"; // uses components/TopHeader.tsx
-// export { useColorScheme } from 'react-native';
+import TopHeader from "@/components/TopHeader";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -23,9 +18,6 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  // const colorScheme = useColorScheme(); // No longer needed
-  // const { isAuthenticated } = useAuth();
-  // const tint = Colors[colorScheme ?? "light"].tint; // We will use Theme.dark.primary instead
 
   // How to add opacity:
   // 100% opacity: #0f172a (Theme.container.background)
@@ -51,9 +43,6 @@ export default function TabLayout() {
           borderRadius: 32,
           backgroundColor: transparentSurfaceColor,
 
-          // --- Shadow Update (Re-applied) ---
-          // Use Platform.select to apply the correct shadow style for each platform
-          // This fixes the web deprecation warning by using 'boxShadow'
           ...Platform.select({
             ios: {
               shadowColor: Theme.dark.black,
@@ -71,8 +60,6 @@ export default function TabLayout() {
               boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.3)',
             }
           }),
-          // Add a border to make it pop from the background,
-          // especially since it's semi-transparent now.
           borderColor: Theme.container.mainBorder,
           borderWidth: 1,
         },
