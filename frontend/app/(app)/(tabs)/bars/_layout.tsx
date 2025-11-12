@@ -1,10 +1,13 @@
 import { Stack } from "expo-router";
+import { Theme } from '@/constants/theme';
 
 export default function BarsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#0b0b12" },
+        headerStyle: {
+          backgroundColor: Theme.dark.background // "#0b0b12"
+        },
       }}
     >
       {/* Bars directory */}
