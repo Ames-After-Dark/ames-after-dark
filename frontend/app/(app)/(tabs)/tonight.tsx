@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { BARS_BASE, FRIENDS, BarBase } from "@/data/mock";
+import { BARS_BASE, FRIENDS, BarId } from "@/data/mock";
 import { getNow, isActive, isBarOpen } from "@/config/time";
 
 // Tabs
@@ -113,8 +113,8 @@ export default function Tonight() {
   }, [query]);
 
   // Navigation helpers for row chevrons
-  const goToBarsTab = () => router.navigate("/(tabs)/bars");
-  const goToFriendsTab = () => router.navigate("/(tabs)/friends");
+  const goToBarsTab = () => router.navigate("/bars/index");
+  const goToFriendsTab = () => router.navigate("/friends/friends");
 
   return (
   <SafeAreaView style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]} edges={["left", "right"]}>
