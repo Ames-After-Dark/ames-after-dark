@@ -160,7 +160,7 @@ useEffect(() => {
           />
         </View>
         <View style={styles.filters}>
-          {["All", "Open Now", "Specials", "Live Music", "Favorites"].map(option => (
+          {["All", "Open Now", "Specials", "Favorites"].map(option => (
             <TouchableOpacity
               key={option}
               style={[styles.filterButton, filter === option && styles.activeFilter]}
