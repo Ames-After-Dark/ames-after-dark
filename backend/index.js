@@ -16,6 +16,18 @@ const pool = new Pool({
   port: 5432,
 });
 
+// Configure CORS for your public domain
+// const corsOptions = {
+  // origin: [
+    // 'http://localhost:3000',
+    // 'http://localhost:8081',
+    // 'http://10.0.2.2:3000',
+    // 'http://sdmay26-42e.ece.iastate.edu',
+    // 'http://sdmay26-42.ece.iastate.edu',
+  // ],
+  // credentials: true,
+// };
+
 // Middleware
 app.use(express.json());
 
