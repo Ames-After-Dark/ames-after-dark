@@ -16,6 +16,8 @@ import { useBarDetail } from "@/hooks/useBarDetail";
 import { getNow, isActive, isBarOpen } from "@/config/time";
 import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
 
+import { Theme } from '@/constants/theme';
+
 export default function BarProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -25,7 +27,7 @@ export default function BarProfile() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#33CCFF" />
+        <ActivityIndicator color={Theme.dark.primary} />
       </View>
     );
   }
@@ -33,7 +35,7 @@ export default function BarProfile() {
   if (!bar) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: "white", padding: 16 }}>Bar not found.</Text>
+        <Text style={{ color: Theme.dark.error, padding: 16 }}>Bar not found.</Text>
       </View>
     );
   }
@@ -83,7 +85,11 @@ export default function BarProfile() {
           <View
             style={[
               styles.statusPill,
-              { backgroundColor: openNow ? "#22c55e" : "#6b7280" },
+              {
+                backgroundColor: openNow
+                    ? Theme.dark.success
+                    : Theme.container.inactiveText
+              },
             ]}
           >
             <Text style={styles.statusPillText}>
@@ -96,7 +102,7 @@ export default function BarProfile() {
           <FontAwesome
             name="star"
             size={24}
-            color={bar.favorite ? "#33CCFF" : "grey"}
+            color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveText}
           />
         </TouchableOpacity>
       </View>
@@ -177,14 +183,24 @@ export default function BarProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b12" },
+  container: {
+    flex: 1,
+    backgroundColor: Theme.dark.background
+  },
   center: { justifyContent: "center", alignItems: "center" },
   coverPhoto: { width: "100%", height: 180 },
 
   headerRow: { flexDirection: "row", alignItems: "center", padding: 16 },
   barImage: { width: 70, height: 70, borderRadius: 12, marginRight: 12 },
-  barName: { color: "white", fontSize: 20, fontWeight: "700" },
-  barDescription: { color: "white", fontSize: 14 },
+  barName: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 20,
+    fontWeight: "700"
+  },
+  barDescription: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 14
+  },
 
   statusPill: {
     paddingHorizontal: 8,
@@ -193,24 +209,60 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 6,
   },
-  statusPillText: { color: "#0b0c12", fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  statusPillText: {
+    color: Theme.container.background, // "#0b0c12",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4
+  },
 
   statsRow: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 10, marginHorizontal: 12 },
   statBox: { alignItems: "center" },
-  statNumber: { color: "white", fontSize: 18, fontWeight: "700" },
-  statLabel: { color: "white", fontSize: 12 },
+  statNumber: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 18,
+    fontWeight: "700"
+  },
+  statLabel: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 12
+  },
 
-  sectionContainer: { backgroundColor: "#1A1A1A", borderRadius: 12, padding: 14, marginHorizontal: 12, marginVertical: 6 },
-  sectionTitle: { color: "white", fontSize: 18, fontWeight: "600", marginBottom: 6 },
-  sectionItem: { color: "#E5E5E5", fontSize: 14, marginVertical: 2 },
+  sectionContainer: {
+    backgroundColor: Theme.container.background, // "#1A1A1A",
+    borderRadius: 12,
+    padding: 14,
+    marginHorizontal: 12,
+    marginVertical: 6
+  },
+  sectionTitle: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 6
+  },
+  sectionItem: {
+    color: Theme.container.titleText, // "#E5E5E5",
+    fontSize: 14,
+    marginVertical: 2
+  },
 
   bottomRow: { flexDirection: "row", justifyContent: "space-around", margin: 12 },
   bottomCard: { flex: 1, borderRadius: 12, marginHorizontal: 4, padding: 8 },
   bottomCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  bottomCardTitle: { color: "white", fontSize: 16, fontWeight: "600" },
-  bottomCardArrow: { color: "white", fontSize: 18, fontWeight: "800" },
-  bottomCardImage: { width: "100%", height: 100, borderRadius: 8 },
-  menuButton: { backgroundColor: "#33CCFF", paddingVertical: 10,borderRadius: 10,alignItems: "center",},
-menuButtonText: {color: "#0b0b12", fontWeight: "800", fontSize: 16, letterSpacing: 0.3,},
-
+  bottomCardTitle: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 16,
+    fontWeight: "600"
+  },
+  bottomCardArrow: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  bottomCardImage: {
+    width: "100%",
+    height: 100,
+    borderRadius: 8
+  },
 });

@@ -10,17 +10,17 @@ import type { Bar } from "@/types/bars";
 import { IMG } from "../../../../assets/assets";
 import { getNow, isBarOpen } from "@/config/time";
 
+import { Theme } from '@/constants/theme';
+
 export default function Bars() {
   const router = useRouter();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
-//   const wantsOpen = filter === "Open Now";
   const wantsDeals = filter === "Specials";
   const wantsLive = filter === "Live Music";
 
   const { bars, loading } = useBars({
-//     open: wantsOpen || undefined,
     hasDeals: wantsDeals || undefined,
     liveMusic: wantsLive || undefined,
     q: search || undefined,
@@ -65,22 +65,6 @@ useEffect(() => {
 
 
   const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
-   const toggleFavorite = (id: string) =>
-     setFav(prev => ({ ...prev, [id]: !(prev[id] ?? false) }));
-//
-//   const visibleBars = useMemo(() => {
-//     let data = bars;
-//     if (filter === "Favorites") data = data.filter(b => isFav(b));
-//     if (search.trim()) {
-//       const q = search.toLowerCase();
-//       data = data.filter(
-//         b =>
-//           b.name.toLowerCase().includes(q) ||
-//           b.description.toLowerCase().includes(q)
-//       );
-//     }
-//     return [...data].sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
-//   }, [bars, filter, search, fav]);
 
     const visibleBars = useMemo(() => {
         if (!bars) return [];
@@ -139,7 +123,7 @@ useEffect(() => {
             <Text style={styles.barSpecials}>{firstDeal}</Text>
           </View>
           <TouchableOpacity onPress={() => toggleFavorite(id)}>
-            <FontAwesome name="star" size={22} color={favOn ? "#33CCFF" : "grey"} />
+            <FontAwesome name="star" size={22} color={favOn ? Theme.dark.tertiary : Theme.container.inactiveText} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -150,10 +134,10 @@ useEffect(() => {
     <View style={styles.container}>
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBar}>
-          <FontAwesome name="search" size={18} color="#33CCFF" style={styles.searchIcon} />
+          <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} style={styles.searchIcon} />
           <TextInput
             placeholder="Search bars or keywords"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={Theme.search.inactiveInput}
             value={search}
             onChangeText={setSearch}
             style={styles.searchInput}
@@ -169,7 +153,7 @@ useEffect(() => {
               <Text
                 style={[
                   styles.filterText,
-                  filter === option && { color: "black", fontWeight: "600" },
+                  filter === option && { color: Theme.container.activeText, fontWeight: "600" },
                 ]}
               >
                 {option}
@@ -180,7 +164,7 @@ useEffect(() => {
       </View>
 
             {loading ? (
-                <ActivityIndicator style={{ marginTop: 24 }} color="#33CCFF" />
+                <ActivityIndicator style={{ marginTop: 24 }} color={Theme.dark.primary} />
             ) : (
                 visibleBars.length === 0 ? (
                     <View style={styles.emptyContainer}>
@@ -208,28 +192,78 @@ useEffect(() => {
 
 // your original styles block re-attached 👇
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b12" },
-  searchFilterContainer: { backgroundColor: "#1A1A1A", paddingVertical: 12, paddingHorizontal: 14 },
-  searchBar: { flexDirection: "row", alignItems: "center", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10 },
+  container: {
+    flex: 1,
+    backgroundColor: Theme.dark.background,// "#0b0b12"
+  },
+  searchFilterContainer: {
+    backgroundColor: Theme.container.background, // "#1A1A1A",
+    paddingVertical: 12,
+    paddingHorizontal: 14
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 10
+  },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, color: "#94A3B8", fontSize: 14 },
+  searchInput: {
+    flex: 1,
+    color: Theme.search.input, // "#94A3B8",
+    fontSize: 14
+  },
   filters: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
-  filterButton: { backgroundColor: "#1A1A1A", borderColor: "#33CCFF", borderWidth: 1, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginHorizontal: 6 },
-  activeFilter: { backgroundColor: "#33CCFF" },
-  filterText: { color: "white", fontSize: 13 },
+  filterButton: {
+    backgroundColor: Theme.container.background, // "#1A1A1A",
+    borderColor: Theme.dark.primary, // "#33CCFF",
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginHorizontal: 6
+  },
+  activeFilter: {
+    backgroundColor: Theme.dark.primary, // "#33CCFF"
+  },
+  filterText: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 13
+  },
   barList: { paddingBottom: 80 },
-  barCard: { flexDirection: "row", backgroundColor: "#1A1A1A", borderRadius: 16, padding: 12, marginVertical: 6, alignItems: "center" },
+  barCard: {
+    flexDirection: "row",
+    backgroundColor: Theme.container.background, // "#1A1A1A",
+    borderRadius: 16,
+    padding: 12,
+    marginVertical: 6,
+    alignItems: "center"
+  },
   barImage: { width: 70, height: 70, borderRadius: 12, marginRight: 12 },
   barInfo: { flex: 1 },
-  barName: { color: "white", fontSize: 18, fontWeight: "600" },
-  barStatus: { color: "white", fontSize: 14, fontWeight: "500" },
-  barSpecials: { color: "white", fontSize: 14, marginVertical: 2 },
+  barName: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 18,
+    fontWeight: "600"
+  },
+  barStatus: {
+    color: Theme.container.titleText, //"white",
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  barSpecials: {
+    color: Theme.container.titleText, // "white",
+    fontSize: 14,
+    marginVertical: 2
+  },
   emptyContainer: {
       flex: 1,
       justifyContent: "center",
     },
     emptyText: {
-      color: "#94A3B8",
+      color: Theme.search.inactiveInput, // "#94A3B8",
       fontSize: 13,
       textAlign: "center",
     },

@@ -22,12 +22,14 @@ import { router } from "expo-router";
 import { BARS_BASE, FRIENDS, BarId } from "@/data/mock";
 import { getNow, isActive, isBarOpen } from "@/config/time";
 
+import { Theme } from '@/constants/theme';
+
 // Tabs
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
   { key: "open", label: "Open Now" },
   { key: "deals", label: "Deals Tonight" },
-  { key: "friends", label: "Friends near you" },
+  { key: "friends", label: "Friends Near You" },
 ] as const;
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
@@ -169,12 +171,12 @@ export default function Tonight() {
 
           {/* Search box filters either bars or friends depending on the tab */}
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={16} color="#a3a3a3" />
+            <Ionicons name="search" size={16} color={Theme.search.inactiveInput} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={Theme.search.inactiveInput}
               style={styles.searchInput}
               returnKeyType="search"
             />
@@ -201,7 +203,7 @@ export default function Tonight() {
                   <Text style={styles.friendName}>{f.name}</Text>
                   <Text style={styles.friendBar}>{f.bar}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
+                <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
               </Pressable>
             ))}
             {/* Empty-state message if no search results */}
@@ -245,7 +247,7 @@ export default function Tonight() {
                             styles.statusPill,
                             {
                               backgroundColor: item.isOpen
-                                ? "#22c55e" // green
+                                ? Theme.dark.success // "#22c55e" // green
                                 : "#6b7280", // gray
                             },
                           ]}
@@ -274,7 +276,7 @@ export default function Tonight() {
                   </View>
                   {/* Right chevron navigating to Bars tab (detail view TBD) */}
                   <Pressable onPress={goToBarsTab} hitSlop={8}>
-                    <Ionicons name="chevron-forward" size={18} color="#a3a3a3" />
+                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
                   </Pressable>
                 </View>
               );
@@ -294,22 +296,25 @@ export default function Tonight() {
 // Colors are mostly dark mode with subtle borders and neon-ish accents.
 // A few variants (e.g., cardDealsVariant) tweak tone for the Deals view.
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B0C12" },
+  container: {
+    flex: 1,
+    backgroundColor: Theme.dark.background, // "#0B0C12"
+  },
   heroImage: {
     width: 280,
     height: 140,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1F2937",
-    backgroundColor: "#0f172a",
+    borderColor: Theme.container.mainBorder, // "#1F2937",
+    backgroundColor: Theme.container.background, // "#0f172a",
   },
   stickyTabs: {
-    backgroundColor: "#0B0C12",
+    backgroundColor: Theme.dark.background, // "#0B0C12",
     paddingTop: 6,
     paddingBottom: 10,
   },
   sectionTitle: {
-    color: "#E5E7EB",
+    color: Theme.container.titleText, // "#E5E7EB",
     fontSize: 18,
     fontWeight: "700",
     paddingHorizontal: 16,
@@ -327,18 +332,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: "#374151",
+    borderColor: Theme.container.inactiveBorder, // "#374151",
     alignItems: "center",
     justifyContent: "center",
   },
-  tabBtnActive: { borderColor: "#38bdf8" },
-  tabText: { color: "#cbd5e1", fontSize: 12, fontWeight: "700" },
-  tabTextActive: { color: "#e0f2fe" },
+  tabBtnActive: {
+    borderColor: Theme.dark.primary // "#38bdf8"
+  },
+  tabText: {
+    color: Theme.container.inactiveText, // "#cbd5e1",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  tabTextActive: {
+    color: Theme.container.activeText, // "#e0f2fe"
+  },
   searchBox: {
     marginHorizontal: 16,
     marginTop: 2,
-    backgroundColor: "#111827",
-    borderColor: "#1f2937",
+    backgroundColor: Theme.search.background, // "#111827",
+    borderColor: Theme.search.border, // "#1f2937",
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -347,33 +360,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  searchInput: { flex: 1, color: "#E5E7EB", fontSize: 14, paddingVertical: 0 },
+  searchInput: {
+    flex: 1,
+    color: Theme.search.input, // "#E5E7EB",
+    fontSize: 14,
+    paddingVertical: 0
+  },
   cardsList: { padding: 16, gap: 12, paddingBottom: 92, },
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: "#0f172a",
+    backgroundColor: Theme.container.background, // "#0f172a",
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#1f2937",
   },
   cardDealsVariant: {
-    borderColor: "#164e63",
-    backgroundColor: "#0b1420",
+    borderColor: Theme.container.secondaryBorder, // "#164e63",
+    backgroundColor: Theme.container.background // "#0b1420",
   },
   cardImg: {
     width: 48,
     height: 48,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#1f2937",
+    borderColor: Theme.container.mainBorder, // "#1f2937",
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between" },
-  cardTitle: { color: "#f1f5f9", fontWeight: "800", fontSize: 14 },
-  cardSubtitle: { color: "#cbd5e1", marginTop: 2, fontSize: 13 },
-  cardDetail: { color: "#94a3b8", marginTop: 2, fontSize: 12 },
+  cardTitle: {
+    color: Theme.container.titleText, // "#f1f5f9",
+    fontWeight: "800",
+    fontSize: 14
+  },
+  cardSubtitle: {
+    color: Theme.container.inactiveText, // "#cbd5e1",
+    marginTop: 2,
+    fontSize: 13
+  },
+  cardDetail: {
+    color: Theme.container.inactiveText, // "#94a3b8",
+    marginTop: 2,
+    fontSize: 12
+  },
   dealChip: {
     marginTop: 8,
     alignSelf: "flex-start",
@@ -412,26 +442,30 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 10,
     borderRadius: 14,
-    backgroundColor: "#0f172a",
+    backgroundColor: Theme.container.background, // "#0f172a",
     borderWidth: 1,
-    borderColor: "#1f2937",
+    borderColor: Theme.container.mainBorder, // "#1f2937",
   },
   friendAvatar: {
     width: 44,
     height: 44,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#1f2937",
+    borderColor: Theme.container.mainBorder, // "#1f2937",
   },
-  friendName: { color: "#f1f5f9", fontWeight: "700", fontSize: 14 },
+  friendName: {
+    color: Theme.container.titleText, // "#f1f5f9",
+    fontWeight: "700",
+    fontSize: 14
+  },
   friendBar: {
-    color: "#93c5fd",
+    color: Theme.container.inactiveText, // "#93c5fd",
     fontWeight: "600",
     fontSize: 12,
     marginTop: 2,
   },
   emptyText: {
-    color: "#94a3b8",
+    color: Theme.container.inactiveText, // "#94a3b8",
     textAlign: "center",
     marginTop: 24,
     fontSize: 13,

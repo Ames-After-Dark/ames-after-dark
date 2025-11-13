@@ -61,10 +61,10 @@ export default function GalleryScreen() {
       {/* Search & Filters */}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBar}>
-          <FontAwesome name="search" size={18} color="#33CCFF" style={styles.searchIcon} />
+          <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} style={styles.searchIcon} />
           <TextInput
             placeholder="Search Gallery"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={Theme.search.inactiveInput}
             value={search}
             onChangeText={setSearch}
             style={styles.searchInput}
@@ -130,10 +130,14 @@ export default function GalleryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b12", paddingHorizontal: 12 },
+  container: {
+    flex: 1,
+    backgroundColor: Theme.dark.background,
+    paddingHorizontal: 12
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   searchFilterContainer: {
-    backgroundColor: "#1A1A1A",
+    backgroundColor: Theme.container.background,
     paddingVertical: 12,
     marginBottom: 12,
   },
@@ -145,22 +149,37 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 10,
   },
-  searchIcon: {marginRight: 8 },
-  searchInput: { flex: 1, color: "#94A3B8", fontSize: 14 },
-  filters: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center"},
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: Theme.search.input,
+    fontSize: 14
+  },
+  filters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center"
+  },
   filterButton: {
-    backgroundColor: "#1A1A1A",
-    borderColor: "#33CCFF",
+    backgroundColor: Theme.container.background, // "#1A1A1A",
+    borderColor: Theme.dark.primary, // "#33CCFF",
     borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    marginHorizontal: 6,
+    marginHorizontal: 6
   },
-  activeFilter: { backgroundColor: "#33CCFF"},
-  filterText: { color: "white", fontSize: 13 },
+  activeFilter: {
+    backgroundColor: Theme.dark.primary
+  },
+  filterText: {
+    color: Theme.container.activeText, // "white",
+    fontSize: 13
+  },
   dateHeader: {
-    color: "#33CCFF",
+    color: Theme.container.titleText, // Theme.dark.primary,
     fontSize: 16,
     fontWeight: "600",
     marginVertical: 8,
@@ -174,13 +193,13 @@ const styles = StyleSheet.create({
   albumCard: {
     width: "48%",
     margin: "1%",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: Theme.container.background, // "#1A1A1A",
     borderRadius: 12,
     overflow: "hidden",
   },
   albumImage: { width: "100%", height: 140 },
   albumName: {
-    color: "white",
+    color: Theme.container.titleText, // "white",
     fontSize: 14,
     paddingVertical: 8,
     paddingHorizontal: 6,
@@ -188,6 +207,6 @@ const styles = StyleSheet.create({
   placeholderCover: {
     width: "100%",
     height: 140,
-    backgroundColor: "#333",
+    backgroundColor: Theme.dark.black, // "#333",
   },
 });

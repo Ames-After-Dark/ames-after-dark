@@ -1,13 +1,13 @@
 import { Stack } from "expo-router";
+import { Theme } from '@/constants/theme';
 
 export default function BarsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: "#0b0b12" },
-        headerTintColor: "#33CCFF",      // neon blue arrow color
-        headerTitle: "",                 // no text next to the arrow
-        headerShadowVisible: false,      // optional: remove line under header
+        headerStyle: {
+          backgroundColor: Theme.dark.background // "#0b0b12"
+        },
       }}
     >
       {/* Main directory/search page — hide its header */}

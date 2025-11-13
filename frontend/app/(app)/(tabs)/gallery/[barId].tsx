@@ -78,17 +78,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    backgroundColor: Theme.dark.surface,
+    backgroundColor: Theme.dark.background,
   },
   backArrow: {
-  color: Theme.dark.primary,
-  fontSize: 24,
-  marginRight: 10,
+    color: Theme.container.titleText,
+    fontSize: 24,
+    marginRight: 10,
   },
   barTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: Theme.dark.primary,
+    color: Theme.container.titleText,
   },
   center: {
     flex: 1,

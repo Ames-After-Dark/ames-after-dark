@@ -6,6 +6,8 @@ import { type Location } from '@/services/locationService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { Theme } from '@/constants/theme';
+
 const ZOOM_THRESHOLD = 0.01;
 
 export default function MapScreen() {
@@ -38,7 +40,7 @@ export default function MapScreen() {
             return (
                 <View style={styles.centered}>
                     <ActivityIndicator size="large" />
-                    <Text style={styles.infoText}>Loading Locations...</Text>
+                    <Text style={styles.infoText}>Loading Locations!</Text>
                 </View>
             );
         }
@@ -135,33 +137,28 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0B0C12',
-    },
-    titleContainer: {
-        padding: 16,
-    },
-    titleText: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#11181C',
+        backgroundColor: Theme.dark.background,
     },
     infoText: {
         marginTop: 8,
         fontSize: 16,
-        color: '#687076',
+        color: Theme.search.inactiveInput,
     },
     errorText: {
-        color: 'red',
+        color: Theme.dark.error,
         fontSize: 16,
     },
     markerText: {
         fontWeight: 'bold',
-        color: '#ffffff',
-//       backgroundColor: 'rgba(255, 255, 255, 0.7)', // put a background for the text, not sure we need this but j in case
+        color: Theme.container.titleText,
         paddingHorizontal: 5,
         paddingVertical: 2,
         borderRadius: 5,
         marginBottom: 2,
+        textAlign: 'center',
+    },
+    markerContainer: {
+        alignItems: 'center',
     },
     mapContainer: {
         flex: 1,
@@ -179,11 +176,11 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         width: '80%',
-        backgroundColor: '#0B0C12',
+        backgroundColor: Theme.dark.background,
         borderRadius: 12,
         padding: 20,
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: Theme.dark.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
@@ -192,16 +189,16 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: 'white',
+        color: Theme.container.titleText,
         marginBottom: 20,
     },
     modalBodyText: {
         fontSize: 16,
-        color: '#D3D3D3',
+        color: Theme.container.inactiveText,
         marginBottom: 20,
     },
     button: {
-        backgroundColor: '#0f172a',
+        backgroundColor: Theme.dark.primary,
         borderRadius: 8,
         paddingVertical: 12,
         width: '100%',
@@ -209,19 +206,19 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     buttonText: {
-        color: 'white',
+        color: Theme.container.titleText,
         fontSize: 16,
         fontWeight: 'bold',
     },
     closeButton: {
-        backgroundColor: '#687076',
+        backgroundColor: Theme.container.background,
     },
     markerLogo: {
         width: 32,
         height: 32,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#fff',
+        borderColor: Theme.dark.white,
     },
     map: {
         ...StyleSheet.absoluteFillObject,

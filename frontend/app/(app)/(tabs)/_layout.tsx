@@ -1,15 +1,14 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Theme } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 // import { AuthProvider, useAuth } from "@/hooks/use-auth"
 
-import TopHeader from "@/components/TopHeader"; // uses components/TopHeader.tsx
+import TopHeader from "@/components/TopHeader";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -19,31 +18,50 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  // const { isAuthenticated } = useAuth();
 
+  // How to add opacity:
+  // 100% opacity: #0f172a (Theme.container.background)
+  // ~90% opacity: #0f172aE6
+  // ~80% opacity: #0f172aCC
+  // ~70% opacity: #0f172aB3
+  // ~50% opacity: #0f172a80
+  const transparentSurfaceColor = Theme.container.background + 'e6';
 
   return (
     <Tabs
       screenOptions={{
-//         headerShown: false,
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
-        tabBarInactiveTintColor: Colors.dark.icon,
+        tabBarInactiveTintColor: Theme.dark.muted,
         tabBarStyle: {
           position: 'absolute',
           bottom: 16,
-          left: 16,
-          right: 16,
+          left: '10%',
+          right: '10%',
           height: 64,
           borderRadius: 32,
-          backgroundColor: Theme.dark.surface,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          elevation: 10,
+          backgroundColor: transparentSurfaceColor,
+
+          ...Platform.select({
+            ios: {
+              shadowColor: Theme.dark.black,
+              shadowOffset: {
+                width: 0,
+                height: 6
+              },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+            },
+            android: {
+              elevation: 10,
+            },
+            web: {
+              boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.3)',
+            }
+          }),
+          borderColor: Theme.container.mainBorder,
+          borderWidth: 1,
         },
         tabBarItemStyle: {
           marginTop: 8,
@@ -51,27 +69,21 @@ export default function TabLayout() {
         tabBarIconStyle: {
           marginTop: 2,
         },
+
         // 🔹 Global header on every tab
         header: () => <TopHeader />,
             // If you wanted to hide header on web only, you can swap this back:
             // headerShown: useClientOnlyValue(false, true),
             headerShown: true,
-
-    //                     tabBarActiveTintColor: tint,
-//             tabBarInactiveTintColor: colorScheme === "dark" ? "#94a3b8" : "#6b7280",
-//             tabBarStyle: {
-//                 backgroundColor: "#0B0C12",
-//                 borderTopColor: "#1F2937",
-//             },
       }}>
       {/* FRIENDS */}
-      <Tabs.Screen
-              name="friends/friends"
-              options={{
+        <Tabs.Screen
+            name="friends/friends"
+            options={{
                 title: "Friends",
                 tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-              }}
-            />
+            }}
+        />
 
             {/* MAP */}
             <Tabs.Screen
@@ -87,7 +99,7 @@ export default function TabLayout() {
               name="tonight"
               options={{
                 title: "Tonight",
-                tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
+                    tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
               }}
             />
 
@@ -98,7 +110,7 @@ export default function TabLayout() {
                 title: "Bars",
                 tabBarIcon: ({ color }) => (
                   <FontAwesome5 name="glass-martini-alt" size={24} color={color} />
-                ),
+                )
               }}
             />
 
@@ -107,7 +119,7 @@ export default function TabLayout() {
               name="gallery"
               options={{
                 title: "Gallery",
-                tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
+                    tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
               }}
             />
       <Tabs.Screen
