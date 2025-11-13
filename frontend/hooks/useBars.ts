@@ -1,6 +1,6 @@
 // src/hooks/useBars.ts
 import { useEffect, useMemo, useState } from "react";
-import type { Bar } from "@/types/bar";
+import type { Bar } from "@/types/bars";
 import { apiGet } from "@/lib/api";
 import { USE_MOCK } from "@/config/runtime";
 import { BARS_BASE } from "@/data/mock";

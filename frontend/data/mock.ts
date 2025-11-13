@@ -1,6 +1,7 @@
 // AmesAfterDark-Mobile/data/mock.ts
 // Updated mock data with scheduled deals/events support (hour-based)
-import {IMG} from "@/assets/assets.ts"
+import {IMG} from "@/assets/assets"
+import type { Bar } from "@/types/bars";
 // ---------- Types ----------
 export type BarId =
   | "1"
@@ -16,59 +17,6 @@ export type BarId =
 
 export type ISODateTime = string;
 
-export type TimeRule =
-  | {
-      kind: "one-time";
-      start: ISODateTime;
-      end: ISODateTime;
-      tz: string;
-    }
-  | {
-      kind: "weekly";
-      tz: string;
-      daysOfWeek: number[];
-      startLocalTime: string;
-      endLocalTime: string;
-    };
-
-export type ScheduledDeal = {
-  id: string;
-  barId: BarId;
-  title: string;
-  subtitle?: string;
-  image?: any;
-  priority?: number;
-  rule: TimeRule;
-};
-
-export type ScheduledEvent = {
-  id: string;
-  barId: BarId;
-  name: string;
-  description?: string;
-  image?: any;
-  priority?: number;
-  rule: TimeRule;
-};
-
-export type BarBase = {
-  id: BarId;
-  name: string;
-  description: string;
-  favorite?: boolean;
-  openingTime?: string;   // e.g., "4:00 PM"
-  closingTime?: string;   // e.g., "2:00 AM"
-  status?: "Open" | "Closed"; // optional manual override
-  visits?: number;
-  friends?: number;
-  favorites?: number;
-  dealsScheduled?: ScheduledDeal[];
-  eventsScheduled?: ScheduledEvent[];
-  logo: any;
-  cover: any;
-  galleryImage: any;
-  mapImage: any;
-};
 
 // ---------- Placeholder Assets ----------
 const LOGO = IMG.LOGO
@@ -78,11 +26,20 @@ const MAP = IMG.fakeMap;
 const PinkIcon = IMG.PinkIcon;
 const BlueIcon = IMG.BlueIcon;
 const YellowIcon = IMG.YellowIcon;
+const cy = IMG.CysRoost;
+const aj = IMG.AJs;
+const Blue = IMG.BlueOwl;
+const bnc = IMG.bnc;
+const mickeys = IMG.Mickey;
+const outlaws = IMG.Outlaws;
+const paddys = IMG.Paddys;
+const sips = IMG.Sips;
+const welchAve = IMG.Welch;
 
 const CHICAGO_TZ = "America/Chicago";
 
 // ---------- Mock Time-Aware Data ----------
-export const BARS_BASE: BarBase[] = [
+export const BARS_BASE: Bar[] = [
   {
     id: "1",
     name: "Cy's",
@@ -124,10 +81,40 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: cy,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-15",
+      sections: [
+        {
+          id: "cys-sig",
+          title: "Signature Cocktails",
+          items: [
+            { id: "cys-sig-1", name: "Cy Cyclone", price: "$8.00", desc: "Vodka, lime, blue curaçao, lemon-lime soda." , tag: "signature"},
+            { id: "cys-sig-2", name: "Welch Wave", price: "$9.00", desc: "Rum, pineapple, coconut, grenadine.", tag: "signature" },
+          ],
+        },
+        {
+          id: "cys-wells",
+          title: "Wells & Bombs",
+          items: [
+            { id: "cys-w-1", name: "$2 Wells (Happy Hour)", price: "$2.00", desc: "Until 11PM when active.", tag: "well" },
+            { id: "cys-b-1", name: "Cherry Bomb", price: "$4.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "cys-draft",
+          title: "Drafts",
+          items: [
+            { id: "cys-d-1", name: "Busch Light Pint", price: "$3.00", tag: "draft" },
+            { id: "cys-d-2", name: "Local Rotator", price: "$5.50", tag: "draft" },
+          ],
+        },
+      ],
+    }
+
   },
   {
     id: "2",
@@ -169,10 +156,40 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: sips,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-12",
+      sections: [
+        {
+          id: "sips-sig",
+          title: "Signature Cocktails",
+          items: [
+            { id: "sips-s1", name: "Velvet Espresso Martini", price: "$10.00", desc: "Vodka, espresso, coffee liqueur.", tag: "signature" },
+            { id: "sips-s2", name: "Pink Lemonade Spritz", price: "$9.00", tag: "signature" },
+          ],
+        },
+        {
+          id: "sips-bombs",
+          title: "Bombs",
+          items: [
+            { id: "sips-b1", name: "Cherry Bomb", price: "Half-Price 7–9PM", desc: "Deal nights only.", tag: "shot" },
+            { id: "sips-b2", name: "Vegas Bomb", price: "$6.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "sips-wine",
+          title: "Wine & Bubbles",
+          items: [
+            { id: "sips-w1", name: "Prosecco Split", price: "$8.00" },
+            { id: "sips-w2", name: "House Red/White", price: "$7.00" },
+          ],
+        },
+      ],
+    }
+
   },
   {
     id: "3",
@@ -210,10 +227,40 @@ export const BARS_BASE: BarBase[] = [
         },
       },
     ],
-    logo: LOGO,
+    logo: outlaws,
     cover: COVER,
     galleryImage: GALLERY,
     mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-10",
+      sections: [
+        {
+          id: "owl-whiskey",
+          title: "Whiskey & Bourbon",
+          items: [
+            { id: "owl-w1", name: "Jack Daniel’s", price: "$6.00" },
+            { id: "owl-w2", name: "Buffalo Trace", price: "$8.00" },
+          ],
+        },
+        {
+          id: "owl-signature",
+          title: "Signature (Country)",
+          items: [
+            { id: "owl-s1", name: "Outlaw Old Fashioned", price: "$9.00", tag: "signature" },
+            { id: "owl-s2", name: "Boot Scoot Mule", price: "$8.00", desc: "Whiskey, ginger beer, lime." },
+          ],
+        },
+        {
+          id: "owl-beer",
+          title: "Beer",
+          items: [
+            { id: "owl-b1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+            { id: "owl-b2", name: "Import Bottle", price: "$4.50", tag: "bottle" },
+          ],
+        },
+      ],
+    }
+
   },
   {
   id: "4",
@@ -255,281 +302,483 @@ export const BARS_BASE: BarBase[] = [
       },
     },
   ],
-  logo: LOGO,
+  logo: aj,
   cover: COVER,
   galleryImage: GALLERY,
   mapImage: MAP,
-},
-{
-  id: "5",
-  name: "Paddy's",
-  description: "Classic Irish pub with pool tables, cheap drinks, and trivia nights.",
-  favorite: false,
-  openingTime: "3:00 PM",
-  closingTime: "3:00 AM",
-  visits: 210,
-  friends: 6,
-  favorites: 84,
-  dealsScheduled: [
-    {
-      id: "deal5",
-      barId: "5",
-      title: "$3 Bomb Shots",
-      subtitle: "Trivia Shots 8–10PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [2],
-        startLocalTime: "20:00",
-        endLocalTime: "22:00",
+  menu: {
+      updatedAt: "2025-10-20",
+      sections: [
+        {
+          id: "aj-ultra",
+          title: "Ultralight Signatures",
+          items: [
+            { id: "aj-u1", name: "Neon Berry Fizz", price: "$10.00", tag: "signature" },
+            { id: "aj-u2", name: "LED Lemon Drop", price: "$9.00", tag: "signature" },
+          ],
+        },
+        {
+          id: "aj-bombs",
+          title: "Bombs",
+          items: [
+            { id: "aj-b1", name: "$3 Bombs (until 11PM Fri/Sat)", price: "$3.00", tag: "shot" },
+            { id: "aj-b2", name: "Jäger Bomb", price: "$5.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "aj-draft",
+          title: "Draft & Seltzer",
+          items: [
+            { id: "aj-d1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+            { id: "aj-d2", name: "Hard Seltzer", price: "$4.50" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "5",
+    name: "Paddy's",
+    description: "Classic Irish pub with pool tables, cheap drinks, and trivia nights.",
+    favorite: false,
+    openingTime: "3:00 PM",
+    closingTime: "3:00 AM",
+    visits: 210,
+    friends: 6,
+    favorites: 84,
+    dealsScheduled: [
+      {
+        id: "deal5",
+        barId: "5",
+        title: "$3 Bomb Shots",
+        subtitle: "Trivia Shots 8–10PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [2],
+          startLocalTime: "20:00",
+          endLocalTime: "22:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event5",
-      barId: "5",
-      name: "Trivia Tuesday",
-      description: "Bring your friends for team trivia and prizes!",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [2],
-        startLocalTime: "19:00",
-        endLocalTime: "22:00",
+    ],
+    eventsScheduled: [
+      {
+        id: "event5",
+        barId: "5",
+        name: "Trivia Tuesday",
+        description: "Bring your friends for team trivia and prizes!",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [2],
+          startLocalTime: "19:00",
+          endLocalTime: "22:00",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
-{
-  id: "6",
-  name: "Blue Owl Bar",
-  description: "Cocktail and whiskey bar above Pizza Pit with a chill vibe and great music.",
-  favorite: true,
-  openingTime: "5:00 PM",
-  closingTime: "2:00 AM",
-  visits: 180,
-  friends: 4,
-  favorites: 99,
-  dealsScheduled: [
-    {
-      id: "deal6",
-      barId: "6",
-      title: "$4 Old Fashioneds",
-      subtitle: "Wednesdays 7–10PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [3],
-        startLocalTime: "19:00",
-        endLocalTime: "22:00",
+    ],
+    logo: paddys,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+      menu: {
+      updatedAt: "2025-10-05",
+      sections: [
+        {
+          id: "pad-pub",
+          title: "Pub Staples",
+          items: [
+            { id: "pad-p1", name: "Guinness Draught", price: "$6.00", tag: "draft" },
+            { id: "pad-p2", name: "Smithwick’s", price: "$6.00", tag: "draft" },
+          ],
+        },
+        {
+          id: "pad-bombs",
+          title: "Bombs & Shots",
+          items: [
+            { id: "pad-b1", name: "$3 Bomb Shots (Trivia)", price: "$3.00", tag: "shot" },
+            { id: "pad-b2", name: "Irish Slammer", price: "$6.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "pad-food",
+          title: "Bar Bites",
+          items: [
+            { id: "pad-f1", name: "Soft Pretzel", price: "$5.00", tag: "food" },
+            { id: "pad-f2", name: "Fries", price: "$4.00", tag: "food" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "6",
+    name: "Blue Owl Bar",
+    description: "Cocktail and whiskey bar above Pizza Pit with a chill vibe and great music.",
+    favorite: true,
+    openingTime: "5:00 PM",
+    closingTime: "2:00 AM",
+    visits: 180,
+    friends: 4,
+    favorites: 99,
+    dealsScheduled: [
+      {
+        id: "deal6",
+        barId: "6",
+        title: "$4 Old Fashioneds",
+        subtitle: "Wednesdays 7–10PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [3],
+          startLocalTime: "19:00",
+          endLocalTime: "22:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event6",
-      barId: "6",
-      name: "Live Acoustic Thursdays",
-      description: "Local artists and chill vibes on the upper level.",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [4],
-        startLocalTime: "20:00",
-        endLocalTime: "23:30",
+    ],
+    eventsScheduled: [
+      {
+        id: "event6",
+        barId: "6",
+        name: "Live Acoustic Thursdays",
+        description: "Local artists and chill vibes on the upper level.",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [4],
+          startLocalTime: "20:00",
+          endLocalTime: "23:30",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
-{
-  id: "7",
-  name: "Mickey’s Irish Pub",
-  description: "Welch Avenue staple with outdoor patio and live music.",
-  favorite: false,
-  openingTime: "4:00 PM",
-  closingTime: "2:00 AM",
-  visits: 165,
-  friends: 5,
-  favorites: 70,
-  dealsScheduled: [
-    {
-      id: "deal7",
-      barId: "7",
-      title: "Half-Price Apps & $3 Pints",
-      subtitle: "Daily 4–7PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [1, 2, 3, 4, 5],
-        startLocalTime: "16:00",
-        endLocalTime: "19:00",
+    ],
+    logo: Blue,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-08",
+      sections: [
+        {
+          id: "bowl-classics",
+          title: "Classics",
+          items: [
+            { id: "bowl-c1", name: "Old Fashioned", price: "$8.00" },
+            { id: "bowl-c2", name: "Manhattan", price: "$9.00" },
+          ],
+        },
+        {
+          id: "bowl-signature",
+          title: "Signatures",
+          items: [
+            { id: "bowl-s1", name: "Blue Owl", price: "$10.00", desc: "Gin, elderflower, lemon.", tag: "signature" },
+            { id: "bowl-s2", name: "Upper Room Sour", price: "$9.00", tag: "signature" },
+          ],
+        },
+        {
+          id: "bowl-draft",
+          title: "Draft",
+          items: [
+            { id: "bowl-d1", name: "Pint – Domestic", price: "$4.00", tag: "draft" },
+            { id: "bowl-d2", name: "Pint – Craft Rotator", price: "$6.00", tag: "draft" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "7",
+    name: "Mickey’s Irish Pub",
+    description: "Welch Avenue staple with outdoor patio and live music.",
+    favorite: false,
+    openingTime: "4:00 PM",
+    closingTime: "2:00 AM",
+    visits: 165,
+    friends: 5,
+    favorites: 70,
+    dealsScheduled: [
+      {
+        id: "deal7",
+        barId: "7",
+        title: "Half-Price Apps & $3 Pints",
+        subtitle: "Daily 4–7PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [1, 2, 3, 4, 5],
+          startLocalTime: "16:00",
+          endLocalTime: "19:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event7",
-      barId: "7",
-      name: "Live Music Fridays",
-      description: "Acoustic and indie artists on the back stage.",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [5],
-        startLocalTime: "21:00",
-        endLocalTime: "23:59",
+    ],
+    eventsScheduled: [
+      {
+        id: "event7",
+        barId: "7",
+        name: "Live Music Fridays",
+        description: "Acoustic and indie artists on the back stage.",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [5],
+          startLocalTime: "21:00",
+          endLocalTime: "23:59",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
-{
-  id: "8",
-  name: "Mother’s Pub",
-  description: "Classic dive bar with pool tables, darts, and cheap beer pitchers.",
-  favorite: false,
-  openingTime: "2:00 PM",
-  closingTime: "2:00 AM",
-  visits: 195,
-  friends: 6,
-  favorites: 77,
-  dealsScheduled: [
-    {
-      id: "deal8",
-      barId: "8",
-      title: "$5 Pitchers",
-      subtitle: "Every Monday 5–9PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [6],
-        startLocalTime: "17:00",
-        endLocalTime: "21:00",
+    ],
+    logo: mickeys,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-09",
+      sections: [
+        {
+          id: "mic-drafts",
+          title: "Drafts",
+          items: [
+            { id: "mic-d1", name: "Hazy IPA", price: "$6.50", tag: "draft" },
+            { id: "mic-d2", name: "Lager", price: "$4.50", tag: "draft" },
+          ],
+        },
+        {
+          id: "mic-apps",
+          title: "Half-Price Apps (4–7PM)",
+          items: [
+            { id: "mic-a1", name: "Mozz Sticks", price: "$5.00", tag: "food" },
+            { id: "mic-a2", name: "Wings (6pc)", price: "$6.00", tag: "food" },
+          ],
+        },
+        {
+          id: "mic-cocktails",
+          title: "Cocktails",
+          items: [
+            { id: "mic-c1", name: "Irish Mule", price: "$8.00" },
+            { id: "mic-c2", name: "Whiskey Sour", price: "$8.00" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "8",
+    name: "Mother’s Pub",
+    description: "Classic dive bar with pool tables, darts, and cheap beer pitchers.",
+    favorite: false,
+    openingTime: "2:00 PM",
+    closingTime: "2:00 AM",
+    visits: 195,
+    friends: 6,
+    favorites: 77,
+    dealsScheduled: [
+      {
+        id: "deal8",
+        barId: "8",
+        title: "$5 Pitchers",
+        subtitle: "Every Monday 5–9PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [6],
+          startLocalTime: "17:00",
+          endLocalTime: "21:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event8",
-      barId: "8",
-      name: "Open Mic Night",
-      description: "Grab a drink and take the stage every Wednesday!",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [3],
-        startLocalTime: "20:00",
-        endLocalTime: "23:00",
+    ],
+    eventsScheduled: [
+      {
+        id: "event8",
+        barId: "8",
+        name: "Open Mic Night",
+        description: "Grab a drink and take the stage every Wednesday!",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [3],
+          startLocalTime: "20:00",
+          endLocalTime: "23:00",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
-{
-  id: "9",
-  name: "Thumbs",
-  description: "Laid-back Welch bar with signature drinks and darts in the back.",
-  favorite: false,
-  openingTime: "4:00 PM",
-  closingTime: "2:00 AM",
-  visits: 140,
-  friends: 3,
-  favorites: 58,
-  dealsScheduled: [
-    {
-      id: "deal9",
-      barId: "9",
-      title: "$2 Busch Lights & $4 Wells",
-      subtitle: "Thursday Power Hour 7–10PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [6],
-        startLocalTime: "19:00",
-        endLocalTime: "22:00",
+    ],
+    logo: LOGO,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-07",
+      sections: [
+        {
+          id: "mom-pitchers",
+          title: "Pitchers",
+          items: [
+            { id: "mom-p1", name: "$5 Pitchers (Mondays 5–9PM)", price: "$5.00" },
+            { id: "mom-p2", name: "Domestic Pitcher", price: "$8.00" },
+          ],
+        },
+        {
+          id: "mom-shots",
+          title: "Shots",
+          items: [
+            { id: "mom-s1", name: "Green Tea", price: "$4.00", tag: "shot" },
+            { id: "mom-s2", name: "Lemon Drop", price: "$4.00", tag: "shot" },
+          ],
+        },
+        {
+          id: "mom-games",
+          title: "Bar Snacks",
+          items: [
+            { id: "mom-g1", name: "Nachos", price: "$7.00", tag: "food" },
+            { id: "mom-g2", name: "Pizza Slices", price: "$4.00", tag: "food" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "9",
+    name: "Thumbs",
+    description: "Laid-back Welch bar with signature drinks and darts in the back.",
+    favorite: false,
+    openingTime: "4:00 PM",
+    closingTime: "2:00 AM",
+    visits: 140,
+    friends: 3,
+    favorites: 58,
+    dealsScheduled: [
+      {
+        id: "deal9",
+        barId: "9",
+        title: "$2 Busch Lights & $4 Wells",
+        subtitle: "Thursday Power Hour 7–10PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [6],
+          startLocalTime: "19:00",
+          endLocalTime: "22:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event9",
-      barId: "9",
-      name: "DJ Saturdays",
-      description: "Dance floor and drink specials every weekend.",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [6],
-        startLocalTime: "21:00",
-        endLocalTime: "02:00",
+    ],
+    eventsScheduled: [
+      {
+        id: "event9",
+        barId: "9",
+        name: "DJ Saturdays",
+        description: "Dance floor and drink specials every weekend.",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [6],
+          startLocalTime: "21:00",
+          endLocalTime: "02:00",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
-{
-  id: "10",
-  name: "Welch Ave Station",
-  description: "Neighborhood bar with pool tables, darts, and strong drinks.",
-  favorite: true,
-  openingTime: "3:00 PM",
-  closingTime: "2:00 AM",
-  visits: 280,
-  friends: 8,
-  favorites: 95,
-  dealsScheduled: [
-    {
-      id: "deal10",
-      barId: "10",
-      title: "$2 Wells & $2.50 Tallboys",
-      subtitle: "Happy Hour 3–7PM",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [3, 4, 5],
-        startLocalTime: "15:00",
-        endLocalTime: "19:00",
+    ],
+    logo: LOGO,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+    menu: {
+      updatedAt: "2025-10-06",
+      sections: [
+        {
+          id: "thu-power",
+          title: "Power Hour Specials",
+          items: [
+            { id: "thu-p1", name: "$2 Busch Lights", price: "$2.00", tag: "draft" },
+            { id: "thu-p2", name: "$4 Wells", price: "$4.00", tag: "well" },
+          ],
+        },
+        {
+          id: "thu-cocktails",
+          title: "House Cocktails",
+          items: [
+            { id: "thu-c1", name: "Thumbs Up", price: "$8.00", tag: "signature" },
+            { id: "thu-c2", name: "Backroom Mule", price: "$7.50" },
+          ],
+        },
+      ],
+    }
+
+  },
+  {
+    id: "10",
+    name: "Welch Ave Station",
+    description: "Neighborhood bar with pool tables, darts, and strong drinks.",
+    favorite: true,
+    openingTime: "3:00 PM",
+    closingTime: "2:00 AM",
+    visits: 280,
+    friends: 8,
+    favorites: 95,
+    dealsScheduled: [
+      {
+        id: "deal10",
+        barId: "10",
+        title: "$2 Wells & $2.50 Tallboys",
+        subtitle: "Happy Hour 3–7PM",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [3, 4, 5],
+          startLocalTime: "15:00",
+          endLocalTime: "19:00",
+        },
       },
-    },
-  ],
-  eventsScheduled: [
-    {
-      id: "event10",
-      barId: "10",
-      name: "Karaoke Thursdays",
-      description: "Ames favorite karaoke night with rotating drink specials!",
-      rule: {
-        kind: "weekly",
-        tz: CHICAGO_TZ,
-        daysOfWeek: [4],
-        startLocalTime: "21:00",
-        endLocalTime: "23:59",
+    ],
+    eventsScheduled: [
+      {
+        id: "event10",
+        barId: "10",
+        name: "Karaoke Thursdays",
+        description: "Ames favorite karaoke night with rotating drink specials!",
+        rule: {
+          kind: "weekly",
+          tz: CHICAGO_TZ,
+          daysOfWeek: [4],
+          startLocalTime: "21:00",
+          endLocalTime: "23:59",
+        },
       },
-    },
-  ],
-  logo: LOGO,
-  cover: COVER,
-  galleryImage: GALLERY,
-  mapImage: MAP,
-},
+    ],
+    logo: welchAve,
+    cover: COVER,
+    galleryImage: GALLERY,
+    mapImage: MAP,
+    menu: {
+    updatedAt: "2025-10-18",
+    sections: [
+      {
+        id: "was-happy",
+        title: "Happy Hour (3–7PM)",
+        items: [
+          { id: "was-h1", name: "$2 Wells", price: "$2.00", tag: "well" },
+          { id: "was-h2", name: "$2.50 Tallboys", price: "$2.50", tag: "draft" },
+        ],
+      },
+      {
+        id: "was-karaoke",
+        title: "Karaoke Night Specials",
+        items: [
+          { id: "was-k1", name: "Singer’s Shot", price: "$3.00", tag: "shot" },
+          { id: "was-k2", name: "Station Soda", price: "$6.00", tag: "signature" },
+        ],
+      },
+      {
+        id: "was-regular",
+        title: "Regulars",
+        items: [
+          { id: "was-r1", name: "Domestic Pint", price: "$3.50", tag: "draft" },
+          { id: "was-r2", name: "Well Cocktail", price: "$5.00", tag: "well" },
+        ],
+      },
+    ],
+  }
+
+  },
 
 ];
 

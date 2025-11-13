@@ -1,30 +1,75 @@
+// types/bar.ts
+
+// ---------- Core Ids ----------
 export type BarId = string;
 
-export type ScheduleRule =
-  | {
-      kind: "weekly";
-      tz: string;  // Keep flexible (not hard-coded "America/Chicago")
-      daysOfWeek: number[];
-      startLocalTime: string;
-      endLocalTime: string;
-    }
+// ---------- Scheduling ----------
+export type TimeRule =
   | {
       kind: "one-time";
-      start: string;
-      end: string;
-      tz: string; // ✅ add this line
+      start: string; // ISO datetime
+      end: string;   // ISO datetime
+      tz: string;    // e.g., "America/Chicago"
+    }
+  | {
+      kind: "weekly";
+      tz: string;            // e.g., "America/Chicago"
+      daysOfWeek: number[];  // 0 (Sun) ... 6 (Sat)
+      startLocalTime: string; // "HH:mm"
+      endLocalTime: string;   // "HH:mm"
     };
 
-export type ScheduledDeal  = { title: string; subtitle?: string; rule: ScheduleRule };
-export type ScheduledEvent = { name: string; rule: ScheduleRule };
+export type ScheduledDeal = {
+  id: string;
+  barId: BarId;
+  title: string;
+  subtitle?: string;
+  image?: any;
+  priority?: number;
+  rule: TimeRule;
+};
 
+export type ScheduledEvent = {
+  id: string;
+  barId: BarId;
+  name: string;
+  description?: string;
+  image?: any;
+  priority?: number;
+  rule: TimeRule;
+};
+
+// ---------- Menu ----------
+export type Money = `${number}${"" | "."}${number}${"" | "0" | "00"}`;
+
+export type MenuItem = {
+  id: string;
+  name: string;
+  price?: Money | string; // allows "Mkt", "$2 Wells (7–9)", etc.
+  desc?: string;
+  tag?: "signature" | "draft" | "bottle" | "shot" | "well" | "food" | "nonalcoholic";
+};
+
+export type MenuSection = {
+  id: string;
+  title: string;   // e.g., "Signature Cocktails"
+  items: MenuItem[];
+};
+
+export type BarMenu = {
+  updatedAt?: string;       // e.g., "2025-10-15"
+  sections: MenuSection[];
+};
+
+// ---------- Bar ----------
 export type Bar = {
   id: BarId;
   name: string;
   description: string;
+
   favorite?: boolean;
-  openingTime?: string;
-  closingTime?: string;
+  openingTime?: string;     // display string (e.g., "4:00 PM")
+  closingTime?: string;     // display string (e.g., "2:00 AM")
   status?: "Open" | "Closed";
   visits?: number;
   friends?: number;
@@ -33,19 +78,21 @@ export type Bar = {
   dealsScheduled?: ScheduledDeal[];
   eventsScheduled?: ScheduledEvent[];
 
-  //allow BOTH mock requires and future URLs
-  // mock (local require assets)
+  // Local mock image assets
   logo?: any;
   cover?: any;
   mapImage?: any;
   galleryImage?: any;
 
-  // backend (URLs)
+  // Future backend URLs
   logoUrl?: string;
   coverUrl?: string;
   mapImageUrl?: string;
   galleryImageUrl?: string;
 
-  // derived (client)
+  // Menu (optional per bar)
+  menu?: BarMenu;
+
+  // Derived (client-only)
   __openNow?: boolean;
 };

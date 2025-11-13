@@ -14,7 +14,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { getNow, isActive, isBarOpen } from "@/config/time";
-import { IMG } from "../../../../assets/assets.ts"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
+import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
 
 import { Theme } from '@/constants/theme';
 
@@ -122,6 +122,15 @@ export default function BarProfile() {
           <Text style={styles.statLabel}>Favorites</Text>
         </View>
       </View>
+
+     <View style={{ marginHorizontal: 12, marginTop: 8 }}>
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => router.push({ pathname: "/bars/menu", params: { id } })}
+      >
+        <Text style={styles.menuButtonText}>View Menu</Text>
+      </TouchableOpacity>
+    </View>
 
       {/* Current Events */}
       <View style={styles.sectionContainer}>
