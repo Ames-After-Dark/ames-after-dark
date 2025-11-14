@@ -6,7 +6,7 @@ const { manifest } = Constants;
 // Determine base URL based on platform
 const BASE_URL = (() => {
 
-  const publicAPI = "http://sdmay26-42e.ece.iastate.edu/api";
+  const publicAPI = "http://sdmay26-42.ece.iastate.edu/api";
 
   if (Platform.OS === "web") {
       return publicAPI;
