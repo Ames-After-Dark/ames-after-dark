@@ -137,17 +137,17 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   searchFilterContainer: {
-    backgroundColor: Theme.container.background,
+    backgroundColor: Theme.dark.background,
     paddingVertical: 12,
     marginBottom: 12,
   },
   searchBar: {
+    backgroundColor: Theme.container.background,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 10,
+    paddingVertical: 14,
   },
   searchIcon: {
     marginRight: 8,

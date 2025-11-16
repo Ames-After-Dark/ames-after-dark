@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, 
   StyleSheet, Dimensions, Modal, TouchableOpacity, } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { Photo } from "@/services/photosService"
 import { getPhotosByAlbumUri } from "@/services/photosService";
 import { Theme } from "@/constants/theme";
+import ImageViewing from "react-native-image-viewing";
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
@@ -12,10 +13,11 @@ const PHOTO_SIZE = windowWidth / 3;
 export default function BarPhotosScreen() {
   const { albumUri, barName } = useLocalSearchParams();
   const router = useRouter();
+
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageLoading, setImageLoading] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isViewerVisible, setViewerVisible] = useState(false);
 
   // load album
   useEffect(() => {
@@ -33,8 +35,10 @@ export default function BarPhotosScreen() {
       </View>
     );
 
+  const imageSources = photos.map((p) => ({ uri: p.image.uri }));
+
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.dark.background }}>
+    <View style={styles.container}>
       {/* Bar name header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -42,13 +46,14 @@ export default function BarPhotosScreen() {
         </TouchableOpacity>
         <Text style={styles.barTitle}>{barName}</Text>
       </View>
-
+      {/* Grid of photos */}
       <FlatList
         data={photos}
         keyExtractor={(item) => String(item.id)}
         numColumns={3}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => setSelectedPhoto(item.image.uri)}>
+        renderItem={({ item, index }) => (
+          <TouchableOpacity onPress={() => {
+          setCurrentIndex(index); setViewerVisible(true);}}>
             <Image source={item.image} style={styles.photo} resizeMode="cover" />
           </TouchableOpacity>
         )}
@@ -56,27 +61,27 @@ export default function BarPhotosScreen() {
       />
 
       {/* Clickable full-screen image */}
-      <Modal visible={!!selectedPhoto} transparent>
-          <View style={styles.modalContainer}>
-            <TouchableOpacity style={styles.backButton} onPress={() => setSelectedPhoto(null)}>
-              <Text style={styles.backArrow}>←</Text>
+      <ImageViewing images={imageSources} imageIndex={currentIndex}
+        visible={isViewerVisible} onRequestClose={() => setViewerVisible(false)}
+        swipeToCloseEnabled={true} doubleTapToZoomEnabled={true}
+        // Back button
+        HeaderComponent={() => (
+          <View style={styles.viewerHeader}>
+            <TouchableOpacity onPress={() => {setViewerVisible(false);}}>
+              <Text style={styles.viewerBackArrow}>←</Text>
             </TouchableOpacity>
-
-            {selectedPhoto && (
-              <Image source={{ uri: selectedPhoto }} style={styles.modalImage} resizeMode="contain"
-              onLoadStart={() => setImageLoading(true)} onLoadEnd={() => setImageLoading(false)} />
-            )}
-
-            {imageLoading && (
-              <ActivityIndicator size="large" color={Theme.dark.primary} style={styles.loadingIndicator} />
-            )}
           </View>
-      </Modal>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Theme.dark.background,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -85,7 +90,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     color: Theme.container.titleText,
-    fontSize: 24,
+    fontSize: 26,
     marginRight: 10,
   },
   barTitle: {
@@ -103,35 +108,15 @@ const styles = StyleSheet.create({
     width: PHOTO_SIZE,
     height: PHOTO_SIZE,
   },
-  error: {
-    color: Theme.dark.error,
-    textAlign: "center",
-    marginTop: 20,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalImage: {
-    width: "100%",
-    height: "90%",
-  },
-  backButton: {
+  viewerHeader: {
     position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 2,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 20,
-    padding: 8,
+    top: 45,
+    left: 25,
+    zIndex: 20,
   },
-  loadingIndicator: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -15,
-    marginTop: -15,
+  viewerBackArrow: {
+    fontSize: 34,
+    color: Theme.dark.primary,
+    fontWeight: "700",
   },
 });
