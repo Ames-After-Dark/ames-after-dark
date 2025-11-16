@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native'
 import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'expo-router'
+import Logo from '@/components/logo'
 
 export default function CollectUserInfo() {
     const { dataCollectionParams, completeDataCollection } = useAuth()
@@ -25,7 +26,7 @@ export default function CollectUserInfo() {
         }
 
         setIsSubmitting(true)
-        
+
         try {
             await completeDataCollection(birthday, phoneNumber)
             Alert.alert('Success', 'Profile completed successfully!')
@@ -40,11 +41,10 @@ export default function CollectUserInfo() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Complete Your Profile</Text>
-        
-            {dataCollectionParams?.email && (
-                <Text style={styles.email}>Email: {dataCollectionParams.email}</Text>
-            )}
+
+            <View style={styles.image}>
+                <Logo />
+            </ View>
 
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Birthday</Text>
@@ -69,7 +69,7 @@ export default function CollectUserInfo() {
                 />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={[styles.button, isSubmitting && styles.buttonDisabled]}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
@@ -77,10 +77,10 @@ export default function CollectUserInfo() {
                 {isSubmitting ? (
                     <ActivityIndicator color="#fff" />
                 ) : (
-                    <Text style={styles.buttonText}>Complete Profile</Text>
+                    <Text style={styles.buttonText}>Complete Signup</Text>
                 )}
             </TouchableOpacity>
-        </View>
+        </View >
     )
 }
 
@@ -90,6 +90,9 @@ const styles = StyleSheet.create({
         padding: 20,
         backgroundColor: '#fff',
         justifyContent: 'center',
+    },
+    image: {
+        alignItems: "center",
     },
     title: {
         fontSize: 28,
