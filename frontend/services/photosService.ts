@@ -1,8 +1,14 @@
 import { apiFetch } from "./apiClient";
+import Constants from "expo-constants";
 
-const SMUGMUG_API_KEY = "zDrHkD6NtkcwhBdQfFzXRD9QGZxwWrWx"; // key allows access, don't share
+const SMUGMUG_API_KEY = Constants.expoConfig?.extra?.SMUGMUG_API_KEY;
 const USER = "chaseanderson";
 const SMUGMUG_API_BASE = "https://api.smugmug.com/api/v2";
+
+// ensures API key is working
+if (!SMUGMUG_API_KEY) {
+  console.warn("Missing SMUGMUG_API_KEY — using fallback images");
+}
 
 type Photo = {
   id: string;
