@@ -1,32 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, 
   StyleSheet, Dimensions, Modal, TouchableOpacity, } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { useRouter } from "expo-router";
-import { useBarPhotos } from "@/hooks/useBarPhotos";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import type { Photo } from "@/services/photosService"
+import { getPhotosByAlbumUri } from "@/services/photosService";
 import { Theme } from "@/constants/theme";
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
 
 export default function BarPhotosScreen() {
-  const { barId, barName } = useLocalSearchParams();
-  const { photos, loading, error } = useBarPhotos(String(barName));
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(false);
+  const { albumUri, barName } = useLocalSearchParams();
   const router = useRouter();
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  // load album
+  useEffect(() => {
+    (async () => {
+      const p = await getPhotosByAlbumUri(String(albumUri));
+      setPhotos(p);
+      setLoading(false);
+    })();
+  }, [albumUri]);
 
   if (loading)
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Theme.dark.primary} />
-      </View>
-    );
-
-  if (error)
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Error: {error}</Text>
       </View>
     );
 
@@ -53,16 +56,16 @@ export default function BarPhotosScreen() {
       />
 
       {/* Clickable full-screen image */}
-      <Modal visible={!!selectedPhoto} transparent={true}>
+      <Modal visible={!!selectedPhoto} transparent>
           <View style={styles.modalContainer}>
             <TouchableOpacity style={styles.backButton} onPress={() => setSelectedPhoto(null)}>
               <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
 
-            {selectedPhoto ? (
+            {selectedPhoto && (
               <Image source={{ uri: selectedPhoto }} style={styles.modalImage} resizeMode="contain"
               onLoadStart={() => setImageLoading(true)} onLoadEnd={() => setImageLoading(false)} />
-            ) : null}
+            )}
 
             {imageLoading && (
               <ActivityIndicator size="large" color={Theme.dark.primary} style={styles.loadingIndicator} />
