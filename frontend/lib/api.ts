@@ -1,5 +1,5 @@
 // src/lib/api.ts
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? "http://localhost:3000";
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? "http://sdmay26-42e.ece.iastate.edu/api";
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

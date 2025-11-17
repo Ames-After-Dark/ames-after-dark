@@ -7,6 +7,8 @@ jobs:
   install_frontend:
     runs-on: [self-hosted]
     # container: node:18
+    env:
+      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -24,12 +26,18 @@ jobs:
         with:
           path: backend/node_modules
           key: backend-${{ hashFiles('backend/package-lock.json') }}
-      - run: cd backend && npm install
+      - run: |
+          cd backend
+          npm install
+          # generate Prisma client so tests/linters that import @prisma/client work
+          npx prisma generate || true
 
   lint_frontend:
     runs-on: [self-hosted]
     # container: node:18)
     needs: install_frontend
+    env:
+      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -54,6 +62,8 @@ jobs:
     runs-on: [self-hosted]
     # container: node:18
     needs: lint_frontend
+    env:
+      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4

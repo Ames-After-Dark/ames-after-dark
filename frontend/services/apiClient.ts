@@ -5,15 +5,17 @@ const { manifest } = Constants;
 
 // Determine base URL based on platform
 const BASE_URL = (() => {
+
+  const publicAPI = "http://sdmay26-42.ece.iastate.edu/api";
+
   if (Platform.OS === "web") {
-    return "http://localhost:3000/api";
+      return publicAPI;
   } else if (Platform.OS === "android") {
     // Android emulator routes host machine via 10.0.2.2
-    return "http://10.0.2.2:3000/api";
+      return publicAPI;
   } else {
     // iOS simulator or physical device
-    const host = manifest?.debuggerHost?.split(":")[0];
-    return host ? `http://${host}:3000/api` : "http://localhost:3000/api";
+      return publicAPI;
   }
 })();
 
