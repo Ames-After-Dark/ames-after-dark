@@ -6,12 +6,12 @@ export default function GalleryLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.dark.surface,
+          backgroundColor: Theme.dark.background,
         },
         headerTitleStyle: {
-          color: Theme.dark.primary,
+          color: Theme.container.titleText, // Theme.dark.primary,
         },
-        headerTintColor: Theme.dark.primary,
+        headerTintColor: Theme.container.titleText, // Theme.dark.primary,
       }}
     >
       {/* Bar list screen */}

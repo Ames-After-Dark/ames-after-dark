@@ -8,6 +8,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    url: "postgresql://amesdb_admin:l1quorSTORE_$$@localhost:5432/amesdb",
   },
 });
