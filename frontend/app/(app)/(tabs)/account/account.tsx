@@ -63,7 +63,7 @@ export default function AccountScreen() {
                 <Text style={styles.profileName}>{'Your Name'}</Text>
                 <Text style={styles.profileEmail}>{'your@email.com'}</Text>
             </View>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
+            <TouchableOpacity onPress={() => router.push('/account/settings')}>
                 <FontAwesome name="gear" size={24} color="#ccc" />
             </TouchableOpacity>
         </View>
