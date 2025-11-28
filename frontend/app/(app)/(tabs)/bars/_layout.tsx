@@ -19,7 +19,6 @@ export default function BarsLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-//             headerShown: false
             headerStyle: {
                 backgroundColor: Theme.dark.background,
             },
@@ -33,9 +32,3 @@ export default function BarsLayout() {
     </Stack>
   );
 }
-
-//       {/* Individual bar page */}
-//          <Stack.Screen name="[id]" options={{ headerShown: true }} />
-
-//       {/* Menu page, gallery page, etc. */}
-//       <Stack.Screen name="[id]/menu" options={{ headerShown: true }} />
