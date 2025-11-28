@@ -6,21 +6,29 @@ export default function BarsLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: Theme.dark.background // "#0b0b12"
+          backgroundColor: Theme.dark.background
         },
       }}
     >
       {/* Main directory/search page — hide its header */}
       <Stack.Screen
-        name="index"                     // rename to "index" if your search page is index.tsx
+        name="index"
         options={{ headerShown: false }}
       />
 
-      {/* Individual bar page */}
-      <Stack.Screen name="[id]" options={{ headerShown: true }} />
+      <Stack.Screen
+        name="[id]"
+        options={{
+            headerStyle: {
+                backgroundColor: Theme.dark.background,
+            },
+            headerTintColor: Theme.container.activeText,
+            headerBackTitle: 'Bars',
+            title: '',
+        }}
+      />
 
-      {/* Menu page, gallery page, etc. */}
-      <Stack.Screen name="[id]/menu" options={{ headerShown: true }} />
+
     </Stack>
   );
 }
