@@ -23,7 +23,7 @@ export default function BarsLayout() {
             headerStyle: {
                 backgroundColor: Theme.dark.background,
             },
-            headerTintColor: 'white',
+            headerTintColor: Theme.container.activeText,
             headerBackTitle: 'Bars',
             title: '',
         }}
