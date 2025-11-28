@@ -62,6 +62,7 @@ useEffect(() => {
   });
 }, [barIdsSig]); // <-- depends ONLY on IDs, not on entire bars objects
 
+    // TODO - probs want to update the db once that works again
     const toggleFavorite = (id: string) => {
         setFav( (prev) => ({
             ...prev,
