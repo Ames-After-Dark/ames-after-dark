@@ -16,6 +16,46 @@ export type BarId =
   | "10";;
 
 export type ISODateTime = string;
+// ---------- Tonight hero deal posters ----------
+
+export type TonightPoster = {
+  id: string;
+  barId?: BarId;      // optional; lets you link poster → bar later
+  title: string;      // short label if you ever want to use it
+  subtitle?: string;  // optional extra line
+  image: any;         // static require from IMG
+};
+
+export const TONIGHT_POSTERS: TonightPoster[] = [
+  {
+    id: "outlaws-tuesday",
+    barId: "3", // Outlaws
+    title: "Outlaws Live Band",
+    subtitle: "No cover before 10PM",
+    image: IMG.DealOutlawsTuesday,
+  },
+  {
+    id: "blue-owl-pool-tuesday",
+    barId: "6", // Blue Owl
+    title: "Blue Owl Pool Tournament",
+    subtitle: "Tuesday night",
+    image: IMG.DealBlueOwlPoolTuesday,
+  },
+  {
+    id: "paddys-disney-trivia",
+    barId: "5", // Paddy's
+    title: "Paddy’s Disney Trivia",
+    subtitle: "Trivia Tuesday",
+    image: IMG.DealPaddysDisneyTrivia,
+  },
+  {
+    id: "cys-cherry-bombs",
+    barId: "1", // Cy's
+    title: "$3 Cherry Bombs",
+    subtitle: "Tonight at Cy’s",
+    image: IMG.DealCysCherryBombs,
+  },
+];
 
 
 // ---------- Placeholder Assets ----------

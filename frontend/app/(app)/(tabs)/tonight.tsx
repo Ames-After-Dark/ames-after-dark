@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { BARS_BASE, FRIENDS, BarId } from "@/data/mock";
+import { BARS_BASE, FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
 import { getNow, isActive, isBarOpen } from "@/config/time";
 
 import { Theme } from '@/constants/theme';
@@ -134,15 +134,16 @@ export default function Tonight() {
           contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
           style={{ marginBottom: 12 }}
         >
-          {[1, 2, 3].map((n) => (
+          {TONIGHT_POSTERS.map((poster) => (
             <Image
-              key={n}
-              source={require("@/assets/images/Logo.png")}
+              key={poster.id}
+              source={poster.image}
               style={styles.heroImage}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           ))}
         </ScrollView>
+
 
         {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
         <View style={styles.stickyTabs}>
@@ -301,13 +302,14 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.dark.background, // "#0B0C12"
   },
   heroImage: {
-    width: 280,
-    height: 140,
+    width: 300,
+    height: 200,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Theme.container.mainBorder, // "#1F2937",
-    backgroundColor: Theme.container.background, // "#0f172a",
+    borderColor: Theme.container.mainBorder,
+    backgroundColor: Theme.container.background,
   },
+
   stickyTabs: {
     backgroundColor: Theme.dark.background, // "#0B0C12",
     paddingTop: 6,
@@ -411,7 +413,6 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: "center",
     paddingVertical: 2,
-    paddingHorizontal: 8,
     borderRadius: 999,
     backgroundColor: "#0b2530",
     borderWidth: 1,
