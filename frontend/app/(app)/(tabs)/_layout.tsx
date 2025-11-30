@@ -25,43 +25,22 @@ export default function TabLayout() {
   // ~80% opacity: #0f172aCC
   // ~70% opacity: #0f172aB3
   // ~50% opacity: #0f172a80
-  const transparentSurfaceColor = Theme.container.background + 'e6';
 
   return (
     <Tabs
+      initialRouteName="tonight"  
       screenOptions={{
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
         tabBarInactiveTintColor: Theme.dark.muted,
-        tabBarStyle: {
-          position: 'absolute',
-          bottom: 16,
-          left: '10%',
-          right: '10%',
-          height: 64,
-          borderRadius: 32,
-          backgroundColor: transparentSurfaceColor,
 
-          ...Platform.select({
-            ios: {
-              shadowColor: Theme.dark.black,
-              shadowOffset: {
-                width: 0,
-                height: 6
-              },
-              shadowOpacity: 0.3,
-              shadowRadius: 12,
-            },
-            android: {
-              elevation: 10,
-            },
-            web: {
-              boxShadow: '0px 6px 12px rgba(0, 0, 0, 0.3)',
-            }
-          }),
-          borderColor: Theme.container.mainBorder,
-          borderWidth: 1,
+        // ⬇️ Normal, non-floating, non-transparent bottom tab bar
+        tabBarStyle: {
+          height: 64,
+          backgroundColor: Theme.container.background, // solid, no transparency
+          borderTopColor: Theme.container.mainBorder,
+          borderTopWidth: 1,
         },
         tabBarItemStyle: {
           marginTop: 8,
@@ -72,56 +51,57 @@ export default function TabLayout() {
 
         // 🔹 Global header on every tab
         header: () => <TopHeader />,
-            // If you wanted to hide header on web only, you can swap this back:
-            // headerShown: useClientOnlyValue(false, true),
-            headerShown: true,
+        // If you wanted to hide header on web only, you can swap this back:
+        // headerShown: useClientOnlyValue(false, true),
+        headerShown: true,
       }}>
       {/* FRIENDS */}
-        <Tabs.Screen
-            name="friends/friends"
-            options={{
-                title: "Friends",
-                tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-            }}
-        />
+      <Tabs.Screen
+        name="friends/friends"
+        options={{
+          title: "Friends",
+          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+        }}
+      />
 
-            {/* MAP */}
-            <Tabs.Screen
-              name="map"
-              options={{
-                title: "Map",
-                tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
-              }}
-            />
+      {/* MAP */}
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
+        }}
+      />
 
-            {/* TONIGHT (index.tsx) */}
-            <Tabs.Screen
-              name="tonight"
-              options={{
-                title: "Tonight",
-                    tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
-              }}
-            />
+      {/* TONIGHT (index.tsx) */}
+      <Tabs.Screen
+        name="tonight"
+        options={{
+          title: "Tonight",
+          tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
+        }}
+      />
 
-            {/* BARS */}
-            <Tabs.Screen
-              name="bars"
-              options={{
-                title: "Bars",
-                tabBarIcon: ({ color }) => (
-                  <FontAwesome5 name="glass-martini-alt" size={24} color={color} />
-                )
-              }}
-            />
+      {/* BARS */}
+      <Tabs.Screen
+        name="bars"
+        options={{
+          title: "Bars",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome5 name="glass-martini-alt" size={24} color={color} />
+          )
+        }}
+      />
 
-            {/* GALLERY */}
-            <Tabs.Screen
-              name="gallery"
-              options={{
-                title: "Gallery",
-                    tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
-              }}
-            />
+      {/* GALLERY */}
+      <Tabs.Screen
+        name="gallery"
+        options={{
+          title: "Gallery",
+          tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
+        }}
+      />
+
       <Tabs.Screen
         name="friends/account"
         options={{

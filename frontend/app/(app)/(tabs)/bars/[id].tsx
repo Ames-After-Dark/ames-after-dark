@@ -24,14 +24,9 @@ export default function BarProfile() {
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
   const handleBack = () => {
-    // if we have history (e.g., came from /bars), use the normal back
-    // otherwise, force nav to the Bars list
-    // @ts-ignore router.canGoBack may not be typed
-    if (router.canGoBack && router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/bars");
-    }
+    router.replace("/(app)/(tabs)/bars");
+    // If TypeScript complains, you can do:
+    // router.replace("/(app)/(tabs)/bars" as any);
   };
   if (loading) {
     return (
