@@ -1,5 +1,6 @@
+// app/(tabs)/bars/_layout.tsx
 import { Stack } from "expo-router";
-import { Theme } from '@/constants/theme';
+import { Theme } from "@/constants/theme";
 
 export default function BarsLayout() {
   return (
@@ -21,17 +22,17 @@ export default function BarsLayout() {
       <Stack.Screen
         name="[id]"
         options={{
-          title: "",              // no "[id]" in the center
-          headerBackTitle: "Bars" // back label
+          title: "",
+          headerBackTitle: "Bars",
         }}
       />
 
-      {/* Bar menu screen: /bars/[id]/menu */}
+      {/* Bar menu screen: / (tabs) /bars/menu */}
       <Stack.Screen
-        name="[id]/menu"
+        name="menu"
         options={{
-          title: "Menu",          // center title
-          headerBackTitle: "Back" // back label (from bar page)
+          title: "Menu",
+          headerBackTitle: "Back",
         }}
       />
     </Stack>

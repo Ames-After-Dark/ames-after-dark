@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
@@ -23,7 +23,16 @@ export default function BarProfile() {
   const router = useRouter();
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
-
+  const handleBack = () => {
+    // if we have history (e.g., came from /bars), use the normal back
+    // otherwise, force nav to the Bars list
+    // @ts-ignore router.canGoBack may not be typed
+    if (router.canGoBack && router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/bars");
+    }
+  };
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -67,6 +76,24 @@ export default function BarProfile() {
     IMG.GALLERY ?? IMG.LOGO;
 
   return (
+    <>
+    <Stack.Screen
+            options={{
+              title: "",
+              headerLeft: () => (
+                <TouchableOpacity
+                  onPress={handleBack}
+                  style={{ paddingHorizontal: 12 }}
+                >
+                  <FontAwesome
+                    name="chevron-left"
+                    size={20}
+                    color={Theme.dark.secondary}
+                  />
+                </TouchableOpacity>
+              ),
+            }}
+          />    
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 80 }}
@@ -185,6 +212,7 @@ export default function BarProfile() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </>
   );
 }
 

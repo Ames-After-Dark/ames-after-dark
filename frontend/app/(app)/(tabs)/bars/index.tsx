@@ -118,7 +118,15 @@ useEffect(() => {
     const favOn = isFav(item);
 
     return (
-      <TouchableOpacity onPress={() => router.push(`/bars/${item.id}`)}>
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/(app)/(tabs)/bars/[id]",
+            params: { id: String(item.id) },
+          })
+        }
+      >
+
         <View style={styles.barCard}>
           <Image source={imageSource} style={styles.barImage} resizeMode="cover" />
           <View style={styles.barInfo}>
