@@ -60,7 +60,7 @@ export const TONIGHT_POSTERS: TonightPoster[] = [
 
 // ---------- Placeholder Assets ----------
 const LOGO = IMG.LOGO
-const COVER = LOGO;
+const COVER = IMG.BaseCover;
 const GALLERY = LOGO;
 const MAP = IMG.fakeMap;
 const PinkIcon = IMG.PinkIcon;
@@ -122,7 +122,7 @@ export const BARS_BASE: Bar[] = [
       },
     ],
     logo: cy,
-    cover: COVER,
+    cover: IMG.CysCover2,
     galleryImage: GALLERY,
     mapImage: MAP,
     menu: {
@@ -197,7 +197,7 @@ export const BARS_BASE: Bar[] = [
       },
     ],
     logo: sips,
-    cover: COVER,
+    cover: IMG.SipsPaddysCover2,
     galleryImage: GALLERY,
     mapImage: MAP,
     menu: {
@@ -268,7 +268,7 @@ export const BARS_BASE: Bar[] = [
       },
     ],
     logo: outlaws,
-    cover: COVER,
+    cover: IMG.OutlawsCover,
     galleryImage: GALLERY,
     mapImage: MAP,
     menu: {
@@ -418,7 +418,7 @@ export const BARS_BASE: Bar[] = [
       },
     ],
     logo: paddys,
-    cover: COVER,
+    cover: IMG.SipsPaddysCover2,
     galleryImage: GALLERY,
     mapImage: MAP,
       menu: {
