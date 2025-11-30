@@ -7,7 +7,7 @@ import {
 import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
 import type { Bar } from "@/types/bars";
-import { IMG } from "../../../../assets/assets";
+import { IMG } from "../../../../assets/assets"; 
 import { getNow, isBarOpen } from "@/config/time";
 
 import { Theme } from '@/constants/theme';

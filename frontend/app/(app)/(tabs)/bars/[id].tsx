@@ -126,7 +126,13 @@ export default function BarProfile() {
      <View style={{ marginHorizontal: 12, marginTop: 8 }}>
       <TouchableOpacity
         style={styles.menuButton}
-        onPress={() => router.push({ pathname: "/bars/menu", params: { id } })}
+        onPress={() =>
+          router.push({
+            pathname: "/bars/menu",
+            params: { id },
+          })
+        }
+
       >
         <Text style={styles.menuButtonText}>View Menu</Text>
       </TouchableOpacity>
@@ -183,6 +189,21 @@ export default function BarProfile() {
 }
 
 const styles = StyleSheet.create({
+    menuButton: {
+    marginTop: 4,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: Theme.dark.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuButtonText: {
+    color: Theme.dark.white,
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background
