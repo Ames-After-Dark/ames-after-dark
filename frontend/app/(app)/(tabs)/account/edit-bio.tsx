@@ -22,8 +22,16 @@ export default function ChangeBioScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Edit Bio" }} />
-
+            <Stack.Screen
+                options={{
+                    title: 'Edit Bio',
+                    headerBackTitle: 'Settings',
+                    headerStyle: {
+                        backgroundColor: '#0b0b12',
+                    },
+                    headerTintColor: 'white',
+                }}
+            />
       <Text style={styles.label}>Your Bio</Text>
 
       <TextInput

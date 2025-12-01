@@ -7,7 +7,16 @@ export default function ChangeEmailScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Change Email" }} />
+            <Stack.Screen
+                options={{
+                    title: 'Change Email',
+                    headerBackTitle: 'Settings',
+                    headerStyle: {
+                        backgroundColor: '#0b0b12',
+                    },
+                    headerTintColor: 'white',
+                }}
+            />
       <Text style={styles.label}>New Email</Text>
       <TextInput
         style={styles.input}

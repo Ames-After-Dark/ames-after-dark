@@ -7,8 +7,16 @@ export default function ChangePasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Change Password" }} />
-      <Text style={styles.label}>New Password</Text>
+            <Stack.Screen
+                options={{
+                    title: 'Change Password',
+                    headerBackTitle: 'Settings',
+                    headerStyle: {
+                        backgroundColor: '#0b0b12',
+                    },
+                    headerTintColor: 'white',
+                }}
+            />      <Text style={styles.label}>New Password</Text>
       <TextInput
         secureTextEntry
         style={styles.input}

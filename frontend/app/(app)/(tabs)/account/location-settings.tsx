@@ -37,8 +37,16 @@ export default function LocationVisibilityScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Location Visibility" }} />
-
+            <Stack.Screen
+                options={{
+                    title: 'Location Visibility',
+                    headerBackTitle: 'Settings',
+                    headerStyle: {
+                        backgroundColor: '#0b0b12',
+                    },
+                    headerTintColor: 'white',
+                }}
+            />
       <Text style={styles.title}>Control who can see your location!</Text>
 
       <View style={styles.row}>

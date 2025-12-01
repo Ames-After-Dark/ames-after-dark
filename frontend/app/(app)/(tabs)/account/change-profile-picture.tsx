@@ -4,7 +4,16 @@ import { Stack } from "expo-router";
 export default function ChangeProfilePictureScreen() {
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Change Profile Picture" }} />
+                  <Stack.Screen
+                      options={{
+                          title: 'Change Profile Puctyre',
+                          headerBackTitle: 'Settings',
+                          headerStyle: {
+                              backgroundColor: '#0b0b12',
+                          },
+                          headerTintColor: 'white',
+                      }}
+                  />
       <Text style={styles.text}>
         Profile picture update feature coming soon!
       </Text>
