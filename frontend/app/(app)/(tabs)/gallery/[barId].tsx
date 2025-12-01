@@ -5,10 +5,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import type { Photo } from "@/services/photosService";
 import { getPhotosByAlbumUri } from "@/services/photosService";
 import { Theme } from "@/constants/theme";
-import ImageViewing from "react-native-image-viewing";
+//import ImageViewing from "react-native-image-viewing"; //fixing compile error
 import { FontAwesome } from "@expo/vector-icons";
 import { File, Directory, Paths} from 'expo-file-system';
-import * as MediaLibrary from "expo-media-library";
+//import * as MediaLibrary from "expo-media-library"; //fixing compile error
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
