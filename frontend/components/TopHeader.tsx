@@ -24,16 +24,6 @@ export default function TopHeader() {
           style={{ width: 170, height: 32 }}
           resizeMode="contain"
         />
-
-        {/* Settings button (disabled for now) */}
-        <Pressable
-          onPress={() => router.push('/friends/account')}
-          disabled={false}
-          hitSlop={8}
-          accessibilityLabel="Settings"
-        >
-          <Ionicons name="settings-outline" size={22} color="#d4d4d8" />
-        </Pressable>
       </View>
 
       {/* Testing-only time display */}

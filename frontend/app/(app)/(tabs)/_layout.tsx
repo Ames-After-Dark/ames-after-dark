@@ -56,13 +56,13 @@ export default function TabLayout() {
         headerShown: true,
       }}>
       {/* FRIENDS */}
-      <Tabs.Screen
-        name="friends/friends"
-        options={{
-          title: "Friends",
-          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-        }}
-      />
+        <Tabs.Screen
+            name="account"
+            options={{
+                title: "Friends",
+                tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+            }}
+        />
 
       {/* MAP */}
       <Tabs.Screen
@@ -99,14 +99,6 @@ export default function TabLayout() {
         options={{
           title: "Gallery",
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="friends/account"
-        options={{
-          href: null, // hidden from tab bar, opened through settings gear
-          title: 'Account',
         }}
       />
     </Tabs>
