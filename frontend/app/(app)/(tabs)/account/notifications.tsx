@@ -23,8 +23,16 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Manage Notifications" }} />
-
+            <Stack.Screen
+                options={{
+                    title: 'Manage Notifications',
+                    headerBackTitle: 'Settings',
+                    headerStyle: {
+                        backgroundColor: '#0b0b12',
+                    },
+                    headerTintColor: 'white',
+                }}
+            />
       <View style={styles.section}>
 
         <View style={styles.row}>

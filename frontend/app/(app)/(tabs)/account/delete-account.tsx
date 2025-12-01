@@ -1,8 +1,6 @@
-// app/(app)/(tabs)/account/delete-account.tsx
-
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { router, Stack } from 'expo-router';
 
 export default function DeleteAccountScreen() {
   const [email, setEmail] = useState('');
@@ -14,39 +12,84 @@ export default function DeleteAccountScreen() {
       return;
     }
 
-    console.log('Deleting account:', email);
-    console.log('Reason:', reason);
-
     Alert.alert('Account Deleted', 'Your account has been successfully deleted.', [
       { text: 'OK', onPress: () => router.replace('/(app)/(tabs)/account') },
     ]);
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Stack.Screen
+        options={{
+          title: 'Delete Account',
+          headerBackTitle: 'Settings',
+          headerStyle: {
+            backgroundColor: '#0b0b12',
+          },
+          headerTintColor: 'white',
+        }}
+      />
+
       <Text style={styles.title}>Confirm Account Deletion</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
-        placeholderTextColor="#999"
+        placeholderTextColor="#666"
         value={email}
         onChangeText={setEmail}
       />
+
       <TextInput
-        style={[styles.input, { height: 100 }]}
+        style={[styles.input, styles.reasonInput]}
         placeholder="Reason (optional)"
-        placeholderTextColor="#999"
+        placeholderTextColor="#666"
         value={reason}
         onChangeText={setReason}
         multiline
       />
-      <Button title="Delete Account" color="#FF453A" onPress={handleDelete} />
+
+      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        <Text style={styles.deleteButtonText}>Delete Account</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#0b0b12' },
-  title: { color: 'white', fontSize: 22, marginBottom: 16 },
-  input: { backgroundColor: '#1f2937', color: 'white', borderRadius: 8, padding: 12, marginBottom: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: "#0b0b12",
+  },
+  content: {
+    padding: 16,
+  },
+  title: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "600",
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: "#1a1a22",
+    color: "white",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  reasonInput: {
+    height: 100,
+  },
+  deleteButton: {
+    backgroundColor: "#FF453A",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });

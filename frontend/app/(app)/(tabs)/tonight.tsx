@@ -19,10 +19,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { BARS_BASE, FRIENDS, BarId } from "@/data/mock";
+import { BARS_BASE, FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
 import { getNow, isActive, isBarOpen } from "@/config/time";
 
-import { Theme } from '@/constants/theme';
+import { Theme } from "@/constants/theme";
 
 // Tabs
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
@@ -33,7 +33,7 @@ const TAB_META = [
 ] as const;
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
-type TabKey = typeof TAB_META[number]["key"];
+type TabKey = (typeof TAB_META)[number]["key"];
 
 export default function Tonight() {
   // Which tab the user is on
@@ -114,34 +114,51 @@ export default function Tonight() {
     return data;
   }, [query]);
 
-  // Navigation helpers for row chevrons
-  const goToBarsTab = () => router.navigate("/bars/index");
+  // Navigation helpers
+  const goToBarDetail = (id: BarId) =>
+    router.push({
+      pathname: "/bars/[id]",
+      params: { id },
+    });
+
   const goToFriendsTab = () => router.navigate("/friends/friends");
 
   return (
-  <SafeAreaView style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]} edges={["left", "right"]}>
+    <SafeAreaView
+      style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]}
+      edges={["left", "right"]}
+    >
       {/* Outer scroll so we can have a header carousel + sticky controls + list */}
       <ScrollView
         stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
         contentContainerStyle={{ paddingBottom: 1 }}
         contentInsetAdjustmentBehavior="never"
       >
-        {/* Deals carousel (currently placeholder images).
-            Horizontal scroll shows promotional cards. */}
+        {/* Deals carousel */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
           style={{ marginBottom: 12 }}
         >
-          {[1, 2, 3].map((n) => (
-            <Image
-              key={n}
-              source={require("@/assets/images/Logo.png")}
-              style={styles.heroImage}
-              resizeMode="contain"
-            />
-          ))}
+          {TONIGHT_POSTERS.map((poster) => {
+            // Guard so TS & runtime both know barId is present
+            if (!poster.barId) return null;
+
+            return (
+              <Pressable
+                key={poster.id}
+                onPress={() => goToBarDetail(poster.barId as BarId)}
+                style={{ borderRadius: 12 }}
+              >
+                <Image
+                  source={poster.image}
+                  style={styles.heroImage}
+                  resizeMode="cover"
+                />
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
         {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
@@ -171,7 +188,11 @@ export default function Tonight() {
 
           {/* Search box filters either bars or friends depending on the tab */}
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={16} color={Theme.search.inactiveInput} />
+            <Ionicons
+              name="search"
+              size={16}
+              color={Theme.search.inactiveInput}
+            />
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -182,7 +203,11 @@ export default function Tonight() {
             />
             {!!query && (
               <Pressable onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color="#9CA3AF"
+                />
               </Pressable>
             )}
           </View>
@@ -203,7 +228,11 @@ export default function Tonight() {
                   <Text style={styles.friendName}>{f.name}</Text>
                   <Text style={styles.friendBar}>{f.bar}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={Theme.search.inactiveInput}
+                />
               </Pressable>
             ))}
             {/* Empty-state message if no search results */}
@@ -226,9 +255,13 @@ export default function Tonight() {
                 : item.specials ?? "";
 
               return (
-                <View
+                <Pressable
                   key={item.id}
-                  style={[styles.card, isDealsView && styles.cardDealsVariant]}
+                  style={[
+                    styles.card,
+                    isDealsView && styles.cardDealsVariant,
+                  ]}
+                  onPress={() => goToBarDetail(item.id as BarId)}
                 >
                   {/* Left: bar logo (or any image) */}
                   <Image
@@ -247,8 +280,8 @@ export default function Tonight() {
                             styles.statusPill,
                             {
                               backgroundColor: item.isOpen
-                                ? Theme.dark.success // "#22c55e" // green
-                                : "#6b7280", // gray
+                                ? Theme.dark.success
+                                : "#6b7280",
                             },
                           ]}
                         >
@@ -274,11 +307,13 @@ export default function Tonight() {
                       </View>
                     )}
                   </View>
-                  {/* Right chevron navigating to Bars tab (detail view TBD) */}
-                  <Pressable onPress={goToBarsTab} hitSlop={8}>
-                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
-                  </Pressable>
-                </View>
+                  {/* Right chevron icon only (tap anywhere in card) */}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Theme.search.inactiveInput}
+                  />
+                </Pressable>
               );
             })}
             {/* Empty-state for bar/deals search results */}
@@ -301,13 +336,14 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.dark.background, // "#0B0C12"
   },
   heroImage: {
-    width: 280,
-    height: 140,
+    width: 300,
+    height: 200,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Theme.container.mainBorder, // "#1F2937",
-    backgroundColor: Theme.container.background, // "#0f172a",
+    borderColor: Theme.container.mainBorder,
+    backgroundColor: Theme.container.background,
   },
+
   stickyTabs: {
     backgroundColor: Theme.dark.background, // "#0B0C12",
     paddingTop: 6,
@@ -337,12 +373,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabBtnActive: {
-    borderColor: Theme.dark.primary // "#38bdf8"
+    borderColor: Theme.dark.primary, // "#38bdf8"
   },
   tabText: {
     color: Theme.container.inactiveText, // "#cbd5e1",
     fontSize: 12,
-    fontWeight: "700"
+    fontWeight: "700",
   },
   tabTextActive: {
     color: Theme.container.activeText, // "#e0f2fe"
@@ -364,9 +400,9 @@ const styles = StyleSheet.create({
     flex: 1,
     color: Theme.search.input, // "#E5E7EB",
     fontSize: 14,
-    paddingVertical: 0
+    paddingVertical: 0,
   },
-  cardsList: { padding: 16, gap: 12, paddingBottom: 92, },
+  cardsList: { padding: 16, gap: 12, paddingBottom: 92 },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -379,7 +415,7 @@ const styles = StyleSheet.create({
   },
   cardDealsVariant: {
     borderColor: Theme.container.secondaryBorder, // "#164e63",
-    backgroundColor: Theme.container.background // "#0b1420",
+    backgroundColor: Theme.container.background, // "#0b1420"
   },
   cardImg: {
     width: 48,
@@ -392,17 +428,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: Theme.container.titleText, // "#f1f5f9",
     fontWeight: "800",
-    fontSize: 14
+    fontSize: 14,
   },
   cardSubtitle: {
     color: Theme.container.inactiveText, // "#cbd5e1",
     marginTop: 2,
-    fontSize: 13
+    fontSize: 13,
   },
   cardDetail: {
     color: Theme.container.inactiveText, // "#94a3b8",
     marginTop: 2,
-    fontSize: 12
+    fontSize: 12,
   },
   dealChip: {
     marginTop: 8,
@@ -411,7 +447,6 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: "center",
     paddingVertical: 2,
-    paddingHorizontal: 8,
     borderRadius: 999,
     backgroundColor: "#0b2530",
     borderWidth: 1,
@@ -456,7 +491,7 @@ const styles = StyleSheet.create({
   friendName: {
     color: Theme.container.titleText, // "#f1f5f9",
     fontWeight: "700",
-    fontSize: 14
+    fontSize: 14,
   },
   friendBar: {
     color: Theme.container.inactiveText, // "#93c5fd",

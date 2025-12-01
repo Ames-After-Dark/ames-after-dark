@@ -7,7 +7,7 @@ import {
 import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
 import type { Bar } from "@/types/bars";
-import { IMG } from "../../../../assets/assets";
+import { IMG } from "../../../../assets/assets"; 
 import { getNow, isBarOpen } from "@/config/time";
 
 import { Theme } from '@/constants/theme';
@@ -62,7 +62,13 @@ useEffect(() => {
   });
 }, [barIdsSig]); // <-- depends ONLY on IDs, not on entire bars objects
 
-
+    // TODO - probs want to update the db once that works again
+    const toggleFavorite = (id: string) => {
+        setFav( (prev) => ({
+            ...prev,
+            [id]: !prev[id],
+        }));
+    };
 
   const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
 
@@ -112,7 +118,15 @@ useEffect(() => {
     const favOn = isFav(item);
 
     return (
-      <TouchableOpacity onPress={() => router.push(`/bars/${item.id}`)}>
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/(app)/(tabs)/bars/[id]",
+            params: { id: String(item.id) },
+          })
+        }
+      >
+
         <View style={styles.barCard}>
           <Image source={imageSource} style={styles.barImage} resizeMode="cover" />
           <View style={styles.barInfo}>
@@ -190,35 +204,43 @@ useEffect(() => {
   );
 }
 
-// your original styles block re-attached 👇
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.dark.background,// "#0b0b12"
+    backgroundColor: Theme.dark.background,
   },
   searchFilterContainer: {
-    backgroundColor: Theme.container.background, // "#1A1A1A",
-    paddingVertical: 12,
-    paddingHorizontal: 14
+    paddingVertical: 10,
   },
   searchBar: {
+    marginHorizontal: 16,
+    marginTop: 2,
+    backgroundColor: Theme.search.background,
+    borderColor: Theme.search.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 10
+    gap: 8,
+    marginBottom: 14,
   },
-  searchIcon: { marginRight: 8 },
   searchInput: {
     flex: 1,
-    color: Theme.search.input, // "#94A3B8",
-    fontSize: 14
+    color: Theme.search.input,
+    fontSize: 14,
+    paddingVertical: 0
   },
-  filters: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
+  searchIcon: { marginRight: 8 },
+  filters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   filterButton: {
-    backgroundColor: Theme.container.background, // "#1A1A1A",
-    borderColor: Theme.dark.primary, // "#33CCFF",
+    backgroundColor: Theme.container.background,
+    borderColor: Theme.dark.primary,
     borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -226,16 +248,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 6
   },
   activeFilter: {
-    backgroundColor: Theme.dark.primary, // "#33CCFF"
+    backgroundColor: Theme.dark.primary,
   },
   filterText: {
-    color: Theme.container.titleText, // "white",
+    color: Theme.container.titleText,
     fontSize: 13
   },
   barList: { paddingBottom: 80 },
   barCard: {
     flexDirection: "row",
-    backgroundColor: Theme.container.background, // "#1A1A1A",
+    backgroundColor: Theme.container.background,
     borderRadius: 16,
     padding: 12,
     marginVertical: 6,
@@ -244,17 +266,17 @@ const styles = StyleSheet.create({
   barImage: { width: 70, height: 70, borderRadius: 12, marginRight: 12 },
   barInfo: { flex: 1 },
   barName: {
-    color: Theme.container.titleText, // "white",
+    color: Theme.container.titleText,
     fontSize: 18,
     fontWeight: "600"
   },
   barStatus: {
-    color: Theme.container.titleText, //"white",
+    color: Theme.container.titleText,
     fontSize: 14,
     fontWeight: "500"
   },
   barSpecials: {
-    color: Theme.container.titleText, // "white",
+    color: Theme.container.titleText,
     fontSize: 14,
     marginVertical: 2
   },
@@ -263,7 +285,7 @@ const styles = StyleSheet.create({
       justifyContent: "center",
     },
     emptyText: {
-      color: Theme.search.inactiveInput, // "#94A3B8",
+      color: Theme.search.inactiveInput,
       fontSize: 13,
       textAlign: "center",
     },
