@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
@@ -23,7 +23,11 @@ export default function BarProfile() {
   const router = useRouter();
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
-
+  const handleBack = () => {
+    router.replace("/(app)/(tabs)/bars");
+    // If TypeScript complains, you can do:
+    // router.replace("/(app)/(tabs)/bars" as any);
+  };
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -67,6 +71,24 @@ export default function BarProfile() {
     IMG.GALLERY ?? IMG.LOGO;
 
   return (
+    <>
+    <Stack.Screen
+            options={{
+              title: "",
+              headerLeft: () => (
+                <TouchableOpacity
+                  onPress={handleBack}
+                  style={{ paddingHorizontal: 12 }}
+                >
+                  <FontAwesome
+                    name="chevron-left"
+                    size={20}
+                    color={Theme.dark.secondary}
+                  />
+                </TouchableOpacity>
+              ),
+            }}
+          />    
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 80 }}
@@ -126,7 +148,13 @@ export default function BarProfile() {
      <View style={{ marginHorizontal: 12, marginTop: 8 }}>
       <TouchableOpacity
         style={styles.menuButton}
-        onPress={() => router.push({ pathname: "/bars/menu", params: { id } })}
+        onPress={() =>
+          router.push({
+            pathname: "/bars/menu",
+            params: { id },
+          })
+        }
+
       >
         <Text style={styles.menuButtonText}>View Menu</Text>
       </TouchableOpacity>
@@ -179,10 +207,26 @@ export default function BarProfile() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+    menuButton: {
+    marginTop: 4,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: Theme.dark.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuButtonText: {
+    color: Theme.dark.white,
+    fontWeight: "700",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background
