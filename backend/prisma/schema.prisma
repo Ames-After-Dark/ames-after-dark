@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://amesdb_admin:l1quorSTORE_$$@localhost:5432/amesdb"
+  url      = env("DATABASE_URL")
   schemas  = ["app"]
 }
 
@@ -15,7 +15,7 @@ model deals {
   start_time  String?    @db.VarChar
   end_time    String?    @db.VarChar
   name        String?    @db.VarChar
-  location_id Int?
+  location_id Int?        @map("bar_id")
   weekday_id  Int?
   locations   locations? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bars")
   weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")

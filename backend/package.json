@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start":"node index.js",
     "lint": "echo \"Error: no linter specified\" && exit 0",
     "test": "jest --testPathPatterns=src"
   },
