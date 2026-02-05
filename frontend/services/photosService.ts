@@ -1,4 +1,3 @@
-import { apiFetch } from "./apiClient";
 import Constants from "expo-constants";
 
 const SMUGMUG_API_KEY = Constants.expoConfig?.extra?.SMUGMUG_API_KEY;
@@ -56,67 +55,6 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
   } catch (err) {
     console.warn("SmugMug fetch failed, falling back:", err);
 
-    // fallback to dummy local images
-    return Array.from({ length: 9 }, (_, i) => ({
-      id: `mock-${i}`,
-      image: require("@/assets/images/Logo.png"),
-    }));
-  }
-}
-
-/**
- * DEPRECATED: Kept so nothing breaks for now
- * Fetches photos for a given bar from SmugMug.
- * Falls back to mock images if SmugMug fetch fails or none found.
- */
-export async function getPhotosByBar(barName: string): Promise<Photo[]> {
-  try {
-    // get all albums
-    const albumsRes = await fetch(
-      `${SMUGMUG_API_BASE}/user/${USER}!albums?APIKey=${SMUGMUG_API_KEY}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      }
-    );
-    if (!albumsRes.ok) throw new Error(`Albums fetch failed: ${albumsRes.statusText}`);
-
-    const albumsData = await albumsRes.json();
-    const albums = albumsData?.Response?.Album ?? [];
-
-    // try to find album including barName
-    const album = albums.find((a: any) =>
-      a.Name.toLowerCase().includes(barName.toLowerCase())
-    );
-    if (!album) throw new Error(`No album found for ${barName}`);
-
-    // fetch image info
-    const imagesRes = await fetch(
-      `https://api.smugmug.com${album.Uris.AlbumImages.Uri}?APIKey=${SMUGMUG_API_KEY}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      }
-    );
-    if (!imagesRes.ok) throw new Error(`Images fetch failed: ${imagesRes.statusText}`);
-
-    const imagesData = await imagesRes.json();
-    const images = imagesData?.Response?.AlbumImage ?? [];
-
-    const photos = images.map((img: any) => ({
-      id: img.ImageKey,
-      image: { uri: img.Sizes?.LargestImage?.Url || img.ArchivedUri || img.Uri },
-    }));
-
-    if (!photos.length) throw new Error("No photos found");
-
-    return photos;
-  } catch (err) {
-    console.warn("SmugMug fetch failed, falling back to mock:", err);
     // fallback to dummy local images
     return Array.from({ length: 9 }, (_, i) => ({
       id: `mock-${i}`,
@@ -219,13 +157,35 @@ export async function getAlbums() {
   }
 }
 
-// Return the newest album for a give bar
-// Useful for bar details page to route to newest gallery album
-export async function getMostRecentAlbumForBar(barName: string) {
-  const albums = await getAlbums();
-  const match = albums
-    .filter((a) => a.barName.toLowerCase() === barName.toLowerCase())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+// Return only the newest album for each bar
+export async function getLatestAlbumsPerBar(): Promise<Album[]> {
+  try {
+    // Call getAlbums
+    const albums = await getAlbums();
+    const latestMap: Record<string, Album> = {};
 
-  return match[0] || null;
+    // Reduce to latest per bar
+    for (const a of albums) {
+      const key = (a.barName || a.name || "").toLowerCase();
+      const existing = latestMap[key];
+
+      if (!existing) {
+        latestMap[key] = a;
+        continue;
+      }
+
+      const aTime = new Date(a.date).getTime();
+      const eTime = new Date(existing.date).getTime();
+
+      // Get the album with the newest date
+      if (!isNaN(aTime) && (isNaN(eTime) || aTime > eTime)) {
+        latestMap[key] = a;
+      }
+    }
+
+    return Object.values(latestMap);
+  } catch (err) {
+    console.warn("Latest albums fetch failed:", err);
+    return [];
+  }
 }

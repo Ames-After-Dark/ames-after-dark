@@ -4,7 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, Image,
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
-import { getAlbums } from "@/services/photosService";
+import { getLatestAlbumsPerBar } from "@/services/photosService";
 
 export default function GalleryScreen() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function GalleryScreen() {
 
   useEffect(() => {
     (async () => {
-      const data = await getAlbums();
+      const data = await getLatestAlbumsPerBar();
       setAlbums(data);
       setLoading(false);
     })();
@@ -135,7 +135,12 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.dark.background,
     paddingHorizontal: 12
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: Theme.dark.background 
+  },
   searchFilterContainer: {
     backgroundColor: Theme.dark.background,
     paddingVertical: 12,
