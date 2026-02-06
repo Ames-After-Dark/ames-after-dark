@@ -1,4 +1,5 @@
-console.log("DEBUG: DATABASE_URL is:", process.env.DATABASE_URL);
+require('dotenv').config();
+//console.log("DEBUG: DATABASE_URL is:", process.env.DATABASE_URL);
 const express = require("express");
 const app = express();
 const cors = require('cors');
@@ -67,9 +68,9 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
 
 // Start server and bind to all interfaces
 app.listen(PORT, '0.0.0.0', () => {
