@@ -70,3 +70,32 @@ exports.deleteEvent = async (id) => {
     where: { id: Number(id) }
   });
 };
+
+exports.getActiveEvents = async () => {
+  const now = new Date();
+  const currentWeekday = now.getDay(); // Sunday=0, Monday=1, ..., Saturday=6
+  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday; // Adjust if your DB uses 1=Monday, 7=Sunday
+  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
+
+  return prisma.events.findMany({
+    where: {
+      weekday_id: weekdayId,
+      start_time: { lte: now },
+      end_time: { gte: now }
+    },
+    include: {
+      locations: true,
+      weekdays: true
+    }
+  });
+};
+
+exports.getEventsByLocationId = async (locationId) => {
+  return prisma.events.findMany({
+    where: { location_id: Number(locationId) },
+    include: {
+      locations: true,
+      weekdays: true
+    }
+  });
+};
