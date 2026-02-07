@@ -51,3 +51,30 @@ exports.deleteLocation = async (id) => {
     where: { id: Number(id) },
   });
 };
+
+exports.getOpenLocations = async () => {
+  const now = new Date();
+  const currentWeekday = now.getDay();
+  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday;
+  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
+
+  // Find locations with at least one location_hours entry matching current weekday and time
+  return prisma.locations.findMany({
+    include: {
+      location_hours: true,
+      location_types: true,
+      deals: true,
+      events: true,
+      user_favorites: true
+    },
+    where: {
+      location_hours: {
+        some: {
+          weekday_id: weekdayId,
+          open_time_: { lte: now },
+          close_time: { gte: now }
+        }
+      }
+    }
+  });
+};

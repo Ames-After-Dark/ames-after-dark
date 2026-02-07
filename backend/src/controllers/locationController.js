@@ -66,3 +66,13 @@ exports.deleteLocation = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getOpenLocations = async (req, res) => {
+  try {
+    const locations = await locationService.getOpenLocations();
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
