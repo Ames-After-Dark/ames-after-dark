@@ -18,7 +18,7 @@ import { useFriends } from '@/hooks/useFriends';
 import { getUserById } from '@/services/userService';
 
 // TODO: Replace with actual user ID from auth/context
-const CURRENT_USER_ID = 1;
+const CURRENT_USER_ID = 6;
 
 export default function AccountScreen() {
 
