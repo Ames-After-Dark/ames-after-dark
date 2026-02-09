@@ -1,5 +1,16 @@
 import { ImageSourcePropType } from 'react-native';
 
+export interface Friend {
+    id: string | number;
+    username?: string;
+    name?: string;
+    email?: string;
+    bio?: string;
+    status?: 'Online' | 'Offline';
+    mutualFriends?: number;
+    avatar?: ImageSourcePropType;
+}
+
 export interface FriendReference {
     id: string;
     name: string;

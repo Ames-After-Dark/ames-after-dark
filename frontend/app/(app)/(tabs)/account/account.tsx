@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,43 +8,41 @@ import {
     ScrollView,
     StyleSheet,
     ImageSourcePropType,
+    ActivityIndicator,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { UserProfile, UserDatabase } from '@types/types.ts';
+import { UserProfile, UserDatabase, Friend } from '@/types/types';
+import { useFriends } from '@/hooks/useFriends';
+import { getUserById } from '@/services/userService';
+
+// TODO: Replace with actual user ID from auth/context
+const CURRENT_USER_ID = 6;
 
 export default function AccountScreen() {
 
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [user, setUser] = useState<any | null>(null);
+    const [userLoading, setUserLoading] = useState(true);
+    const { friends, loading, error } = useFriends(CURRENT_USER_ID);
 
-    // Mock data for the user's friends
-    const friends: Friend[] = [
-        {
-            id: '1',
-            name: 'Sarah Johnson',
-            status: 'Online',
-            avatar: require('../../../../assets/images/Logo.png'),
-            mutualFriends: 12,
-        },
-        {
-            id: '2',
-            name: 'Ethan Williams',
-            status: 'Offline',
-            avatar: require('../../../../assets/images/Logo.png'),
-            mutualFriends: 5,
-        },
-        {
-            id: '3',
-            name: 'Maya Chen',
-            status: 'Online',
-            avatar: require('../../../../assets/images/Logo.png'),
-            mutualFriends: 8,
-        },
-    ];
-
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const userData = await getUserById(CURRENT_USER_ID);
+                setUser(userData);
+            } catch (err) {
+                console.error('Failed to fetch user:', err);
+            } finally {
+                setUserLoading(false);
+            }
+        };
+        fetchUser();
+    }, []);
+    
     const filteredFriends: Friend[] = friends.filter((f: Friend) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -56,12 +54,12 @@ export default function AccountScreen() {
 
         <View style={styles.headerRow}>
             <Image
-                source={require('../../../../assets/images/Logo.png')}
+                source={user?.avatar || require('../../../../assets/images/Logo.png')}
                 style={styles.profileImage}
             />
             <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>{'Your Name'}</Text>
-                <Text style={styles.profileEmail}>{'your@email.com'}</Text>
+                <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+                <Text style={styles.profileEmail}>{user?.email || ''}</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
                 <FontAwesome name="gear" size={24} color="#ccc" />
@@ -70,8 +68,7 @@ export default function AccountScreen() {
 
         <View style={styles.bioContainer}>
             <Text style={styles.bioText}>
-                This is a sample bio. I'm a senior at ISU studying software
-                engineering and passionate about cybersecurity and mobile dev.
+                {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
             </Text>
         </View>
 
@@ -88,28 +85,42 @@ export default function AccountScreen() {
 
         <Text style={styles.friendsTitle}>Friends ({filteredFriends.length})</Text>
 
-        {filteredFriends.length > 0 ? (
-            filteredFriends.map((friend: Friend) => (
+        {loading ? (
+            <View style={styles.emptyContainer}>
+                <ActivityIndicator size="large" color="#33CCFF" />
+                <Text style={styles.emptyText}>Loading friends...</Text>
+            </View>
+        ) : error ? (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Failed to load friends</Text>
+            </View>
+        ) : filteredFriends.length > 0 ? (
+            filteredFriends.map((friend: Friend, index: number) => (
                 <TouchableOpacity
-                    key={friend.id}
+                    key={`${friend.id}-${index}`}
                     style={styles.friendCard}
                     activeOpacity={0.7}
                     onPress={() => router.push(`/account/${friend.id}`)}
                 >
-                <Image source={friend.avatar} style={styles.friendAvatar} />
+                <Image 
+                    source={friend.avatar || require('../../../../assets/images/Logo.png')} 
+                    style={styles.friendAvatar} 
+                />
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>{friend.name}</Text>
+                    <Text style={styles.friendName}>{friend.name || 'Unknown'}</Text>
                     <Text
                         style={[
                             styles.friendStatus,
                             { color: friend.status === 'Online' ? '#33CCFF' : '#aaa' },
                         ]}
                     >
-                    {friend.status}
+                    {friend.status || 'Offline'}
                     </Text>
-                    <Text style={styles.mutualText}>
-                        {friend.mutualFriends} mutual friends
-                    </Text>
+                    {friend.mutualFriends !== undefined && (
+                        <Text style={styles.mutualText}>
+                            {friend.mutualFriends} mutual friends
+                        </Text>
+                    )}
                 </View>
                 </TouchableOpacity>
             ))
