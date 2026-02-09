@@ -10,7 +10,6 @@ export default function GalleryScreen() {
   const router = useRouter();
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -70,28 +69,6 @@ export default function GalleryScreen() {
             style={styles.searchInput}
           />
         </View>
-        {/* Non-functional filters atm */}
-        {/* <View style={styles.filters}>
-          {["Thursday", "Friday", "Saturday", "By Bar"].map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.filterButton,
-                filter === option && styles.activeFilter,
-              ]}
-              onPress={() => setFilter(option)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === option && { color: "black", fontWeight: "600" },
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-          ))}
-        </View> */}
       </View>
       {/* Album list */}
       <FlatList
