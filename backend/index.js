@@ -1,4 +1,4 @@
-console.log("DEBUG: DATABASE_URL is:", process.env.DATABASE_URL);
+require('dotenv').config();
 const express = require("express");
 const app = express();
 const cors = require('cors');
@@ -8,11 +8,7 @@ const { Pool } = require('pg');
 const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
 });
 
 // Configure CORS for your public domain TODO: add for security, commented our for dev
@@ -67,9 +63,9 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
 
 // Start server and bind to all interfaces
 app.listen(PORT, '0.0.0.0', () => {

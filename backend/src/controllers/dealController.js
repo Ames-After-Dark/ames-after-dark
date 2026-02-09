@@ -65,3 +65,24 @@ exports.deleteDeal = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getActiveDeals = async (req, res) => {
+  try {
+    const deals = await dealService.getActiveDeals();
+    res.json(deals);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getDealsByLocationId = async (req, res) => {
+  const locationId = req.params.locationId;
+  try {
+    const deals = await dealService.getDealsByLocationId(locationId);
+    res.json(deals);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

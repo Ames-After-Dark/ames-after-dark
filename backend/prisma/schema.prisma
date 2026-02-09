@@ -15,7 +15,7 @@ model deals {
   start_time  String?    @db.VarChar
   end_time    String?    @db.VarChar
   name        String?    @db.VarChar
-  location_id Int?        @map("bar_id")
+  location_id Int?       @map("location_id")
   weekday_id  Int?
   locations   locations? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bars")
   weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")

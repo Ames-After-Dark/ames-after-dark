@@ -26,3 +26,13 @@ exports.getUserById = async (req, res) => {
   }
 };
 
+exports.getUserFriends = async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const friends = await userService.getUserFriends(userId);
+    res.json(friends);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

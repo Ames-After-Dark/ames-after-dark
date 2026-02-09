@@ -6,7 +6,7 @@ const { manifest } = Constants;
 // Determine base URL based on platform
 const BASE_URL = (() => {
 
-  const publicAPI = "https://amesafterdark.com/api";
+  const publicAPI = "https://api.amesafterdark.com/api";
 
   if (Platform.OS === "web") {
       return publicAPI;

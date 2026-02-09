@@ -75,3 +75,36 @@ exports.deleteDeal = async (id) => {
     where: { id: Number(id) }
   });
 };
+
+exports.getActiveDeals = async () => {
+  const now = new Date();
+  const currentWeekday = now.getDay();
+  //console.log('Current weekday:', currentWeekday);
+  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
+  //console.log('Current time:', currentTime);
+
+  // TODO: I can't remember my logic here.
+  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday; // If Sunday=0, map to 7
+
+  return prisma.deals.findMany({
+    where: {
+      weekday_id: weekdayId,
+      start_time: { lte: currentTime },
+      end_time: { gte: currentTime }
+    },
+    include: {
+      locations: true,
+      weekdays: true
+    }
+  });
+};
+
+exports.getDealsByLocationId = async (locationId) => {
+  return prisma.deals.findMany({
+    where: { location_id: Number(locationId) },
+    include: {
+      locations: true,
+      weekdays: true
+    }
+  });
+};
