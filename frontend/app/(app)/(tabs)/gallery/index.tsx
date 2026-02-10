@@ -4,7 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, Image,
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
-import { getLatestAlbumsPerBar } from "@/services/photosService";
+import { getLatestWeekendAlbums } from "@/services/photosService";
 
 export default function GalleryScreen() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function GalleryScreen() {
 
   useEffect(() => {
     (async () => {
-      const data = await getLatestAlbumsPerBar();
+      const data = await getLatestWeekendAlbums();
       setAlbums(data);
       setLoading(false);
     })();
