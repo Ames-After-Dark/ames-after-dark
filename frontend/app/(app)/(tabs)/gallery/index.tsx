@@ -4,18 +4,35 @@ import { View, Text, FlatList, TouchableOpacity, Image,
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Theme } from "@/constants/theme";
-import { getAlbums } from "@/services/photosService";
+import { getLatestWeekendAlbums } from "@/services/photosService";
+
+// Parse a token like "2-7" or "1/31" into a Date (month-day); Similar to parseFolderDate in photosService
+function parseDateToken(token: string): Date | null {
+  if (!token) return null;
+  const parts = token.split(/[-\\/]/).map((p) => p.trim());
+  if (parts.length !== 2) return null;
+
+  const month = parseInt(parts[0], 10) - 1;
+  const day = parseInt(parts[1], 10);
+  if (isNaN(month) || isNaN(day)) return null;
+
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, month, day);
+  // If candidate is in the future, it likely refers to previous year
+  if (candidate > now) candidate = new Date(year - 1, month, day);
+  return candidate;
+}
 
 export default function GalleryScreen() {
   const router = useRouter();
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
-      const data = await getAlbums();
+      const data = await getLatestWeekendAlbums();
       setAlbums(data);
       setLoading(false);
     })();
@@ -34,19 +51,30 @@ export default function GalleryScreen() {
     return data;
   }, [albums, search]);
 
-  // group by date
+  // group by date token and attach a parsed Date for sorting/display (weekday)
   const grouped = useMemo(() => {
     const byDate: Record<string, any[]> = {};
+    const dateObjMap: Record<string, Date | null> = {};
+
     for (const a of filteredAlbums) {
       if (!a.date) continue;
-      if (!byDate[a.date]) byDate[a.date] = [];
-      byDate[a.date].push(a);
+      const key = a.date;
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push(a);
+      if (!dateObjMap[key]) {
+        dateObjMap[key] = parseDateToken(a.date) || null;
+      }
     }
-    return Object.entries(byDate).sort((a, b) => {
-      const dateeA = new Date(a[0]);
-      const dateB = new Date(b[0]);
-      return dateB.getTime() - dateeA.getTime();
-    });
+
+    const entries = Object.entries(byDate).map(([date, bars]) => ({
+      date,
+      bars,
+      dateObj: dateObjMap[date] || new Date(0),
+    }));
+
+    entries.sort((a, b) => (b.dateObj.getTime() - a.dateObj.getTime()));
+
+    return entries;
   }, [filteredAlbums]);
 
   if (loading)
@@ -70,37 +98,19 @@ export default function GalleryScreen() {
             style={styles.searchInput}
           />
         </View>
-        {/* Non-functional filters atm */}
-        {/* <View style={styles.filters}>
-          {["Thursday", "Friday", "Saturday", "By Bar"].map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.filterButton,
-                filter === option && styles.activeFilter,
-              ]}
-              onPress={() => setFilter(option)}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === option && { color: "black", fontWeight: "600" },
-                  ]}
-                >
-                  {option}
-                </Text>
-              </TouchableOpacity>
-          ))}
-        </View> */}
       </View>
       {/* Album list */}
       <FlatList
         data={grouped}
-        keyExtractor={(item => item[0])}
-        renderItem={({ item: [date, bars] }) => (
-          <View style={{ marginBottom: 24 }}>
-            <Text style={styles.dateHeader}>{date}</Text>
-            <View style={styles.albumGrid}>
+        keyExtractor={(item) => item.date}
+        renderItem={({ item }) => {
+          const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };
+          const weekday = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString(undefined, { weekday: 'long' }) : '';
+          const header = weekday ? `${weekday} ${date}` : date;
+          return (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={styles.dateHeader}>{header}</Text>
+              <View style={styles.albumGrid}>
               {bars.map((album) => (
                 <TouchableOpacity
                   key={album.id}
@@ -122,7 +132,7 @@ export default function GalleryScreen() {
               ))}
             </View>
           </View>
-        )}
+        )}}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -135,7 +145,12 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.dark.background,
     paddingHorizontal: 12
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: Theme.dark.background 
+  },
   searchFilterContainer: {
     backgroundColor: Theme.dark.background,
     paddingVertical: 12,
