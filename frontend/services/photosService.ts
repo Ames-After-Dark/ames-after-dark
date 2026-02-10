@@ -65,12 +65,6 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
 
 /**
  * Extract the last date-like token from a folder name.
- * Supports formats like:
- *  - "Big 4 2-5/2-7" -> "2-7"
- *  - "Big 4 1/29 - 1/31" -> "1/31"
- *  - "Big4 12/18-12/20" -> "12/20"
- *  - "Big 4 11-6 / 11-8" -> "11-8"
- *
  * The function finds all occurrences of `M-D` or `M/D` tokens and returns the last one.
  */
 function extractFolderEndDate(folderName: string): string | null {
@@ -167,33 +161,6 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
     const albumsData = await albumsRes.json();
     const allAlbums = albumsData?.Response?.Album ?? [];
 
-    // // only include Big 4 folders
-    // const validFolders = folders.filter((f: any) => {
-    //   const name = f.Name?.toLowerCase() || "";
-    //   return name.startsWith("big 4") || name.startsWith("big4");
-    // });
-
-    // //console.log("Found Big 4 folders:", validFolders.map((f: any) => f.Name));
-
-    // const allAlbums: any[] = [];
-
-    // for (const folder of validFolders) {
-    //   const albumsUrl = `https://api.smugmug.com${folder.Uris.FolderAlbums.Uri}?APIKey=${SMUGMUG_API_KEY}`;
-    //   const albumsRes = await fetch(albumsUrl, {
-    //     headers: {
-    //       Accept: "application/json",
-    //       "User-Agent": "AmesAfterDark/1.0",
-    //     },
-    //   });
-    //   if (!albumsRes.ok) continue;
-
-    //   const albumsData = await albumsRes.json();
-    //   const albums = albumsData?.Response?.Album ?? [];
-    //   allAlbums.push(...albums);
-    // }
-
-    // //console.log("Total albums found:", allAlbums.length);
-
     // fetch image cover
     const enriched: Album[] = await Promise.all(
       allAlbums.map(async (a: any) => {
@@ -243,36 +210,3 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
     return [];
   }
 }
-
-// // Return only the newest album for each bar
-// export async function getLatestAlbumsPerBar(): Promise<Album[]> {
-//   try {
-//     // Call getAlbums
-//     const albums = await getAlbums();
-//     const latestMap: Record<string, Album> = {};
-
-//     // Reduce to latest per bar
-//     for (const a of albums) {
-//       const key = (a.barName || a.name || "").toLowerCase();
-//       const existing = latestMap[key];
-
-//       if (!existing) {
-//         latestMap[key] = a;
-//         continue;
-//       }
-
-//       const aTime = new Date(a.date).getTime();
-//       const eTime = new Date(existing.date).getTime();
-
-//       // Get the album with the newest date
-//       if (!isNaN(aTime) && (isNaN(eTime) || aTime > eTime)) {
-//         latestMap[key] = a;
-//       }
-//     }
-
-//     return Object.values(latestMap);
-//   } catch (err) {
-//     console.warn("Latest albums fetch failed:", err);
-//     return [];
-//   }
-// }
