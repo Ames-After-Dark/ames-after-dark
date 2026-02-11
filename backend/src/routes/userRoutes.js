@@ -8,4 +8,9 @@ router.get('/:userId/friends', userController.getUserFriends);
 router.get('/', userController.getUsers);         // Read all
 router.get('/:id', userController.getUserById);  // Read one
 
+// TEMP_AUTH_START - Remove when re-enabling Auth0
+router.post('/signup', userController.createUser);
+router.post('/login', userController.loginUser);
+// TEMP_AUTH_END
+
 module.exports = router;

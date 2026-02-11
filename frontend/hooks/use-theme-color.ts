@@ -3,7 +3,7 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
+import { Theme } from '@/constants/theme';
 
 /**
  * For now the app uses a single dark theme. This hook keeps the same API but
@@ -12,7 +12,7 @@ import { Colors } from '@/constants/theme';
  */
 export function useThemeColor(
   props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.dark
+  colorName: keyof typeof Theme.dark
 ) {
   // Prefer an explicit `dark` override from props, otherwise use the dark
   // palette.
@@ -20,5 +20,5 @@ export function useThemeColor(
     return props.dark;
   }
 
-  return Colors.dark[colorName];
+  return Theme.dark[colorName];
 }
