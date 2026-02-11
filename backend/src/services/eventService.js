@@ -5,7 +5,11 @@ exports.getEvents = async () => {
   return prisma.events.findMany({
     include: {
       locations: true,
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     },
     orderBy: { id: 'asc' },
   });
@@ -25,42 +29,65 @@ exports.getEventById = async (id) => {
           }
         }
       },
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     }
   });
 };
 
 exports.createEvent = async (eventData) => {
+  const { weekdays, ...rest } = eventData;
   return prisma.events.create({
     data: {
-      ...eventData,
+      ...rest,
       location_id: eventData.location_id ? Number(eventData.location_id) : null,
-      weekday_id: eventData.weekday_id ? Number(eventData.weekday_id) : null,
       date: eventData.date ? new Date(eventData.date) : null,
       start_time: eventData.start_time ? new Date(eventData.start_time) : null,
       end_time: eventData.end_time ? new Date(eventData.end_time) : null,
+      event_weekdays: weekdays && weekdays.length > 0
+        ? {
+            create: weekdays.map((weekday_id) => ({ weekday_id }))
+          }
+        : undefined
     },
     include: {
       locations: true,
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     }
   });
 };
 
 exports.updateEvent = async (id, eventData) => {
+  const { weekdays, ...rest } = eventData;
   return prisma.events.update({
     where: { id: Number(id) },
     data: {
-      ...eventData,
+      ...rest,
       location_id: eventData.location_id ? Number(eventData.location_id) : undefined,
-      weekday_id: eventData.weekday_id ? Number(eventData.weekday_id) : undefined,
       date: eventData.date ? new Date(eventData.date) : undefined,
       start_time: eventData.start_time ? new Date(eventData.start_time) : undefined,
       end_time: eventData.end_time ? new Date(eventData.end_time) : undefined,
+      event_weekdays: weekdays && weekdays.length > 0
+        ? {
+            deleteMany: {},
+            create: weekdays.map((weekday_id) => ({ weekday_id }))
+          }
+        : undefined
     },
     include: {
       locations: true,
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     }
   });
 };
@@ -73,19 +100,28 @@ exports.deleteEvent = async (id) => {
 
 exports.getActiveEvents = async () => {
   const now = new Date();
-  const currentWeekday = now.getDay(); // Sunday=0, Monday=1, ..., Saturday=6
-  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday; // Adjust if your DB uses 1=Monday, 7=Sunday
+  const currentWeekday = now.getDay(); // JS: 0=Sunday, 6=Saturday
+  // 1=Sunday, 7=Saturday
+  const weekdayId = currentWeekday === 0 ? 1 : currentWeekday === 6 ? 7 : currentWeekday + 1;
   const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
 
   return prisma.events.findMany({
     where: {
-      weekday_id: weekdayId,
+      event_weekdays: {
+        some: {
+          weekday_id: weekdayId
+        }
+      },
       start_time: { lte: now },
       end_time: { gte: now }
     },
     include: {
       locations: true,
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     }
   });
 };
@@ -95,7 +131,11 @@ exports.getEventsByLocationId = async (locationId) => {
     where: { location_id: Number(locationId) },
     include: {
       locations: true,
-      weekdays: true
+      event_weekdays: {
+        include: {
+          weekdays: true
+        }
+      }
     }
   });
 };
