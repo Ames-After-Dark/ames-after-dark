@@ -27,8 +27,8 @@ model events {
   location_id    Int?
   repeating      Boolean?
   date           DateTime?        @db.Date
-  start_time     DateTime?        @db.Time(6)
-  end_time       DateTime?        @db.Time(6)
+  start_time_utc DateTime?        @db.Time(6)
+  end_time_utc   DateTime?        @db.Time(6)
   description    String?          @db.VarChar(255)
   event_weekdays event_weekdays[]
   locations      locations?       @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)

@@ -71,10 +71,11 @@ exports.deleteDeal = async (id) => {
 
 exports.getActiveDeals = async () => {
   const now = new Date();
-  const currentWeekday = now.getDay(); // JS: 0=Sunday, 6=Saturday
-  // 1=Sunday, 7=Saturday
-  const weekdayId = currentWeekday === 0 ? 1 : currentWeekday === 6 ? 7 : currentWeekday + 1;
-  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
+  // JS: 0=Sunday, 6=Saturday. DB: 1=Sunday, 7=Saturday
+  let weekdayId = now.getDay();
+  weekdayId = weekdayId === 0 ? 1 : weekdayId + 1;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const currentTime = new Date(today.getTime() + (now.getHours() * 3600000) + (now.getMinutes() * 60000) + (now.getSeconds() * 1000));
 
   return prisma.deals.findMany({
     where: {
@@ -83,30 +84,14 @@ exports.getActiveDeals = async () => {
           weekday_id: weekdayId
         }
       },
-      start_time: { lte: currentTime },
-      end_time: { gte: currentTime }
-    },
-    include: {
-      locations: true,
-      deal_weekdays: {
-        include: {
-          weekdays: true
-        }
-      }
+      start_time_utc: { lte: currentTime },
+      end_time_utc: { gte: currentTime }
     }
   });
 };
 
 exports.getDealsByLocationId = async (locationId) => {
   return prisma.deals.findMany({
-    where: { location_id: Number(locationId) },
-    include: {
-      locations: true,
-      deal_weekdays: {
-        include: {
-          weekdays: true
-        }
-      }
-    }
+    where: { location_id: Number(locationId) }
   });
 };
