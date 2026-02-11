@@ -9,31 +9,29 @@ datasource db {
 }
 
 model deals {
-  id          Int        @id
-  repeating   Boolean?
-  date        DateTime?  @db.Date
-  start_time  String?    @db.VarChar
-  end_time    String?    @db.VarChar
-  name        String?    @db.VarChar
-  location_id Int?        @map("bar_id")
-  weekday_id  Int?
-  locations   locations? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bars")
-  weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+  id             Int             @id
+  repeating      Boolean?
+  date           DateTime?       @db.Date
+  start_time_utc DateTime        @db.Time(6)
+  end_time_utc   DateTime        @db.Time(6)
+  name           String          @db.VarChar
+  location_id    Int
+  deal_weekdays  deal_weekdays[]
+  locations      locations       @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations")
 
   @@schema("app")
 }
 
 model events {
-  id          Int        @id
-  location_id Int?
-  repeating   Boolean?
-  date        DateTime?  @db.Date
-  start_time  DateTime?  @db.Time(6)
-  end_time    DateTime?  @db.Time(6)
-  weekday_id  Int?
-  description String?    @db.VarChar(255)
-  locations   locations? @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             Int              @id
+  location_id    Int?
+  repeating      Boolean?
+  date           DateTime?        @db.Date
+  start_time     DateTime?        @db.Time(6)
+  end_time       DateTime?        @db.Time(6)
+  description    String?          @db.VarChar(255)
+  event_weekdays event_weekdays[]
+  locations      locations?       @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("app")
 }
@@ -50,7 +48,7 @@ model friendships {
   user_id_1                          Int
   user_id_2                          Int
   friendship_status_id               Int                 @default(1)
-  created_at                         DateTime?           @default(now()) @db.Timestamp(6)
+  created_at_utc                     DateTime            @default(now()) @db.Timestamp(6)
   friendship_statuses                friendship_statuses @relation(fields: [friendship_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_friendships_user_id_1Tousers users               @relation("friendships_user_id_1Tousers", fields: [user_id_1], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_friendships_user_id_2Tousers users               @relation("friendships_user_id_2Tousers", fields: [user_id_2], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -60,14 +58,13 @@ model friendships {
 }
 
 model location_hours {
-  id          Int        @id(map: "barHours_pkey") @default(autoincrement())
-  is_open     Boolean
-  open_time_  DateTime   @map("open_time ") @db.Timestamp(6)
-  close_time  DateTime   @db.Timestamp(6)
-  weekday_id  Int?
-  location_id Int?
-  locations   locations? @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bar_fk")
-  weekdays    weekdays?  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+  id             Int       @id(map: "pkey_location_hours") @default(autoincrement())
+  open_time_utc  DateTime  @db.Time(6)
+  close_time_utc DateTime  @db.Time(6)
+  weekday_id     Int?
+  location_id    Int
+  locations      locations @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bar_fk")
+  weekdays       weekdays? @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
 
   @@schema("app")
 }
@@ -82,7 +79,7 @@ model location_types {
 
 model locations {
   name             String           @db.VarChar
-  id               Int              @id(map: "bars_pkey") @default(autoincrement())
+  id               Int              @id(map: "pkey_locations") @default(autoincrement())
   address          String?          @db.VarChar
   latitude         Decimal?         @db.Decimal
   longitude        Decimal?         @db.Decimal
@@ -92,10 +89,13 @@ model locations {
   views            Int?             @default(0)
   nickname         String?          @db.VarChar
   location_type_id Int?
+  admin_uid        Int?
   deals            deals[]
   events           events[]
   location_hours   location_hours[]
   location_types   location_types?  @relation(fields: [location_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location_type")
+  users            users?           @relation(fields: [admin_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations_admin_uid")
+  menu_items       menu_items[]
   user_favorites   user_favorites[]
 
   @@schema("app")
@@ -122,11 +122,15 @@ model user_favorites {
 
 model users {
   id                                       Int              @id @default(autoincrement())
-  uid                                      Int?
+  uid                                      Int?             @unique(map: "users_uid_unique")
   role_id                                  Int?
   username                                 String?          @db.VarChar(255)
+  bio                                      String?
+  email                                    String?          @unique @db.VarChar(255)
+  name                                     String?          @db.VarChar(255)
   friendships_friendships_user_id_1Tousers friendships[]    @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers friendships[]    @relation("friendships_user_id_2Tousers")
+  locations                                locations[]
   user_favorites                           user_favorites[]
   roles                                    roles?           @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
 
@@ -136,9 +140,49 @@ model users {
 model weekdays {
   id             Int              @id(map: "weekday_pkey") @default(autoincrement())
   name           String           @db.VarChar(255)
-  deals          deals[]
-  events         events[]
+  deal_weekdays  deal_weekdays[]
+  event_weekdays event_weekdays[]
   location_hours location_hours[]
+
+  @@schema("app")
+}
+
+model deal_weekdays {
+  deal_id    Int
+  weekday_id Int
+  deals      deals    @relation(fields: [deal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_deal")
+  weekdays   weekdays @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+
+  @@id([deal_id, weekday_id])
+  @@schema("app")
+}
+
+model event_weekdays {
+  event_id   Int
+  weekday_id Int
+  events     events   @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_event")
+  weekdays   weekdays @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+
+  @@id([event_id, weekday_id])
+  @@schema("app")
+}
+
+model menu_item_type {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(255)
+  menu_items menu_items[]
+
+  @@schema("app")
+}
+
+model menu_items {
+  id                Int            @id @default(autoincrement())
+  menu_item_type_id Int
+  location_id       Int
+  name              String         @db.VarChar(255)
+  description       String?
+  locations         locations      @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location")
+  menu_item_type    menu_item_type @relation(fields: [menu_item_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_menu_item_type")
 
   @@schema("app")
 }

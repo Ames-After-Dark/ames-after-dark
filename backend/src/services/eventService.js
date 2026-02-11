@@ -3,10 +3,6 @@ const prisma = new PrismaClient();
 
 exports.getEvents = async () => {
   return prisma.events.findMany({
-    include: {
-      locations: true,
-      weekdays: true
-    },
     orderBy: { id: 'asc' },
   });
 };
@@ -14,19 +10,6 @@ exports.getEvents = async () => {
 exports.getEventById = async (id) => {
   return prisma.events.findUnique({
     where: { id: Number(id) },
-    include: {
-      locations: {
-        include: {
-          location_types: true,
-          location_hours: {
-            include: {
-              weekdays: true
-            }
-          }
-        }
-      },
-      weekdays: true
-    }
   });
 };
 
