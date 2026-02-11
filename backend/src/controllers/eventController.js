@@ -65,3 +65,24 @@ exports.deleteEvent = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getActiveEvents = async (req, res) => {
+  try {
+    const events = await eventService.getActiveEvents();
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getEventsByLocationId = async (req, res) => {
+  const locationId = req.params.locationId;
+  try {
+    const events = await eventService.getEventsByLocationId(locationId);
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

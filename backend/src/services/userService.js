@@ -123,3 +123,30 @@ exports.deleteUser = async (id) => {
     where: { id: Number(id) }
   });
 };
+
+exports.getUserFriends = async (userId) => {
+  // Find all friendships where the user is either user_id_1 or user_id_2 and status is "accepted" (if you have such a status)
+  const friendships = await prisma.friendships.findMany({
+    where: {
+      OR: [
+        { user_id_1: Number(userId) },
+        { user_id_2: Number(userId) }
+      ],
+      // Optionally filter by accepted status:
+      // friendship_status_id: 2 // if 2 means "accepted"
+    },
+    include: {
+      users_friendships_user_id_1Tousers: true,
+      users_friendships_user_id_2Tousers: true
+    }
+  });
+
+  // Map to return the friend user object (not the user themselves)
+  return friendships.map(f => {
+    if (f.user_id_1 === Number(userId)) {
+      return f.users_friendships_user_id_2Tousers;
+    } else {
+      return f.users_friendships_user_id_1Tousers;
+    }
+  });
+};

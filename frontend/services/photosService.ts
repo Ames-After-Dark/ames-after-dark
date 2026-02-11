@@ -1,4 +1,3 @@
-import { apiFetch } from "./apiClient";
 import Constants from "expo-constants";
 
 const SMUGMUG_API_KEY = Constants.expoConfig?.extra?.SMUGMUG_API_KEY;
@@ -65,68 +64,47 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
 }
 
 /**
- * DEPRECATED: Kept so nothing breaks for now
- * Fetches photos for a given bar from SmugMug.
- * Falls back to mock images if SmugMug fetch fails or none found.
+ * Extract the last date-like token from a folder name.
+ * The function finds all occurrences of `M-D` or `M/D` tokens and returns the last one.
  */
-export async function getPhotosByBar(barName: string): Promise<Photo[]> {
-  try {
-    // get all albums
-    const albumsRes = await fetch(
-      `${SMUGMUG_API_BASE}/user/${USER}!albums?APIKey=${SMUGMUG_API_KEY}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      }
-    );
-    if (!albumsRes.ok) throw new Error(`Albums fetch failed: ${albumsRes.statusText}`);
-
-    const albumsData = await albumsRes.json();
-    const albums = albumsData?.Response?.Album ?? [];
-
-    // try to find album including barName
-    const album = albums.find((a: any) =>
-      a.Name.toLowerCase().includes(barName.toLowerCase())
-    );
-    if (!album) throw new Error(`No album found for ${barName}`);
-
-    // fetch image info
-    const imagesRes = await fetch(
-      `https://api.smugmug.com${album.Uris.AlbumImages.Uri}?APIKey=${SMUGMUG_API_KEY}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      }
-    );
-    if (!imagesRes.ok) throw new Error(`Images fetch failed: ${imagesRes.statusText}`);
-
-    const imagesData = await imagesRes.json();
-    const images = imagesData?.Response?.AlbumImage ?? [];
-
-    const photos = images.map((img: any) => ({
-      id: img.ImageKey,
-      image: { uri: img.Sizes?.LargestImage?.Url || img.ArchivedUri || img.Uri },
-    }));
-
-    if (!photos.length) throw new Error("No photos found");
-
-    return photos;
-  } catch (err) {
-    console.warn("SmugMug fetch failed, falling back to mock:", err);
-    // fallback to dummy local images
-    return Array.from({ length: 9 }, (_, i) => ({
-      id: `mock-${i}`,
-      image: require("@/assets/images/Logo.png"),
-    }));
+function extractFolderEndDate(folderName: string): string | null {
+  if (!folderName) return null;
+  // Find tokens like 1-31, 12/20, etc.
+  const tokenRegex = /\b(\d{1,2}[\/\-]\d{1,2})\b/g;
+  const matches: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = tokenRegex.exec(folderName)) !== null) {
+    matches.push(m[1]);
   }
+  if (matches.length === 0) return null;
+  return matches[matches.length - 1];
 }
 
-// Get ALL Albums (grouped by folders)
-export async function getAlbums() {
+/**
+ * Parse a date token like "2-7" or "1/31" into a Date object (month-day).
+ * Assumes current year, but if that date is in the future, it rolls back to previous year.
+ */
+function parseFolderDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length !== 2) return null;
+
+  const month = parseInt(parts[0].trim(), 10) - 1;
+  const day = parseInt(parts[1].trim(), 10);
+  if (isNaN(month) || isNaN(day)) return null;
+
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, month, day);
+  // If candidate is in the future, it likely refers to previous year
+  if (candidate > now) {
+    candidate = new Date(year - 1, month, day);
+  }
+  return candidate;
+}
+
+// Fetches albums from the most recent weekend folder
+export async function getLatestWeekendAlbums(): Promise<Album[]> {
   try {
     const foldersRes = await fetch(
       `${SMUGMUG_API_BASE}/folder/user/${USER}!folders?APIKey=${SMUGMUG_API_KEY}`,
@@ -143,32 +121,45 @@ export async function getAlbums() {
     const foldersData = await foldersRes.json();
     const folders = foldersData?.Response?.Folder ?? [];
 
-    // only include Big 4 folders
-    const validFolders = folders.filter((f: any) => {
-      const name = f.Name?.toLowerCase() || "";
-      return name.startsWith("big 4") || name.startsWith("big4");
-    });
+    // Fetch only Big 4 folders and extract end dates
+    type FolderItem = { folder: any; endDateStr: string; endDate: Date };
+    const bigFourFolders: FolderItem[] = folders
+      .filter((f: any) => {
+        const name = f.Name?.toLowerCase() || "";
+        return name.startsWith("big 4") || name.startsWith("big4");
+      })
+      .map((f: any) => {
+        const endDateStr = extractFolderEndDate(f.Name) || "";
+        const parsed = parseFolderDate(endDateStr);
+        return { folder: f, endDateStr, endDate: parsed } as any;
+      })
+      .filter((item: { endDate: null; }) => item.endDate !== null) as FolderItem[];
 
-    //console.log("Found Big 4 folders:", validFolders.map((f: any) => f.Name));
-
-    const allAlbums: any[] = [];
-
-    for (const folder of validFolders) {
-      const albumsUrl = `https://api.smugmug.com${folder.Uris.FolderAlbums.Uri}?APIKey=${SMUGMUG_API_KEY}`;
-      const albumsRes = await fetch(albumsUrl, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      });
-      if (!albumsRes.ok) continue;
-
-      const albumsData = await albumsRes.json();
-      const albums = albumsData?.Response?.Album ?? [];
-      allAlbums.push(...albums);
+    if (bigFourFolders.length === 0) {
+      console.warn("No Big 4 folders found");
+      return [];
     }
 
-    //console.log("Total albums found:", allAlbums.length);
+    // Sort by parsed date descending and pick the latest
+    bigFourFolders.sort((a, b) => (b.endDate.getTime() - a.endDate.getTime()));
+    const latestFolder = bigFourFolders[0];
+    console.log(`Fetching albums from latest weekend folder: ${latestFolder.folder.Name}`);
+    // Fetch albums from only the latest folder
+    const albumsUrl = `https://api.smugmug.com${latestFolder.folder.Uris.FolderAlbums.Uri}?APIKey=${SMUGMUG_API_KEY}`;
+    const albumsRes = await fetch(albumsUrl, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AmesAfterDark/1.0",
+      },
+    });
+
+    if (!albumsRes.ok) {
+      console.warn(`Albums fetch failed: ${albumsRes.statusText}`);
+      return [];
+    }
+
+    const albumsData = await albumsRes.json();
+    const allAlbums = albumsData?.Response?.Album ?? [];
 
     // fetch image cover
     const enriched: Album[] = await Promise.all(
@@ -196,8 +187,9 @@ export async function getAlbums() {
         } catch {
           // ignore
         }
-        // Extract barName + date from "Sips 11-8"
-        const parts = a.Name.split(" ");
+
+        // Extract barName + date from album name like "Sips 2-8"
+        const parts = (a.Name || "").split(" ");
         const date: string = parts.at(-1) || "";
         const bar = parts.slice(0, -1).join(" ");
 
@@ -217,15 +209,4 @@ export async function getAlbums() {
     console.warn("Album fetch failed:", err);
     return [];
   }
-}
-
-// Return the newest album for a give bar
-// Useful for bar details page to route to newest gallery album
-export async function getMostRecentAlbumForBar(barName: string) {
-  const albums = await getAlbums();
-  const match = albums
-    .filter((a) => a.barName.toLowerCase() === barName.toLowerCase())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  return match[0] || null;
 }
