@@ -150,3 +150,16 @@ exports.getUserFriends = async (userId) => {
     }
   });
 };
+
+// TEMP_AUTH_START - Remove when re-enabling Auth0
+exports.loginUser = async (username) => {
+  // Simple login: just check if user exists by username
+  const user = await prisma.users.findFirst({
+    where: { username: username },
+    include: {
+      roles: true
+    }
+  });
+  return user;
+};
+// TEMP_AUTH_END
