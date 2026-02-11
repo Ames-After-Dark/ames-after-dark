@@ -32,7 +32,7 @@ export function useBars(filters?: BarsFilters) {
           if (filters?.hasDeals) params.set("hasDeals", "true");
           if (filters?.liveMusic) params.set("liveMusic", "true"); // 👈 pass through
           if (filters?.q) params.set("q", filters.q);
-          const data = await apiGet<Bar[]>(`/bars?${params.toString()}`);
+          const data = await apiGet<Bar[]>(`/locations?${params.toString()}`);
           if (!cancelled) setBars(data);
         }
       } finally {
