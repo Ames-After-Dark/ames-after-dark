@@ -3,51 +3,13 @@ const prisma = new PrismaClient();
 
 exports.getLocations = async () => {
   return prisma.locations.findMany({
-    orderBy: { id: 'asc' },
-    include: {
-      deals: {
-        include: {
-          deal_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      events: {
-        include: {
-          event_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      location_hours: { include: { weekdays: true } },
-      location_types: true,
-      user_favorites: { include: { users: true } },
-    },
+    orderBy: { id: 'asc' }
   });
 };
 
 exports.getLocationById = async (id) => {
   return prisma.locations.findUnique({
-    where: { id: Number(id) },
-    include: {
-      deals: {
-        include: {
-          deal_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      events: {
-        include: {
-          event_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      location_hours: { include: { weekdays: true } },
-      location_types: true,
-      user_favorites: { include: { users: true } },
-    },
+    where: { id: Number(id) }
   });
 };
 
