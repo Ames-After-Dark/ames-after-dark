@@ -5,8 +5,20 @@ exports.getLocations = async () => {
   return prisma.locations.findMany({
     orderBy: { id: 'asc' },
     include: {
-      deals: { include: { weekdays: true } },
-      events: { include: { weekdays: true } },
+      deals: {
+        include: {
+          deal_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
+      events: {
+        include: {
+          event_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
       location_hours: { include: { weekdays: true } },
       location_types: true,
       user_favorites: { include: { users: true } },
@@ -18,8 +30,20 @@ exports.getLocationById = async (id) => {
   return prisma.locations.findUnique({
     where: { id: Number(id) },
     include: {
-      deals: { include: { weekdays: true } },
-      events: { include: { weekdays: true } },
+      deals: {
+        include: {
+          deal_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
+      events: {
+        include: {
+          event_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
       location_hours: { include: { weekdays: true } },
       location_types: true,
       user_favorites: { include: { users: true } },
@@ -63,8 +87,20 @@ exports.getOpenLocations = async () => {
     include: {
       location_hours: true,
       location_types: true,
-      deals: true,
-      events: true,
+      deals: {
+        include: {
+          deal_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
+      events: {
+        include: {
+          event_weekdays: {
+            include: { weekdays: true }
+          }
+        }
+      },
       user_favorites: true
     },
     where: {
