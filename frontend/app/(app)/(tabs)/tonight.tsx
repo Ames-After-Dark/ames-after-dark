@@ -132,243 +132,243 @@ export default function Tonight() {
           contentContainerStyle={{ paddingBottom: 1 }}
           contentInsetAdjustmentBehavior="never"
         >
-        {/* Deals carousel */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-          style={{ marginBottom: 12 }}
-        >
-          {TONIGHT_POSTERS.map((poster) => {
-            // Guard so TS & runtime both know barId is present
-            if (!poster.barId) return null;
+          {/* Deals carousel */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+            style={{ marginBottom: 12 }}
+          >
+            {TONIGHT_POSTERS.map((poster) => {
+              // Guard so TS & runtime both know barId is present
+              if (!poster.barId) return null;
 
-            return (
-              <Pressable
-                key={poster.id}
-                onPress={() => goToBarDetail(poster.barId as BarId)}
-                style={{ borderRadius: 12 }}
-              >
-                <Image
-                  source={poster.image}
-                  style={styles.heroImage}
-                  resizeMode="cover"
-                />
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
-        <View style={styles.stickyTabs}>
-          <Text style={styles.sectionTitle}>Events Tonight</Text>
-
-          {/* Tab row: renders from TAB_META and toggles activeTab */}
-          <View style={styles.tabsRow}>
-            {TAB_META.map((t) => {
-              const active = activeTab === t.key;
               return (
                 <Pressable
-                  key={t.key}
-                  onPress={() => setActiveTab(t.key)}
-                  style={[styles.tabBtn, active && styles.tabBtnActive]}
+                  key={poster.id}
+                  onPress={() => goToBarDetail(poster.barId as BarId)}
+                  style={{ borderRadius: 12 }}
                 >
-                  <Text
-                    style={[styles.tabText, active && styles.tabTextActive]}
-                    numberOfLines={1}
-                  >
-                    {t.label}
-                  </Text>
+                  <Image
+                    source={poster.image}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
                 </Pressable>
               );
             })}
+          </ScrollView>
+
+          {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
+          <View style={styles.stickyTabs}>
+            <Text style={styles.sectionTitle}>Events Tonight</Text>
+
+            {/* Tab row: renders from TAB_META and toggles activeTab */}
+            <View style={styles.tabsRow}>
+              {TAB_META.map((t) => {
+                const active = activeTab === t.key;
+                return (
+                  <Pressable
+                    key={t.key}
+                    onPress={() => setActiveTab(t.key)}
+                    style={[styles.tabBtn, active && styles.tabBtnActive]}
+                  >
+                    <Text
+                      style={[styles.tabText, active && styles.tabTextActive]}
+                      numberOfLines={1}
+                    >
+                      {t.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Search box filters either bars or friends depending on the tab */}
+            <View style={styles.searchBox}>
+              <Ionicons
+                name="search"
+                size={16}
+                color={Theme.search.inactiveInput}
+              />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search"
+                placeholderTextColor={Theme.search.inactiveInput}
+                style={styles.searchInput}
+                returnKeyType="search"
+              />
+              {!!query && (
+                <Pressable onPress={() => setQuery("")}>
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color="#9CA3AF"
+                  />
+                </Pressable>
+              )}
+            </View>
           </View>
 
-          {/* Search box filters either bars or friends depending on the tab */}
-          <View style={styles.searchBox}>
-            <Ionicons
-              name="search"
-              size={16}
-              color={Theme.search.inactiveInput}
-            />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search"
-              placeholderTextColor={Theme.search.inactiveInput}
-              style={styles.searchInput}
-              returnKeyType="search"
-            />
-            {!!query && (
-              <Pressable onPress={() => setQuery("")}>
-                <Ionicons
-                  name="close-circle"
-                  size={16}
-                  color="#9CA3AF"
-                />
-              </Pressable>
-            )}
-          </View>
-        </View>
-
-        {/* Content area switches between "friends list" and "bars list" */}
-        {activeTab === "friends" ? (
-          // -------- Friends View --------
-          <View style={styles.friendsList}>
-            {filteredFriends.map((f) => (
-              <Pressable
-                key={f.id}
-                onPress={goToFriendsTab} // For now, tapping a friend routes to the Friends tab
-                style={styles.friendTile}
-              >
-                <Image source={f.avatar!} style={styles.friendAvatar} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.friendName}>{f.name}</Text>
-                  <Text style={styles.friendBar}>{f.bar}</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={Theme.search.inactiveInput}
-                />
-              </Pressable>
-            ))}
-            {/* Empty-state message if no search results */}
-            {!filteredFriends.length && (
-              <Text style={styles.emptyText}>No nearby friends found.</Text>
-            )}
-          </View>
-        ) : (
-          // -------- Bars/Deals View --------
-          <View style={styles.cardsList}>
-            {filteredBars.map((item) => {
-              // If we’re on "deals", emphasize the deal/event rather than the bar
-              const isDealsView = activeTab === "deals";
-              const headerText = isDealsView
-                ? item.specials || item.event
-                : item.bar;
-              const subtitleText = isDealsView ? item.bar : item.event;
-              const detailText = isDealsView
-                ? item.event
-                : item.specials ?? "";
-
-              return (
-                // <Pressable
-                //   key={item.id}
-                //   style={[
-                //     styles.card,
-                //     isDealsView && styles.cardDealsVariant,
-                //   ]}
-                //   onPress={() => goToBarDetail(item.id as BarId)}
-                // >
-                //   {/* Left: bar logo (or any image) */}
-                //   <Image
-                //     source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
-                //     style={styles.cardImg}
-                //     resizeMode="cover"
-                //   />
-                //   {/* Middle: title, subtitle, details, and optionally pills */}
-                //   <View style={{ flex: 1 }}>
-                //     <View style={styles.cardHeader}>
-                //       <Text style={styles.cardTitle}>{headerText}</Text>
-                //       {/* On "Open Now" tab, show an Open/Closed pill */}
-                //       {activeTab === "open" && (
-                //         <View
-                //           style={[
-                //             styles.statusPill,
-                //             {
-                //               backgroundColor: item.isOpen
-                //                 ? Theme.dark.success
-                //                 : "#6b7280",
-                //             },
-                //           ]}
-                //         >
-                //           <Text style={styles.statusPillText}>
-                //             {item.isOpen ? "Open" : "Closed"}
-                //           </Text>
-                //         </View>
-                //       )}
-                //     </View>
-                //     <Text style={styles.cardSubtitle}>{subtitleText}</Text>
-                //     {!!detailText && (
-                //       <Text style={styles.cardDetail}>{detailText}</Text>
-                //     )}
-                //     {/* On "Deals" tab, also show a small "DEAL" chip */}
-                //     {isDealsView && (
-                //       <View style={styles.dealChip}>
-                //         <Ionicons
-                //           name="pricetags-outline"
-                //           size={12}
-                //           color="#22d3ee"
-                //         />
-                //         <Text style={styles.dealChipText}>DEAL</Text>
-                //       </View>
-                //     )}
-                //   </View>
-                //   {/* Right chevron icon only (tap anywhere in card) */}
-                //   <Ionicons
-                //     name="chevron-forward"
-                //     size={18}
-                //     color={Theme.search.inactiveInput}
-                //   />
-                // </Pressable>
-
+          {/* Content area switches between "friends list" and "bars list" */}
+          {activeTab === "friends" ? (
+            // -------- Friends View --------
+            <View style={styles.friendsList}>
+              {filteredFriends.map((f) => (
                 <Pressable
-  key={item.id}
-  style={[styles.card, isDealsView && styles.cardDealsVariant]}
-  onPress={() => goToBarDetail(item.id as BarId)}
->
-  {/* Left: bar logo */}
-  <Image
-    source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
-    style={styles.cardImg}
-    resizeMode="cover"
-  />
+                  key={f.id}
+                  onPress={goToFriendsTab} // For now, tapping a friend routes to the Friends tab
+                  style={styles.friendTile}
+                >
+                  <Image source={f.avatar!} style={styles.friendAvatar} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.friendName}>{f.name}</Text>
+                    <Text style={styles.friendBar}>{f.bar}</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Theme.search.inactiveInput}
+                  />
+                </Pressable>
+              ))}
+              {/* Empty-state message if no search results */}
+              {!filteredFriends.length && (
+                <Text style={styles.emptyText}>No nearby friends found.</Text>
+              )}
+            </View>
+          ) : (
+            // -------- Bars/Deals View --------
+            <View style={styles.cardsList}>
+              {filteredBars.map((item) => {
+                // If we’re on "deals", emphasize the deal/event rather than the bar
+                const isDealsView = activeTab === "deals";
+                const headerText = isDealsView
+                  ? item.specials || item.event
+                  : item.bar;
+                const subtitleText = isDealsView ? item.bar : item.event;
+                const detailText = isDealsView
+                  ? item.event
+                  : item.specials ?? "";
 
-  {/* Middle: text content */}
-  <View style={{ flex: 1, justifyContent: 'center' }}>
-    <Text style={styles.cardTitle}>{headerText}</Text>
-    <Text style={styles.cardSubtitle}>{subtitleText}</Text>
-    {!!detailText && (
-      <Text style={styles.cardDetail}>{detailText}</Text>
-    )}
-    {isDealsView && (
-      <View style={styles.dealChip}>
-        <Ionicons name="pricetags-outline" size={12} color="#22d3ee" />
-        <Text style={styles.dealChipText}>DEAL</Text>
-      </View>
-    )}
-  </View>
+                return (
+                  // <Pressable
+                  //   key={item.id}
+                  //   style={[
+                  //     styles.card,
+                  //     isDealsView && styles.cardDealsVariant,
+                  //   ]}
+                  //   onPress={() => goToBarDetail(item.id as BarId)}
+                  // >
+                  //   {/* Left: bar logo (or any image) */}
+                  //   <Image
+                  //     source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
+                  //     style={styles.cardImg}
+                  //     resizeMode="cover"
+                  //   />
+                  //   {/* Middle: title, subtitle, details, and optionally pills */}
+                  //   <View style={{ flex: 1 }}>
+                  //     <View style={styles.cardHeader}>
+                  //       <Text style={styles.cardTitle}>{headerText}</Text>
+                  //       {/* On "Open Now" tab, show an Open/Closed pill */}
+                  //       {activeTab === "open" && (
+                  //         <View
+                  //           style={[
+                  //             styles.statusPill,
+                  //             {
+                  //               backgroundColor: item.isOpen
+                  //                 ? Theme.dark.success
+                  //                 : "#6b7280",
+                  //             },
+                  //           ]}
+                  //         >
+                  //           <Text style={styles.statusPillText}>
+                  //             {item.isOpen ? "Open" : "Closed"}
+                  //           </Text>
+                  //         </View>
+                  //       )}
+                  //     </View>
+                  //     <Text style={styles.cardSubtitle}>{subtitleText}</Text>
+                  //     {!!detailText && (
+                  //       <Text style={styles.cardDetail}>{detailText}</Text>
+                  //     )}
+                  //     {/* On "Deals" tab, also show a small "DEAL" chip */}
+                  //     {isDealsView && (
+                  //       <View style={styles.dealChip}>
+                  //         <Ionicons
+                  //           name="pricetags-outline"
+                  //           size={12}
+                  //           color="#22d3ee"
+                  //         />
+                  //         <Text style={styles.dealChipText}>DEAL</Text>
+                  //       </View>
+                  //     )}
+                  //   </View>
+                  //   {/* Right chevron icon only (tap anywhere in card) */}
+                  //   <Ionicons
+                  //     name="chevron-forward"
+                  //     size={18}
+                  //     color={Theme.search.inactiveInput}
+                  //   />
+                  // </Pressable>
 
-  {/* Right: Status Pill + Chevron (Centered Vertically) */}
-  <View style={styles.rightContainer}>
-    {activeTab === "open" && (
-      <View
-        style={[
-          styles.statusPill,
-          { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
-        ]}
-      >
-        <Text style={styles.statusPillText}>
-          {item.isOpen ? "Open" : "Closed"}
-        </Text>
-      </View>
-    )}
-    <Ionicons
-      name="chevron-forward"
-      size={18}
-      color={Theme.search.inactiveInput}
-    />
-  </View>
-</Pressable>
-              );
-            })}
-            {/* Empty-state for bar/deals search results */}
-            {!filteredBars.length && (
-              <Text style={styles.emptyText}>No results for tonight.</Text>
-            )}
-          </View>
-        )}
+                  <Pressable
+                    key={item.id}
+                    style={[styles.card, isDealsView && styles.cardDealsVariant]}
+                    onPress={() => goToBarDetail(item.id as BarId)}
+                  >
+                    {/* Left: bar logo */}
+                    <Image
+                      source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
+                      style={styles.cardImg}
+                      resizeMode="cover"
+                    />
+
+                    {/* Middle: text content */}
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={styles.cardTitle}>{headerText}</Text>
+                      <Text style={styles.cardSubtitle}>{subtitleText}</Text>
+                      {!!detailText && (
+                        <Text style={styles.cardDetail}>{detailText}</Text>
+                      )}
+                      {isDealsView && (
+                        <View style={styles.dealChip}>
+                          <Ionicons name="pricetags-outline" size={12} color="#22d3ee" />
+                          <Text style={styles.dealChipText}>DEAL</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Right: Status Pill + Chevron (Centered Vertically) */}
+                    <View style={styles.rightContainer}>
+                      {activeTab === "open" && (
+                        <View
+                          style={[
+                            styles.statusPill,
+                            { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
+                          ]}
+                        >
+                          <Text style={styles.statusPillText}>
+                            {item.isOpen ? "Open" : "Closed"}
+                          </Text>
+                        </View>
+                      )}
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={Theme.search.inactiveInput}
+                      />
+                    </View>
+                  </Pressable>
+                );
+              })}
+              {/* Empty-state for bar/deals search results */}
+              {!filteredBars.length && (
+                <Text style={styles.emptyText}>No results for tonight.</Text>
+              )}
+            </View>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -503,10 +503,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.container.mainBorder, // "#1f2937",
   },
-  cardHeader: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center" 
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
   },
   cardTitle: {
     color: Theme.container.titleText, // "#f1f5f9",
@@ -553,7 +553,16 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.4,
   },
-  friendsList: { paddingHorizontal: 16, paddingTop: 12, gap: 10 },
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  friendsList: { 
+    paddingHorizontal: 16, 
+    paddingTop: 12, 
+    gap: 10 
+  },
   friendTile: {
     flexDirection: "row",
     alignItems: "center",
@@ -588,12 +597,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 13,
   },
-  
-  // New container for the pill and arrow
-  rightContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+
+
 
 });
