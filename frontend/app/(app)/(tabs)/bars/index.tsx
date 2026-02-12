@@ -12,6 +12,19 @@ import { getNow, isBarOpen } from "@/config/time";
 
 import { Theme } from '@/constants/theme';
 
+// Map bar names to cover images
+const barCoverMap: { [key: string]: any } = {
+  "AJ's Ultralounge": IMG.AJs,
+  "BNC Fieldhouse": IMG.bnc,
+  "Cy's Roost": IMG.CysRoost,
+  "Welch Ave Station": IMG.Welch,
+  "The Blue Owl Bar": IMG.BlueOwl,
+  "Paddy's Irish Pub": IMG.Paddys,
+  "Sips": IMG.Sips,
+  "Mickey's Irish Pub": IMG.Mickey,
+  "Outlaws": IMG.Outlaws,
+};
+
 export default function Bars() {
   const router = useRouter();
   const [filter, setFilter] = useState("All");
@@ -80,7 +93,8 @@ useEffect(() => {
         const filteredBars = bars
             .map(bar => ({
                 ...bar,
-                __openNow: isBarOpen(bar, now),
+                // __openNow: isBarOpen(bar, now),
+                __openNow: bar.open ?? false,
             }))
             .filter(b => {
                 if (filter === "Open Now" && !b.__openNow) {
@@ -91,9 +105,13 @@ useEffect(() => {
                     return false;
                 }
 
+                if (filter === "Specials" && (!b.dealsScheduled || b.dealsScheduled.length === 0) && (!b.eventsScheduled || b.eventsScheduled.length === 0)) {
+                    return false;
+                }
+
                 if (q) {
-                    const inName = b.name.toLowerCase().includes(q);
-                    const inDesc = b.description.toLowerCase().includes(q);
+                    const inName = (b.name || '').toLowerCase().includes(q);
+                    const inDesc = (b.description || '').toLowerCase().includes(q);
                     if (!inName && !inDesc) {
                         return false;
                     }
@@ -113,7 +131,8 @@ useEffect(() => {
       item.eventsScheduled?.[0]?.name ??
       "No specials tonight";
     const openNow = !!item.__openNow;
-    const imageSource = item.logoUrl ? { uri: item.logoUrl } : item.logo;
+    // Use mock cover images for now since backend doesn't have photos yet
+    const imageSource = barCoverMap[item.name] || (item.logoUrl ? { uri: item.logoUrl } : item.logo);
     const id = String(item.id);
     const favOn = isFav(item);
 
