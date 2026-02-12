@@ -46,31 +46,12 @@ exports.getOpenLocations = async () => {
 
   // Find locations with at least one location_hours entry matching current weekday and time
   return prisma.locations.findMany({
-    include: {
-      location_hours: true,
-      location_types: true,
-      deals: {
-        include: {
-          deal_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      events: {
-        include: {
-          event_weekdays: {
-            include: { weekdays: true }
-          }
-        }
-      },
-      user_favorites: true
-    },
     where: {
       location_hours: {
         some: {
           weekday_id: weekdayId,
-          open_time_: { lte: now },
-          close_time: { gte: now }
+          open_time_utc: { lte: now },
+          close_time_utc: { gte: now }
         }
       }
     }
