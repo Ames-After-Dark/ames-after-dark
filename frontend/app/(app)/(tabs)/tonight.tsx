@@ -14,13 +14,14 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { BARS_BASE, FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
-import { getNow, isActive, isBarOpen } from "@/config/time";
+import { FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
+import { useTonightData } from "@/hooks/useTonightData";
 
 import { Theme } from "@/constants/theme";
 
@@ -40,8 +41,9 @@ export default function Tonight() {
   const [activeTab, setActiveTab] = useState<TabKey>("open");
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
-  // "Now" is abstracted here so we can fake time in development via getNow()
-  const now = getNow();
+
+  // Fetch data from database using the custom hook
+  const { barsWithTonightData, loading, error } = useTonightData();
 
   // ----- Compute “active” and “hasDeal” dynamically -----
   // We start from base bar data and compute per-bar values for *this moment*:
@@ -49,32 +51,6 @@ export default function Tonight() {
   // - specials: the first currently active deal title (if any)
   // - isOpen: based on each bar's hours and "now"
   // - hasDeal: whether there is at least 1 active deal right now
-  const barsWithTonightData = useMemo(() => {
-    return BARS_BASE.map((b) => {
-      // Filter deals that are active *right now*
-      const activeDeals =
-        b.dealsScheduled?.filter((d) => isActive(d.rule, now)) ?? [];
-      // Filter events that are active *right now*
-      const activeEvents =
-        b.eventsScheduled?.filter((e) => isActive(e.rule, now)) ?? [];
-
-      return {
-        id: b.id,
-        bar: b.name,
-        // Prefer an event that's active right now; otherwise preview the first scheduled one
-        event: activeEvents[0]?.name ?? b.eventsScheduled?.[0]?.name ?? "",
-        // Prefer a currently active deal title
-        specials: activeDeals[0]?.title ?? "",
-        // Compute open/closed from hours
-        isOpen: isBarOpen(b, now),
-        // Flag whether any deal is active
-        hasDeal: activeDeals.length > 0,
-        // Local image handle (logo) to render in cards
-        image: b.logo,
-      };
-    });
-    // Recompute only when "now" changes (e.g., dev fake time switch)
-  }, [now]);
 
   // ----- Filter for active tab -----
   // Take the computed list and filter based on the selected tab + text query.
@@ -121,19 +97,41 @@ export default function Tonight() {
       params: { id },
     });
 
-  const goToFriendsTab = () => router.navigate("/friends/friends");
+  const goToFriendsTab = () => router.navigate("/account/account");
 
   return (
     <SafeAreaView
       style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]}
       edges={["left", "right"]}
     >
-      {/* Outer scroll so we can have a header carousel + sticky controls + list */}
-      <ScrollView
-        stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
-        contentContainerStyle={{ paddingBottom: 1 }}
-        contentInsetAdjustmentBehavior="never"
-      >
+      {/* Loading state */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Theme.dark.primary} />
+          <Text style={styles.loadingText}>Loading tonight's events...</Text>
+        </View>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <View style={styles.errorContainer}>
+          <Ionicons
+            name="alert-circle-outline"
+            size={48}
+            color={Theme.dark.primary}
+          />
+          <Text style={styles.errorText}>Unable to load tonight's events</Text>
+          <Text style={styles.errorSubtext}>Please try again later</Text>
+        </View>
+      )}
+
+      {/* Main content */}
+      {!loading && !error && (
+        <ScrollView
+          stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
+          contentContainerStyle={{ paddingBottom: 1 }}
+          contentInsetAdjustmentBehavior="never"
+        >
         {/* Deals carousel */}
         <ScrollView
           horizontal
@@ -265,7 +263,7 @@ export default function Tonight() {
                 >
                   {/* Left: bar logo (or any image) */}
                   <Image
-                    source={item.image}
+                    source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
                     style={styles.cardImg}
                     resizeMode="cover"
                   />
@@ -322,7 +320,8 @@ export default function Tonight() {
             )}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -334,6 +333,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background, // "#0B0C12"
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Theme.dark.background,
+  },
+  loadingText: {
+    color: Theme.container.inactiveText,
+    marginTop: 12,
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Theme.dark.background,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    color: Theme.container.titleText,
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  errorSubtext: {
+    color: Theme.container.inactiveText,
+    fontSize: 14,
+    marginTop: 6,
+    textAlign: "center",
   },
   heroImage: {
     width: 300,
