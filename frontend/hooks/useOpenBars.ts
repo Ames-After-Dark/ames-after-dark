@@ -21,7 +21,7 @@ export function useOpenBars() {
     const fetchOpenBars = async () => {
       try {
         setLoading(true);
-        const data = await apiFetch("/locations");
+        const data = await apiFetch("/locations/open");
         setBars(data);
         setError(null);
       } catch (err) {

@@ -253,65 +253,114 @@ export default function Tonight() {
                 : item.specials ?? "";
 
               return (
+                // <Pressable
+                //   key={item.id}
+                //   style={[
+                //     styles.card,
+                //     isDealsView && styles.cardDealsVariant,
+                //   ]}
+                //   onPress={() => goToBarDetail(item.id as BarId)}
+                // >
+                //   {/* Left: bar logo (or any image) */}
+                //   <Image
+                //     source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
+                //     style={styles.cardImg}
+                //     resizeMode="cover"
+                //   />
+                //   {/* Middle: title, subtitle, details, and optionally pills */}
+                //   <View style={{ flex: 1 }}>
+                //     <View style={styles.cardHeader}>
+                //       <Text style={styles.cardTitle}>{headerText}</Text>
+                //       {/* On "Open Now" tab, show an Open/Closed pill */}
+                //       {activeTab === "open" && (
+                //         <View
+                //           style={[
+                //             styles.statusPill,
+                //             {
+                //               backgroundColor: item.isOpen
+                //                 ? Theme.dark.success
+                //                 : "#6b7280",
+                //             },
+                //           ]}
+                //         >
+                //           <Text style={styles.statusPillText}>
+                //             {item.isOpen ? "Open" : "Closed"}
+                //           </Text>
+                //         </View>
+                //       )}
+                //     </View>
+                //     <Text style={styles.cardSubtitle}>{subtitleText}</Text>
+                //     {!!detailText && (
+                //       <Text style={styles.cardDetail}>{detailText}</Text>
+                //     )}
+                //     {/* On "Deals" tab, also show a small "DEAL" chip */}
+                //     {isDealsView && (
+                //       <View style={styles.dealChip}>
+                //         <Ionicons
+                //           name="pricetags-outline"
+                //           size={12}
+                //           color="#22d3ee"
+                //         />
+                //         <Text style={styles.dealChipText}>DEAL</Text>
+                //       </View>
+                //     )}
+                //   </View>
+                //   {/* Right chevron icon only (tap anywhere in card) */}
+                //   <Ionicons
+                //     name="chevron-forward"
+                //     size={18}
+                //     color={Theme.search.inactiveInput}
+                //   />
+                // </Pressable>
+
                 <Pressable
-                  key={item.id}
-                  style={[
-                    styles.card,
-                    isDealsView && styles.cardDealsVariant,
-                  ]}
-                  onPress={() => goToBarDetail(item.id as BarId)}
-                >
-                  {/* Left: bar logo (or any image) */}
-                  <Image
-                    source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
-                    style={styles.cardImg}
-                    resizeMode="cover"
-                  />
-                  {/* Middle: title, subtitle, details, and optionally pills */}
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardTitle}>{headerText}</Text>
-                      {/* On "Open Now" tab, show an Open/Closed pill */}
-                      {activeTab === "open" && (
-                        <View
-                          style={[
-                            styles.statusPill,
-                            {
-                              backgroundColor: item.isOpen
-                                ? Theme.dark.success
-                                : "#6b7280",
-                            },
-                          ]}
-                        >
-                          <Text style={styles.statusPillText}>
-                            {item.isOpen ? "Open" : "Closed"}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.cardSubtitle}>{subtitleText}</Text>
-                    {!!detailText && (
-                      <Text style={styles.cardDetail}>{detailText}</Text>
-                    )}
-                    {/* On "Deals" tab, also show a small "DEAL" chip */}
-                    {isDealsView && (
-                      <View style={styles.dealChip}>
-                        <Ionicons
-                          name="pricetags-outline"
-                          size={12}
-                          color="#22d3ee"
-                        />
-                        <Text style={styles.dealChipText}>DEAL</Text>
-                      </View>
-                    )}
-                  </View>
-                  {/* Right chevron icon only (tap anywhere in card) */}
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={Theme.search.inactiveInput}
-                  />
-                </Pressable>
+  key={item.id}
+  style={[styles.card, isDealsView && styles.cardDealsVariant]}
+  onPress={() => goToBarDetail(item.id as BarId)}
+>
+  {/* Left: bar logo */}
+  <Image
+    source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
+    style={styles.cardImg}
+    resizeMode="cover"
+  />
+
+  {/* Middle: text content */}
+  <View style={{ flex: 1, justifyContent: 'center' }}>
+    <Text style={styles.cardTitle}>{headerText}</Text>
+    <Text style={styles.cardSubtitle}>{subtitleText}</Text>
+    {!!detailText && (
+      <Text style={styles.cardDetail}>{detailText}</Text>
+    )}
+    {isDealsView && (
+      <View style={styles.dealChip}>
+        <Ionicons name="pricetags-outline" size={12} color="#22d3ee" />
+        <Text style={styles.dealChipText}>DEAL</Text>
+      </View>
+    )}
+  </View>
+
+  {/* Right: Status Pill + Chevron (Centered Vertically) */}
+  <View style={styles.rightContainer}>
+    {activeTab === "open" && (
+      <View
+        style={[
+          styles.statusPill,
+          { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
+        ]}
+      >
+        <Text style={styles.statusPillText}>
+          {item.isOpen ? "Open" : "Closed"}
+        </Text>
+      </View>
+    )}
+    <Ionicons
+      name="chevron-forward"
+      size={18}
+      color={Theme.search.inactiveInput}
+    />
+  </View>
+</Pressable>
               );
             })}
             {/* Empty-state for bar/deals search results */}
@@ -454,7 +503,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.container.mainBorder, // "#1f2937",
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
+  cardHeader: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center" 
+  },
   cardTitle: {
     color: Theme.container.titleText, // "#f1f5f9",
     fontWeight: "800",
@@ -489,8 +542,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 999,
     alignSelf: "flex-start",
   },
@@ -535,4 +588,12 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 13,
   },
+  
+  // New container for the pill and arrow
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
 });

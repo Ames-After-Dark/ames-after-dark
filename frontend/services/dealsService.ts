@@ -14,7 +14,7 @@ export async function getDeals(): Promise<Deal[]> {
 }
 
 export async function getActiveDeals(): Promise<Deal[]> {
-  return apiFetch("/deals");
+  return apiFetch("/deals/active");
 }
 
 export async function getDealsByLocationId(locationId: string): Promise<Deal[]> {
