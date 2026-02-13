@@ -76,3 +76,14 @@ exports.getOpenLocations = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// GET /api/locations-with-hours
+exports.getLocationsWithHours = async (req, res) => {
+  try {
+    const locations = await locationService.getLocationsWithHours();
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

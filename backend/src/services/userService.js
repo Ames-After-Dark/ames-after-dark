@@ -118,6 +118,24 @@ exports.updateUser = async (id, userData) => {
   });
 };
 
+// Only allow updating username, email, and bio
+exports.updateUserLimited = async (id, updateData) => {
+  // Only pick allowed fields
+  const allowedFields = {};
+  if (updateData.username !== undefined) allowedFields.username = updateData.username;
+  if (updateData.email !== undefined) allowedFields.email = updateData.email;
+  if (updateData.bio !== undefined) allowedFields.bio = updateData.bio;
+
+  return prisma.users.update({
+    where: { id: Number(id) },
+    data: allowedFields,
+    include: {
+      roles: true,
+      user_favorites: true
+    }
+  });
+};
+
 exports.deleteUser = async (id) => {
   return prisma.users.delete({
     where: { id: Number(id) }

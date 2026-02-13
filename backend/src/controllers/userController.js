@@ -1,3 +1,4 @@
+
 const userService = require('../services/userService');
 
 // GET /api/users
@@ -31,6 +32,31 @@ exports.getUserFriends = async (req, res) => {
   try {
     const friends = await userService.getUserFriends(userId);
     res.json(friends);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// PUT /api/users/:id - update username, email, bio only
+exports.updateUserLimited = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
+
+  // Only allow username, email, and bio
+  const { username, email, bio } = req.body;
+  const updateData = {};
+  if (username !== undefined) updateData.username = username;
+  if (email !== undefined) updateData.email = email;
+  if (bio !== undefined) updateData.bio = bio;
+
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ message: 'No valid fields to update' });
+  }
+
+  try {
+    const updatedUser = await userService.updateUserLimited(id, updateData);
+    res.json(updatedUser);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });

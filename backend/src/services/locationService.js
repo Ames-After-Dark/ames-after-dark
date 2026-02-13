@@ -40,20 +40,35 @@ exports.deleteLocation = async (id) => {
 
 exports.getOpenLocations = async () => {
   const now = new Date();
-  const currentWeekday = now.getDay();
-  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday;
-  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
+  const currentWeekday = now.getUTCDay() + 1;
+  // Get current time in UTC as "HH:mm"
+  const pad = (n) => n.toString().padStart(2, '0');
+  const currentTimeUTC = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
 
-  // Find locations with at least one location_hours entry matching current weekday and time
+  // Find locations with at least one location_hours entry matching current weekday and time (all in UTC)
   return prisma.locations.findMany({
     where: {
       location_hours: {
         some: {
-          weekday_id: weekdayId,
-          open_time_utc: { lte: now },
-          close_time_utc: { gte: now }
+          weekday_id: currentWeekday,
+          open_time_utc: { lte: currentTimeUTC },
+          close_time_utc: { gte: currentTimeUTC }
         }
       }
     }
+  });
+};
+
+// Get locations with their hours included
+exports.getLocationsWithHours = async () => {
+  return prisma.locations.findMany({
+    include: {
+      location_hours: {
+        include: {
+          weekdays: true
+        }
+      }
+    },
+    orderBy: { id: 'asc' }
   });
 };
