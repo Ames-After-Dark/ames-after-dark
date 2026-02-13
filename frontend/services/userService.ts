@@ -21,6 +21,27 @@ export async function getUserById(userId: string | number) {
   }
 }
 
+export async function getMutualFriends(viewerId: string | number, profileId: string | number): Promise<Friend[]> {
+  try {
+    // Fetch both lists in parallel for better performance
+    const [viewerFriends, profileFriends] = await Promise.all([
+      getUserFriends(viewerId),
+      getUserFriends(profileId)
+    ]);
+
+    // Create a Set of viewer friend IDs for O(1) lookup time
+    const viewerFriendIds = new Set(viewerFriends.map(f => f.id));
+
+    // Filter profile friends to only include those in the viewer's list
+    const mutual = profileFriends.filter(f => viewerFriendIds.has(f.id));
+
+    return mutual;
+  } catch (error) {
+    console.error(`Failed to calculate mutual friends between ${viewerId} and ${profileId}:`, error);
+    return []; // Return empty array on failure to avoid breaking the UI
+  }
+}
+
 // TEMP_AUTH_START - Remove when re-enabling Auth0
 export async function loginUser(username: string) {
   try {

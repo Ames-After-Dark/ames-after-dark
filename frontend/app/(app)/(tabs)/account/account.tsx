@@ -59,7 +59,7 @@ export default function AccountScreen() {
             />
             <View style={{ flex: 1 }}>
                 <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
-                <Text style={styles.profileEmail}>{user?.email || ''}</Text>
+                <Text style={styles.profileUserName}>{user?.username || ''}</Text>
             </View>
             <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
                 <FontAwesome name="gear" size={24} color="#ccc" />
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: '700',
     },
-    profileEmail: {
+    profileUserName: {
         color: 'white',
         fontSize: 14,
     },
