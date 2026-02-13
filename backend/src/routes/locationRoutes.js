@@ -4,6 +4,8 @@ const locationController = require('../controllers/locationController');
 
 
 router.get('/open', locationController.getOpenLocations);
+// Get locations with their hours included
+router.get('/with-hours', locationController.getLocationsWithHours);
 
 // CRUD routes
 router.get('/', locationController.getLocations);         // Read all
