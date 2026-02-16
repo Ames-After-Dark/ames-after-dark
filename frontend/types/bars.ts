@@ -68,6 +68,7 @@ export type Bar = {
   description: string;
 
   favorite?: boolean;
+  open?: boolean;            // from backend (whether bar is open today)
   openingTime?: string;     // display string (e.g., "4:00 PM")
   closingTime?: string;     // display string (e.g., "2:00 AM")
   status?: "Open" | "Closed";

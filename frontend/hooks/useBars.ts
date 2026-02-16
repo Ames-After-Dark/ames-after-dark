@@ -1,10 +1,10 @@
 // src/hooks/useBars.ts
 import { useEffect, useMemo, useState } from "react";
 import type { Bar } from "@/types/bars";
-import { apiGet } from "@/lib/api";
 import { USE_MOCK } from "@/config/runtime";
 import { BARS_BASE } from "@/data/mock";
 import { getNow, isBarOpen } from "@/config/time";
+import { getBars } from "@/services/barsService";
 
 export type BarsFilters = {
   open?: boolean;
@@ -27,12 +27,7 @@ export function useBars(filters?: BarsFilters) {
         if (USE_MOCK) {
           if (!cancelled) setBars(BARS_BASE as unknown as Bar[]);
         } else {
-          const params = new URLSearchParams();
-          if (filters?.open) params.set("open", "true");
-          if (filters?.hasDeals) params.set("hasDeals", "true");
-          if (filters?.liveMusic) params.set("liveMusic", "true"); // 👈 pass through
-          if (filters?.q) params.set("q", filters.q);
-          const data = await apiGet<Bar[]>(`/bars?${params.toString()}`);
+          const data = await getBars();
           if (!cancelled) setBars(data);
         }
       } finally {
@@ -42,7 +37,7 @@ export function useBars(filters?: BarsFilters) {
 
     load();
     return () => { cancelled = true; };
-  }, [filters?.open, filters?.hasDeals, filters?.liveMusic, filters?.q]);
+  }, []);
 
   // derive open flag client-side (works for mock + API)
   const withOpenFlag = useMemo(
