@@ -51,6 +51,7 @@ model friendships {
   user_id_2                          Int
   friendship_status_id               Int                 @default(1)
   created_at_utc                     DateTime            @default(now()) @db.Timestamp(6)
+  location_visible                   Boolean             @default(false)
   friendship_statuses                friendship_statuses @relation(fields: [friendship_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_friendships_user_id_1Tousers users               @relation("friendships_user_id_1Tousers", fields: [user_id_1], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_friendships_user_id_2Tousers users               @relation("friendships_user_id_2Tousers", fields: [user_id_2], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -136,6 +137,7 @@ model users {
   friendships_friendships_user_id_2Tousers friendships[]     @relation("friendships_user_id_2Tousers")
   location_admins                          location_admins[]
   user_favorites                           user_favorites[]
+  user_settings                            user_settings?
   roles                                    roles?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
 
   @@schema("app")
@@ -220,5 +222,17 @@ model location_admins {
   users       users     @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([location_id, user_uid])
+  @@schema("app")
+}
+
+model user_settings {
+  id                Int       @id @default(autoincrement())
+  user_id           Int       @unique
+  sms_notifications Boolean?  @default(false)
+  timezone          String?   @default("UTC") @db.VarChar(50)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+
   @@schema("app")
 }

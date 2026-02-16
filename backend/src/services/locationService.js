@@ -38,12 +38,20 @@ exports.deleteLocation = async (id) => {
   });
 };
 
+function pad(n) {
+  return n.toString().padStart(2, '0');
+}
+
 exports.getOpenLocations = async () => {
   const now = new Date();
   const currentWeekday = now.getUTCDay() + 1;
-  // Get current time in UTC as "HH:mm"
-  const pad = (n) => n.toString().padStart(2, '0');
-  const currentTimeUTC = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}`;
+  const currentTimeUTC = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:00`;
+
+  //const currentTimeUTC = new Date(Date.UTC(1970, 0, 1, now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds()));
+
+  // TODO: This is all goofy
+
+  //console.log(`Current UTC time: ${currentTimeUTC}, Weekday ID: ${currentWeekday}`);
 
   // Find locations with at least one location_hours entry matching current weekday and time (all in UTC)
   return prisma.locations.findMany({
