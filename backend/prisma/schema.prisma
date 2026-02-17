@@ -125,20 +125,23 @@ model user_favorites {
 }
 
 model users {
-  id                                       Int               @id @default(autoincrement())
-  uid                                      Int?              @unique(map: "users_uid_unique")
-  role_id                                  Int?
-  username                                 String?           @db.VarChar(255)
-  bio                                      String?
-  email                                    String?           @unique @db.VarChar(255)
-  name                                     String?           @db.VarChar(255)
-  birthday                                 DateTime?         @db.Date
-  friendships_friendships_user_id_1Tousers friendships[]     @relation("friendships_user_id_1Tousers")
-  friendships_friendships_user_id_2Tousers friendships[]     @relation("friendships_user_id_2Tousers")
-  location_admins                          location_admins[]
-  user_favorites                           user_favorites[]
-  user_settings                            user_settings?
-  roles                                    roles?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
+  id                                                         Int                    @id @default(autoincrement())
+  uid                                                        String                 @unique(map: "users_uid_unique")
+  role_id                                                    Int?
+  username                                                   String?                @db.VarChar(255)
+  bio                                                        String?
+  email                                                      String?                @unique @db.VarChar(255)
+  name                                                       String?                @db.VarChar(255)
+  birthday                                                   DateTime?              @db.Date
+  friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
+  friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
+  location_admins                                            location_admins[]
+  location_permissions_location_permissions_owner_idTousers  location_permissions[] @relation("location_permissions_owner_idTousers")
+  location_permissions_location_permissions_viewer_idTousers location_permissions[] @relation("location_permissions_viewer_idTousers")
+  user_favorites                                             user_favorites[]
+  user_locations                                             user_locations?
+  user_settings                                              user_settings?
+  roles                                                      roles?                 @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
 
   @@schema("app")
 }
@@ -217,11 +220,44 @@ model zones {
 
 model location_admins {
   location_id Int
-  user_uid    Int
+  user_id     Int
   locations   locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users       users     @relation(fields: [user_uid], references: [uid], onDelete: Cascade, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([location_id, user_uid])
+  @@id([location_id, user_id])
+  @@schema("app")
+}
+
+model location_permissions {
+  owner_id                                    Int
+  viewer_id                                   Int
+  created_at                                  DateTime? @default(now()) @db.Timestamptz(6)
+  users_location_permissions_owner_idTousers  users     @relation("location_permissions_owner_idTousers", fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_location_permissions_viewer_idTousers users     @relation("location_permissions_viewer_idTousers", fields: [viewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([owner_id, viewer_id])
+  @@schema("app")
+}
+
+model user_locations {
+  user_id    Int      @id
+  latitude   Decimal  @db.Decimal(9, 6)
+  longitude  Decimal  @db.Decimal(9, 6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("app")
+}
+
+model user_settings {
+  id                Int       @id @default(autoincrement())
+  user_id           Int       @unique
+  sms_notifications Boolean?  @default(false)
+  timezone          String?   @default("UTC") @db.VarChar(50)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+
   @@schema("app")
 }
 

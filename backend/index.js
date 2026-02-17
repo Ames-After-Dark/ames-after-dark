@@ -51,12 +51,16 @@ app.get('/status', async (req, res) => {
 const locationRoutes = require('./src/routes/locationRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const userSettingRoutes = require('./src/routes/userSettingRoutes');
+const userLocationRoutes = require('./src/routes/userLocationRoutes');
+const friendshipRoutes = require('./src/routes/friendshipRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
 const dealRoutes = require('./src/routes/dealRoutes');
 
 app.use('/api/locations', locationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/usersettings', userSettingRoutes);
+app.use('/api/userlocations', userLocationRoutes);
+app.use('/api/friendships', friendshipRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/deals', dealRoutes);
 

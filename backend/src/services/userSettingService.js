@@ -1,4 +1,3 @@
-
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -8,7 +7,6 @@ async function getUserSettingsByUserId(userId) {
 		where: { user_id: userId },
 	});
 }
-
 
 // Update user settings by userId
 async function updateUserSettingsByUserId(userId, data) {
@@ -22,5 +20,3 @@ module.exports = {
 	getUserSettingsByUserId,
 	updateUserSettingsByUserId,
 };
-
-
