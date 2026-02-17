@@ -273,7 +273,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-// Assuming these imports exist in your project structure
+
 import { Friend } from '@/types/types';
 import { getUserById, getUserFriends, getMutualFriends } from '@/services/userService';
 import { Theme } from '@/constants/theme';
