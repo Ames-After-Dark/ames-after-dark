@@ -4,10 +4,14 @@ const userController = require('../controllers/userController');
 
 router.get('/:userId/friends', userController.getUserFriends);
 
+
+
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
 router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
+router.get('/auth/status', userController.checkUserStatus); // Check user status
+router.post('/auth/register', userController.completeUserRegistration); // Create user with signup info
 
 
 // TEMP_AUTH_START - Remove when re-enabling Auth0
