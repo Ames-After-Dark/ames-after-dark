@@ -11,6 +11,7 @@ interface LocationApiResponse {
   longitude: string;
   open: boolean;
   views: number;
+  location_type_id: number; // 1=Bar, 2=Restaurant, etc.
   [key: string]: any;
 }
 
@@ -156,6 +157,7 @@ export async function getBars(): Promise<Bar[]> {
         closingTime,
         dealsScheduled,
         eventsScheduled,
+        location_type_id: location.location_type_id,
       } as Bar;
     });
 

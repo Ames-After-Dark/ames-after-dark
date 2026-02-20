@@ -79,6 +79,8 @@ export type Bar = {
   dealsScheduled?: ScheduledDeal[];
   eventsScheduled?: ScheduledEvent[];
 
+  location_type_id: number; // 1=Bar, 2=Restaurant, etc.
+
   // Local mock image assets
   logo?: any;
   cover?: any;

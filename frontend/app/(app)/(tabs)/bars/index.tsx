@@ -27,17 +27,10 @@ const barCoverMap: { [key: string]: any } = {
 
 export default function Bars() {
   const router = useRouter();
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const wantsDeals = filter === "Specials";
-  const wantsLive = filter === "Live Music";
-
-  const { bars, loading } = useBars({
-    hasDeals: wantsDeals || undefined,
-    liveMusic: wantsLive || undefined,
-    q: search || undefined,
-  });
+  const { bars, loading } = useBars({ q: search || undefined });
 
     const [now, setNow] = useState(getNow());
 
@@ -97,15 +90,15 @@ useEffect(() => {
                 __openNow: bar.open ?? false,
             }))
             .filter(b => {
-                if (filter === "Open Now" && !b.__openNow) {
-                    return false;
-                }
+              if (filter === "Bars" && b.location_type_id !== 1) {
+                return false;
+              }
 
-                if (filter === "Favorites" && !isFav(b)) {
-                    return false;
-                }
+              if (filter === "Restaurants" && b.location_type_id !== 2) {
+                return false;
+              }
 
-                if (filter === "Specials" && (!b.dealsScheduled || b.dealsScheduled.length === 0) && (!b.eventsScheduled || b.eventsScheduled.length === 0)) {
+              if (filter === "Favorites" && !isFav(b)) {
                     return false;
                 }
 
@@ -177,18 +170,13 @@ useEffect(() => {
           />
         </View>
         <View style={styles.filters}>
-          {["All", "Open Now", "Specials", "Favorites"].map(option => (
+          {["Bars", "Restaurants", "Favorites"].map(option => (
             <TouchableOpacity
               key={option}
               style={[styles.filterButton, filter === option && styles.activeFilter]}
-              onPress={() => setFilter(option)}
+              onPress={() => setFilter(prev => (prev === option ? null : option))}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  filter === option && { color: Theme.container.activeText, fontWeight: "600" },
-                ]}
-              >
+              <Text style={[styles.filterText, filter === option && styles.filterTextActive]}>
                 {option}
               </Text>
             </TouchableOpacity>
@@ -202,11 +190,9 @@ useEffect(() => {
                 visibleBars.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>
-                            {filter === "Open Now"
-                            ? "No bars are open right now"
-                            : filter === "Favorites"
-                            ? "You don't have any favorite bars yet"
-                            : "No bars match your filters"}
+                            {filter === "Favorites"
+                            ? "You don't have any favorite locations yet"
+                            : "No locations match your filters"}
                         </Text>
                     </View>
                 ) : (
@@ -256,22 +242,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 16,
   },
   filterButton: {
-    backgroundColor: Theme.container.background,
-    borderColor: Theme.dark.primary,
-    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: Theme.container.inactiveBorder,
+    borderWidth: 2,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 20,
-    marginHorizontal: 6
+    borderRadius: 12,
+    marginHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
   },
   activeFilter: {
-    backgroundColor: Theme.dark.primary,
+    borderColor: Theme.dark.primary,
   },
   filterText: {
-    color: Theme.container.titleText,
-    fontSize: 13
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  filterTextActive: {
+    color: Theme.container.activeText,
+    fontWeight: "800",
   },
   barList: { paddingBottom: 80 },
   barCard: {
