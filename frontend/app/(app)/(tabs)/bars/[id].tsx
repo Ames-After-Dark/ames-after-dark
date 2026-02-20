@@ -144,7 +144,8 @@ export default function BarProfile() {
             ]}
           >
             <Text style={styles.statusPillText}>
-              {openNow ? `Open until ${bar.closingTime ?? ""}` : "Closed"}
+              {/* {openNow ? `Open until ${bar.closingTime ?? ""}` : "Closed"} */}
+              {openNow ? `Open` : "Closed"}
             </Text>
           </View>
         </View>
@@ -153,7 +154,7 @@ export default function BarProfile() {
           <FontAwesome
             name="star"
             size={24}
-            color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveText}
+            color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveInput}
           />
         </TouchableOpacity>
       </View>
