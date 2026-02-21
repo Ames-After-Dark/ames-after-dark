@@ -1,4 +1,5 @@
 import { apiFetch } from "./apiClient";
+import { getNow } from "@/config/time";
 import type { Bar, ScheduledDeal, ScheduledEvent } from "@/types/bars";
 
 interface LocationApiResponse {
@@ -10,6 +11,7 @@ interface LocationApiResponse {
   longitude: string;
   open: boolean;
   views: number;
+  location_type_id: number; // 1=Bar, 2=Restaurant, etc.
   [key: string]: any;
 }
 
@@ -43,7 +45,7 @@ export async function getBars(): Promise<Bar[]> {
   try {
     // Fetch all data in parallel
     const [locations, events, deals] = await Promise.all([
-      apiFetch("/locations") as Promise<LocationApiResponse[]>,
+      apiFetch("/locations/with-hours") as Promise<LocationApiResponse[]>,
       apiFetch("/events") as Promise<EventApiResponse[]>,
       apiFetch("/deals") as Promise<DealApiResponse[]>,
     ]);
@@ -113,13 +115,49 @@ export async function getBars(): Promise<Bar[]> {
             },
       }));
 
+      // derive display opening/closing strings from location_hours when present
+      let openingTime: string | undefined = undefined;
+      let closingTime: string | undefined = undefined;
+      const locHours = (location as any).location_hours;
+      if (Array.isArray(locHours) && locHours.length) {
+        // determine current weekday in America/Chicago to pick the relevant entry
+        const now = getNow();
+        const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+        const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
+        const inTz = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), 0);
+        const weekdayIdNow = inTz.getDay() + 1; // 1=Sun..7=Sat
+
+        const entry = locHours.find((h: any) => Number(h.weekday_id) === Number(weekdayIdNow)) || locHours[0];
+        if (entry) {
+          const openMatch = String(entry.open_time_utc || "").match(/T(\d{2}):(\d{2})/);
+          const closeMatch = String(entry.close_time_utc || "").match(/T(\d{2}):(\d{2})/);
+          if (openMatch) {
+            const hh = Number(openMatch[1]);
+            const mm = Number(openMatch[2]);
+            const hour12 = hh % 12 === 0 ? 12 : hh % 12;
+            const ampm = hh >= 12 ? "PM" : "AM";
+            openingTime = `${hour12}:${String(mm).padStart(2, "0")} ${ampm}`;
+          }
+          if (closeMatch) {
+            const hh = Number(closeMatch[1]);
+            const mm = Number(closeMatch[2]);
+            const hour12 = hh % 12 === 0 ? 12 : hh % 12;
+            const ampm = hh >= 12 ? "PM" : "AM";
+            closingTime = `${hour12}:${String(mm).padStart(2, "0")} ${ampm}`;
+          }
+        }
+      }
+
       return {
         id: String(location.id),
         name: location.name,
         description: location.description,
         open: location.open,
+        openingTime,
+        closingTime,
         dealsScheduled,
         eventsScheduled,
+        location_type_id: location.location_type_id,
       } as Bar;
     });
 

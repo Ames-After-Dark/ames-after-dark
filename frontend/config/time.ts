@@ -56,9 +56,7 @@ export function isActive(rule: TimeRule, now: Date): boolean {
   // We already have the date parts in the target tz; create a Date object in *that* clock:
   const inTz = new Date(localY, localM - 1, localD, localH, localMin, localS);
 
-  const dayOfWeek = inTz.getDay();
-  if (!rule.daysOfWeek.includes(dayOfWeek)) return false;
-
+  // Build start/end times in the target local clock
   const [sH, sM] = rule.startLocalTime.split(":").map(Number);
   const [eH, eM] = rule.endLocalTime.split(":").map(Number);
 
@@ -68,7 +66,32 @@ export function isActive(rule: TimeRule, now: Date): boolean {
   const endLocal = new Date(inTz);
   endLocal.setHours(eH, eM, 0, 0);
 
-  return inTz >= startLocal && inTz <= endLocal;
+  
+  //return inTz >= startLocal && inTz <= endLocal;
+  const dayOfWeek = inTz.getDay();
+
+  // Non-cross-midnight window (same calendar day)
+  if (endLocal > startLocal) {
+    if (!rule.daysOfWeek.includes(dayOfWeek)) return false;
+    return inTz >= startLocal && inTz <= endLocal;
+  }
+
+  // Cross-midnight window (e.g., 23:00 -> 01:00)
+  // Consider either the start day (before midnight) or the next day (after midnight)
+  const startDay = startLocal.getDay();
+  const nextDay = (startDay + 1) % 7;
+
+  // If we're on/after the start time on the same day
+  if (inTz >= startLocal) {
+    return rule.daysOfWeek.includes(startDay);
+  }
+
+  // If we're after midnight but before the end time, treat it as the next day's early window
+  if (inTz <= endLocal) {
+    return rule.daysOfWeek.includes(nextDay);
+  }
+
+  return false;
 }
 
 
