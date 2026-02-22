@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 const STATUS_PENDING = 1;
 const STATUS_ACCEPTED = 2;
 const STATUS_DECLINED = 3;
+const STATUS_BLOCKED = 4;
 
 function getOrderedIds(a, b) {
   return a < b ? [a, b] : [b, a];
@@ -84,3 +85,12 @@ exports.getPendingRequests = async (userId) => {
     }
   });
 };
+
+exports.blockFriend = async (userId, friendId) => {
+  const [id1, id2] = getOrderedIds(userId, friendId);
+  return prisma.friendships.update({
+    where: { user_id_1_user_id_2: { user_id_1: id1, user_id_2: id2 } },
+    data: { friendship_status_id: STATUS_BLOCKED }
+  });
+};
+

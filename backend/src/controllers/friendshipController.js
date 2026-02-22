@@ -51,6 +51,19 @@ exports.declineFriendRequest = async (req, res) => {
   }
 };
 
+exports.blockFriend = async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  const friendId = parseInt(req.params.friendId, 10);
+  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
+  try {
+    const result = await friendshipService.blockFriend(userId, friendId);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.removeFriend = async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
   const friendId = parseInt(req.params.friendId, 10);
