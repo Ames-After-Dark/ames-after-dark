@@ -19,7 +19,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Friend } from '@/types/types';
-import { getUserById, getUserFriends, getMutualFriends } from '@/services/userService';
+import { getUserById, getUserFriends, getMutualFriends, sendFriendRequest } from '@/services/userService';
 import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
@@ -46,12 +46,13 @@ export default function FriendProfileScreen() {
     const [requestSent, setRequestSent] = useState(false);
 
     // TODO - update hardcoded auth ID
-    const CURRENT_USER_ID = 2; 
+    const CURRENT_USER_ID = 1;
 
     const [toastMessage, setToastMessage] = useState('');
     const [toastIcon, setToastIcon] = useState('check'); // Default icon name
 
     const triggerToast = (message: string, icon: string = 'check') => {
+        
         setToastMessage(message);
         setToastIcon(icon);
         setShowToast(true);
@@ -87,15 +88,25 @@ export default function FriendProfileScreen() {
 
     const handleAddFriend = async () => {
         try {
+            const friendId = Number(id);
+            if (!friendId || Number.isNaN(friendId)) {
+                Alert.alert("Error", "Invalid friend ID.");
+                return;
+            }
+
+            if (friendId === CURRENT_USER_ID) {
+                Alert.alert("Error", "You can't add yourself as a friend.");
+                return;
+            }
+
+            await sendFriendRequest(CURRENT_USER_ID, friendId);
+
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
             Animated.sequence([
                 Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
                 Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
             ]).start();
-
-            // Simulate API
-            // await sendFriendRequest(CURRENT_USER_ID, id); 
 
             setRequestSent(true);
 

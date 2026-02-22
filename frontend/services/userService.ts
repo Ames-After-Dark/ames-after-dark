@@ -1,9 +1,71 @@
 import { apiFetch } from './apiClient';
 import { Friend } from '@/types/types';
 
+export interface PendingFriendRequest {
+  user_id_1: number;
+  user_id_2: number;
+  friendship_status_id: number;
+  users_friendships_user_id_1Tousers?: Friend;
+  users_friendships_user_id_2Tousers?: Friend;
+}
+
+export async function sendFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to send friend request from ${userId} to ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function getPendingFriendRequests(userId: string | number): Promise<PendingFriendRequest[]> {
+  try {
+    const requests = await apiFetch(`/friendships/${userId}/friend-requests`);
+    return Array.isArray(requests) ? requests : [];
+  } catch (error) {
+    console.error(`Failed to fetch pending friend requests for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function acceptFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/accept`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to accept friend request between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function declineFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/decline`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to decline friend request between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function blockFriend(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/block`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to block user between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
 export async function getUserFriends(userId: string | number): Promise<Friend[]> {
   try {
-    const friends = await apiFetch(`/users/${userId}/friends`);
+    const friends = await apiFetch(`/friendships/${userId}/friends`);
     return Array.isArray(friends) ? friends : [];
   } catch (error) {
     console.error(`Failed to fetch friends for user ${userId}:`, error);

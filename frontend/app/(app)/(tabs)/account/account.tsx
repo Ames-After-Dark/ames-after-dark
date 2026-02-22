@@ -15,17 +15,28 @@ import { router } from 'expo-router';
 
 import { UserProfile, UserDatabase, Friend } from '@/types/types';
 import { useFriends } from '@/hooks/useFriends';
-import { getUserById } from '@/services/userService';
+import {
+    getUserById,
+    getPendingFriendRequests,
+    acceptFriendRequest,
+    declineFriendRequest,
+    blockFriend,
+    PendingFriendRequest
+} from '@/services/userService';
+import { Theme } from '@/constants/theme';
 
 // TODO: Replace with actual user ID from auth/context
-const CURRENT_USER_ID = 6;
+const CURRENT_USER_ID = 1;
 
 export default function AccountScreen() {
 
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [user, setUser] = useState<any | null>(null);
     const [userLoading, setUserLoading] = useState(true);
-    const { friends, loading, error } = useFriends(CURRENT_USER_ID);
+    const { friends, loading, error, refetch } = useFriends(CURRENT_USER_ID);
+    const [pendingRequests, setPendingRequests] = useState<PendingFriendRequest[]>([]);
+    const [pendingLoading, setPendingLoading] = useState(false);
+    const [actionLoadingFriendId, setActionLoadingFriendId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -40,6 +51,65 @@ export default function AccountScreen() {
         };
         fetchUser();
     }, []);
+
+    useEffect(() => {
+        const fetchPendingRequests = async () => {
+            setPendingLoading(true);
+            try {
+                const data = await getPendingFriendRequests(CURRENT_USER_ID);
+                setPendingRequests(data || []);
+            } catch (err) {
+                console.error('Failed to fetch pending requests:', err);
+            } finally {
+                setPendingLoading(false);
+            }
+        };
+
+        fetchPendingRequests();
+    }, []);
+
+    const getOtherUserFromRequest = (request: PendingFriendRequest): Friend | null => {
+        const left = request.users_friendships_user_id_1Tousers;
+        const right = request.users_friendships_user_id_2Tousers;
+
+        if (!left && !right) return null;
+        if (request.user_id_1 === CURRENT_USER_ID) return right ?? null;
+        return left ?? null;
+    };
+
+    const handleRequestAction = async (request: PendingFriendRequest, action: 'accept' | 'decline' | 'block') => {
+        const otherUser = getOtherUserFromRequest(request);
+        const friendId = Number(otherUser?.id);
+
+        if (!friendId || Number.isNaN(friendId)) {
+            return;
+        }
+
+        setActionLoadingFriendId(friendId);
+
+        try {
+            if (action === 'accept') {
+                await acceptFriendRequest(CURRENT_USER_ID, friendId);
+            } else if (action === 'decline') {
+                await declineFriendRequest(CURRENT_USER_ID, friendId);
+            } else {
+                await blockFriend(CURRENT_USER_ID, friendId);
+            }
+
+            setPendingRequests(prev => prev.filter(r => {
+                const pendingOther = getOtherUserFromRequest(r);
+                return Number(pendingOther?.id) !== friendId;
+            }));
+
+            if (action === 'accept') {
+                await refetch();
+            }
+        } catch (err) {
+            console.error(`Failed to ${action} friend request:`, err);
+        } finally {
+            setActionLoadingFriendId(null);
+        }
+    };
     
     const filteredFriends: Friend[] = friends.filter((f: Friend) =>
         (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -84,6 +154,66 @@ export default function AccountScreen() {
         </View>
 
         <Text style={styles.friendsTitle}>Friends ({filteredFriends.length})</Text>
+
+        <Text style={styles.friendsTitle}>Pending Requests ({pendingRequests.length})</Text>
+
+        {pendingLoading ? (
+            <View style={styles.emptyContainer}>
+                <ActivityIndicator size="small" color="#33CCFF" />
+                <Text style={styles.emptyText}>Loading requests...</Text>
+            </View>
+        ) : pendingRequests.length > 0 ? (
+            pendingRequests.map((request, index) => {
+                const requestUser = getOtherUserFromRequest(request);
+                const requestUserId = Number(requestUser?.id);
+                const isActionLoading = actionLoadingFriendId === requestUserId;
+
+                return (
+                    <View key={`${request.user_id_1}-${request.user_id_2}-${index}`} style={styles.requestCard}>
+                        <View style={styles.requestHeader}>
+                            <Image
+                                source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
+                                style={styles.friendAvatar}
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
+                                <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.requestActionsRow}>
+                            <TouchableOpacity
+                                style={[styles.requestActionButton, styles.acceptButton]}
+                                disabled={isActionLoading}
+                                onPress={() => handleRequestAction(request, 'accept')}
+                            >
+                                <Text style={styles.requestActionText}>Accept</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.requestActionButton, styles.declineButton]}
+                                disabled={isActionLoading}
+                                onPress={() => handleRequestAction(request, 'decline')}
+                            >
+                                <Text style={styles.requestActionText}>Decline</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.requestActionButton, styles.blockButton]}
+                                disabled={isActionLoading}
+                                onPress={() => handleRequestAction(request, 'block')}
+                            >
+                                <Text style={styles.requestActionText}>Block</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                );
+            })
+        ) : (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No pending friend requests</Text>
+            </View>
+        )}
 
         {loading ? (
             <View style={styles.emptyContainer}>
@@ -157,7 +287,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     profileUserName: {
-        color: 'white',
+        color: Theme.container.inactiveText,
         fontSize: 14,
     },
     bioContainer: {
@@ -210,6 +340,47 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#1f2937",
     },
+    requestCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: 12,
+        padding: 12,
+        marginVertical: 6,
+        borderWidth: 1,
+        borderColor: '#1f2937',
+    },
+    requestHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    requestActionsRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    requestActionButton: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+    },
+    acceptButton: {
+        backgroundColor: Theme.dark.primary, // '#0ea5e9',
+        borderColor: Theme.dark.primary, // '#0ea5e9',
+    },
+    declineButton: {
+        backgroundColor: '#374151',
+        borderColor: '#4b5563',
+    },
+    blockButton: {
+        backgroundColor: Theme.dark.error, // '#7f1d1d',
+        borderColor: Theme.dark.error, // '#991b1b',
+    },
+    requestActionText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 12,
+    },
     friendAvatar: {
         width: 55,
         height: 55,
@@ -222,6 +393,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     friendStatus: {
+        color: Theme.container.inactiveText,
         fontSize: 13,
         marginTop: 2,
     },
