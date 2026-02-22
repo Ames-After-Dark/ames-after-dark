@@ -63,6 +63,17 @@ export async function blockFriend(userId: string | number, friendId: string | nu
   }
 }
 
+export async function removeFriend(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error(`Failed to remove friend between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
 export async function getUserFriends(userId: string | number): Promise<Friend[]> {
   try {
     const friends = await apiFetch(`/friendships/${userId}/friends`);

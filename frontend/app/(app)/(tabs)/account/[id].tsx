@@ -19,7 +19,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Friend } from '@/types/types';
-import { getUserById, getUserFriends, getMutualFriends, sendFriendRequest } from '@/services/userService';
+import { blockFriend, getUserById, getUserFriends, getMutualFriends, removeFriend, sendFriendRequest } from '@/services/userService';
 import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
@@ -44,6 +44,8 @@ export default function FriendProfileScreen() {
 
     const [isFriend, setIsFriend] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [friendActionLoading, setFriendActionLoading] = useState(false);
 
     // TODO - update hardcoded auth ID
     const CURRENT_USER_ID = 1;
@@ -120,6 +122,107 @@ export default function FriendProfileScreen() {
         }
     };
 
+    const handleRemoveFriend = async () => {
+        const friendId = Number(id);
+        if (!friendId || Number.isNaN(friendId)) {
+            Alert.alert("Error", "Invalid friend ID.");
+            return;
+        }
+
+        Alert.alert(
+            "Remove friend",
+            `Remove ${user?.name || 'this user'} from your friends list?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setFriendActionLoading(true);
+                            await removeFriend(CURRENT_USER_ID, friendId);
+                            setIsFriend(false);
+                            triggerToast("Friend removed", "user-times");
+                        } catch (err) {
+                            console.error("Failed to remove friend:", err);
+                            Alert.alert("Error", "Could not remove friend.");
+                        } finally {
+                            setFriendActionLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleBlockFriend = async () => {
+        const friendId = Number(id);
+        if (!friendId || Number.isNaN(friendId)) {
+            Alert.alert("Error", "Invalid friend ID.");
+            return;
+        }
+
+        Alert.alert(
+            "Block user",
+            `Block ${user?.name || 'this user'}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Block",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setFriendActionLoading(true);
+                            await blockFriend(CURRENT_USER_ID, friendId);
+                            setIsFriend(false);
+                            setIsBlocked(true);
+                            setRequestSent(false);
+                            triggerToast("User blocked", "ban");
+                        } catch (err) {
+                            console.error("Failed to block user:", err);
+                            Alert.alert("Error", "Could not block user.");
+                        } finally {
+                            setFriendActionLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleUnblockUser = async () => {
+        const friendId = Number(id);
+        if (!friendId || Number.isNaN(friendId)) {
+            Alert.alert("Error", "Invalid user ID.");
+            return;
+        }
+
+        Alert.alert(
+            "Unblock user",
+            `Unblock ${user?.name || 'this user'}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Unblock",
+                    onPress: async () => {
+                        try {
+                            setFriendActionLoading(true);
+                            await removeFriend(CURRENT_USER_ID, friendId);
+                            setIsBlocked(false);
+                            setRequestSent(false);
+                            triggerToast("User unblocked", "unlock");
+                        } catch (err) {
+                            console.error("Failed to unblock user:", err);
+                            Alert.alert("Error", "Could not unblock user.");
+                        } finally {
+                            setFriendActionLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     useEffect(() => {
         if (id) {
             const fetchUserData = async () => {
@@ -136,6 +239,17 @@ export default function FriendProfileScreen() {
                         getUserFriends(id),
                         getMutualFriends(CURRENT_USER_ID, id)
                     ]);
+
+                    const outgoingRelation = userData?.friendships_friendships_user_id_1Tousers?.find(
+                        (relation: any) => relation.user_id_2 === CURRENT_USER_ID
+                    );
+                    const incomingRelation = userData?.friendships_friendships_user_id_2Tousers?.find(
+                        (relation: any) => relation.user_id_1 === CURRENT_USER_ID
+                    );
+                    const relation = outgoingRelation || incomingRelation;
+
+                    setIsBlocked(relation?.friendship_status_id === 4);
+                    setRequestSent(relation?.friendship_status_id === 1);
 
                     setUser(userData);
                     setFriends(friendsData || []);
@@ -266,6 +380,26 @@ export default function FriendProfileScreen() {
                                 </Text>
                             </Animated.View>
                         </TouchableOpacity>
+
+                        <View style={styles.friendActionRow}>
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={handleRemoveFriend}
+                                disabled={friendActionLoading}
+                                style={styles.friendActionButton}
+                            >
+                                <Text style={styles.friendActionText}>remove friend</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={handleBlockFriend}
+                                disabled={friendActionLoading}
+                                style={[styles.friendActionButton, styles.blockActionButton]}
+                            >
+                                <Text style={styles.friendActionText}>block</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 ) : (
                     /* STRANGER VIEW */
@@ -287,25 +421,33 @@ export default function FriendProfileScreen() {
                             <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
                         </View>
 
-                        {/* Add Friend Button */}
+                        {/* Add Friend / Unblock Button */}
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() => {
-                                handleAddFriend();
-                                console.log("attempt to add friend with ID:", id);
+                                if (isBlocked) {
+                                    handleUnblockUser();
+                                } else {
+                                    handleAddFriend();
+                                    console.log("attempt to add friend with ID:", id);
+                                }
                             }}
-                            disabled={requestSent}
+                            disabled={(requestSent && !isBlocked) || friendActionLoading}
                         // style={{ marginTop: 0 }}
                         >
                             <Animated.View style={[
                                 styles.addFriendButton,
                                 {
                                     transform: [{ scale: scaleAnim }],
-                                    backgroundColor: requestSent ? Theme.container.inactiveText : Theme.dark.primary
+                                    backgroundColor: requestSent
+                                        ? Theme.container.inactiveText
+                                        : isBlocked
+                                            ? Theme.dark.secondary
+                                            : Theme.dark.primary
                                 }
                             ]}>
                                 <Text style={styles.addFriendText}>
-                                    {requestSent ? "Request Sent" : "Add Friend"}
+                                    {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
                                 </Text>
                             </Animated.View>
                         </TouchableOpacity>
@@ -553,6 +695,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         letterSpacing: 1,
+        textTransform: 'lowercase',
+    },
+    friendActionRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 12,
+    },
+    friendActionButton: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: Theme.container.inactiveBorder,
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    blockActionButton: {
+        borderColor: Theme.dark.error,
+    },
+    friendActionText: {
+        color: Theme.container.titleText,
+        fontSize: 13,
+        fontWeight: '700',
         textTransform: 'lowercase',
     },
     toastContainer: {
