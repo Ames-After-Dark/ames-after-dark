@@ -18,6 +18,32 @@ import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../..
 
 import { Theme } from '@/constants/theme';
 
+// Map bar names to cover images
+const barCoverMap: { [key: string]: any } = {
+  "AJ's Ultralounge": IMG.CysCover,
+  "BNC Fieldhouse": IMG.BaseCover,
+  "Cy's Roost": IMG.CysCover2,
+  "Welch Ave Station": IMG.PaddysCover,
+  "The Blue Owl Bar": IMG.BaseCover,
+  "Paddy's Irish Pub": IMG.SipsPaddysCover2,
+  "Sips": IMG.SipsCover,
+  "Mickey's Irish Pub": IMG.BaseCover,
+  "Outlaws": IMG.OutlawsCover,
+};
+
+// Map bar names to logos
+const barLogoMap: { [key: string]: any } = {
+  "AJ's Ultralounge": IMG.AJs,
+  "BNC Fieldhouse": IMG.bnc,
+  "Cy's Roost": IMG.CysRoost,
+  "Welch Ave Station": IMG.Welch,
+  "The Blue Owl Bar": IMG.BlueOwl,
+  "Paddy's Irish Pub": IMG.Paddys,
+  "Sips": IMG.Sips,
+  "Mickey's Irish Pub": IMG.Mickey,
+  "Outlaws": IMG.Outlaws,
+};
+
 export default function BarProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -47,15 +73,18 @@ export default function BarProfile() {
   // ---- Active items (respect schedules) ----
   const activeDeals  = bar.dealsScheduled?.filter(d => isActive(d.rule, now)) ?? [];
   const activeEvents = bar.eventsScheduled?.filter(e => isActive(e.rule, now)) ?? [];
-  const openNow = isBarOpen(bar, now);
+  // const openNow = isBarOpen(bar, now);
+  const openNow = bar.open ?? false;
 
-  // ---- Image sources (URL → mock require → placeholder) ----
+  // ---- Image sources (use mock maps first, then URL, then mock require, then placeholder) ----
   const coverSrc =
+    barCoverMap[bar.name] ? barCoverMap[bar.name] :
     bar.coverUrl ? { uri: bar.coverUrl } :
     bar.cover    ? bar.cover :
     IMG.LOGO;
 
   const logoSrc =
+    barLogoMap[bar.name] ? barLogoMap[bar.name] :
     bar.logoUrl ? { uri: bar.logoUrl } :
     bar.logo    ? bar.logo :
     IMG.LOGO;
@@ -115,7 +144,8 @@ export default function BarProfile() {
             ]}
           >
             <Text style={styles.statusPillText}>
-              {openNow ? `Open until ${bar.closingTime ?? ""}` : "Closed"}
+              {/* {openNow ? `Open until ${bar.closingTime ?? ""}` : "Closed"} */}
+              {openNow ? `Open` : "Closed"}
             </Text>
           </View>
         </View>
@@ -124,7 +154,7 @@ export default function BarProfile() {
           <FontAwesome
             name="star"
             size={24}
-            color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveText}
+            color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveInput}
           />
         </TouchableOpacity>
       </View>
