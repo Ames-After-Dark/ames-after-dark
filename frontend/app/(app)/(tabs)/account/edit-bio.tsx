@@ -1,37 +1,124 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { Stack } from "expo-router";
 import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { Stack, router } from "expo-router";
+
+import { getUserById, updateUser } from "@/services/userService";
 
 export default function ChangeBioScreen() {
   const MAX_CHARS = 150;
 
-  // Pretend this is coming from your backend or auth store
-  const mockCurrentBio = "I love late-night adventures and meeting new people!";
-
   const [bio, setBio] = useState("");
+  const [originalBio, setOriginalBio] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentUserId = 10; // replace with auth later
 
   useEffect(() => {
-    // Load existing bio when the screen mounts
-    setBio(mockCurrentBio);
-  }, []);
+    const fetchUser = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const handleSubmit = () => {
-    console.log("Updated Bio:", bio);
-    // TODO: send this to backend
+        const user = await getUserById(currentUserId);
+
+        const fetchedBio = user?.bio ?? "";
+
+        setOriginalBio(fetchedBio);
+        setBio(fetchedBio);
+      } catch (err) {
+        setError("Failed to load bio");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [currentUserId]);
+
+  const validateBio = (value: string): string | null => {
+    if (value.length > MAX_CHARS) {
+      return `Bio must be under ${MAX_CHARS} characters`;
+    }
+    return null;
   };
+
+  const handleSubmit = async () => {
+    const trimmedBio = bio.trim();
+    const validationError = validateBio(trimmedBio);
+
+    if (validationError) {
+      Alert.alert("Error", validationError);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      await updateUser(currentUserId, { bio: trimmedBio });
+
+      // update original so button disables properly
+      setOriginalBio(trimmedBio);
+
+      Alert.alert("Success", "Bio updated successfully!", [
+        {
+          text: "OK",
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to update bio";
+
+      setError(message);
+      Alert.alert("Error", message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isDisabled =
+    saving ||
+    bio.trim() === originalBio ||
+    bio.length > MAX_CHARS;
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Stack.Screen
+          options={{
+            title: "Edit Bio",
+            headerBackTitle: "Settings",
+            headerStyle: { backgroundColor: "#0b0b12" },
+            headerTintColor: "white",
+          }}
+        />
+        <ActivityIndicator size="large" color="#33CCFF" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: 'Edit Bio',
-                    headerBackTitle: 'Settings',
-                    headerStyle: {
-                        backgroundColor: '#0b0b12',
-                    },
-                    headerTintColor: 'white',
-                }}
-            />
+      <Stack.Screen
+        options={{
+          title: "Edit Bio",
+          headerBackTitle: "Settings",
+          headerStyle: { backgroundColor: "#0b0b12" },
+          headerTintColor: "white",
+        }}
+      />
+
       <Text style={styles.label}>Your Bio</Text>
 
       <TextInput
@@ -42,25 +129,37 @@ export default function ChangeBioScreen() {
         placeholder="Write something about yourself..."
         placeholderTextColor="#777"
         onChangeText={setBio}
+        editable={!saving}
+        textAlignVertical="top"
       />
 
       <Text style={styles.charCounter}>
         {bio.length}/{MAX_CHARS}
       </Text>
 
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
       <TouchableOpacity
-        style={[styles.saveButton, bio.length === 0 && styles.disabledButton]}
+        style={[
+          styles.saveButton,
+          isDisabled && styles.disabledButton,
+        ]}
         onPress={handleSubmit}
-        disabled={bio.length === 0}
+        disabled={isDisabled}
+        activeOpacity={0.7}
       >
-        <Text style={styles.saveButtonText}>Save</Text>
+        {saving ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Text style={styles.saveButtonText}>Save Bio</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0b0b12", padding: 16 },
+  loadingContainer: { justifyContent: "center", alignItems: "center" },
   label: { color: "white", marginBottom: 8, fontSize: 16 },
   textarea: {
     backgroundColor: "#1f2937",
@@ -70,20 +169,12 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
     textAlignVertical: "top",
+    marginBottom: 12,
   },
-  charCounter: {
-    textAlign: "right",
-    color: "#999",
-    fontSize: 12,
-    marginTop: 6,
-    marginBottom: 20,
-  },
-  saveButton: {
-    backgroundColor: "#3b82f6",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
+  charCounter: { textAlign: "right", color: "#999", fontSize: 12, marginTop: 6, marginBottom: 20 },
+  saveButton: { backgroundColor: "#3b82f6", paddingVertical: 14, borderRadius: 10, alignItems: "center" },
   saveButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
   disabledButton: { backgroundColor: "#334155" },
+  errorText: { color: "#ff6b6b", fontSize: 14, marginBottom: 10 },
 });
+
