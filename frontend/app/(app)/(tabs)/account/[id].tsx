@@ -19,7 +19,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Friend } from '@/types/types';
-import { blockFriend, getUserById, getUserFriends, getMutualFriends, removeFriend, sendFriendRequest } from '@/services/userService';
+import {
+    acceptFriendRequest,
+    blockFriend,
+    declineFriendRequest,
+    getUserById,
+    getUserFriends,
+    getMutualFriends,
+    removeFriend,
+    sendFriendRequest
+} from '@/services/userService';
 import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
@@ -44,6 +53,8 @@ export default function FriendProfileScreen() {
 
     const [isFriend, setIsFriend] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
+    const [hasIncomingRequest, setHasIncomingRequest] = useState(false);
+    const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
     const [friendActionLoading, setFriendActionLoading] = useState(false);
 
@@ -223,6 +234,33 @@ export default function FriendProfileScreen() {
         );
     };
 
+    const handlePendingDecision = async (friendId: number, action: 'accept' | 'decline' | 'block') => {
+        try {
+            setFriendActionLoading(true);
+
+            if (action === 'accept') {
+                await acceptFriendRequest(CURRENT_USER_ID, friendId);
+                setIsFriend(true);
+                triggerToast('Request accepted', 'check');
+            } else if (action === 'decline') {
+                await declineFriendRequest(CURRENT_USER_ID, friendId);
+                triggerToast('Request declined', 'times');
+            } else {
+                await blockFriend(CURRENT_USER_ID, friendId);
+                setIsBlocked(true);
+                triggerToast('User blocked', 'ban');
+            }
+
+            setHasIncomingRequest(false);
+            setRequestSent(false);
+        } catch (err) {
+            console.error(`Failed to ${action} friend request:`, err);
+            Alert.alert('Error', `Could not ${action} request.`);
+        } finally {
+            setFriendActionLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (id) {
             const userId = Number(id);
@@ -255,9 +293,12 @@ export default function FriendProfileScreen() {
                         (relation: any) => relation.user_id_1 === CURRENT_USER_ID
                     );
                     const relation = outgoingRelation || incomingRelation;
+                    const isOutgoingPending = outgoingRelation?.friendship_status_id === 1;
+                    const isIncomingPending = incomingRelation?.friendship_status_id === 1;
 
                     setIsBlocked(relation?.friendship_status_id === 4);
-                    setRequestSent(relation?.friendship_status_id === 1);
+                    setRequestSent(Boolean(isOutgoingPending));
+                    setHasIncomingRequest(Boolean(isIncomingPending));
 
                     setUser(userData);
                     setFriends(friendsData || []);
@@ -429,36 +470,52 @@ export default function FriendProfileScreen() {
                             <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
                         </View>
 
+                        {hasIncomingRequest && !isBlocked && (
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => setIsRespondModalVisible(true)}
+                                disabled={friendActionLoading}
+                            >
+                                <Animated.View style={[
+                                    styles.addFriendButton,
+                                    { transform: [{ scale: scaleAnim }] }
+                                ]}>
+                                    <Text style={styles.addFriendText}>Respond to Request</Text>
+                                </Animated.View>
+                            </TouchableOpacity>
+                        )}
+
                         {/* Add Friend / Unblock Button */}
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                if (isBlocked) {
-                                    handleUnblockUser();
-                                } else {
-                                    handleAddFriend();
-                                    console.log("attempt to add friend with ID:", id);
-                                }
-                            }}
-                            disabled={(requestSent && !isBlocked) || friendActionLoading}
-                        // style={{ marginTop: 0 }}
-                        >
-                            <Animated.View style={[
-                                styles.addFriendButton,
-                                {
-                                    transform: [{ scale: scaleAnim }],
-                                    backgroundColor: requestSent
-                                        ? Theme.container.inactiveText
-                                        : isBlocked
-                                            ? Theme.dark.secondary
-                                            : Theme.dark.primary
-                                }
-                            ]}>
-                                <Text style={styles.addFriendText}>
-                                    {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
-                                </Text>
-                            </Animated.View>
-                        </TouchableOpacity>
+                        {!hasIncomingRequest && (
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                    if (isBlocked) {
+                                        handleUnblockUser();
+                                    } else {
+                                        handleAddFriend();
+                                        console.log("attempt to add friend with ID:", id);
+                                    }
+                                }}
+                                disabled={(requestSent && !isBlocked) || friendActionLoading}
+                            >
+                                <Animated.View style={[
+                                    styles.addFriendButton,
+                                    {
+                                        transform: [{ scale: scaleAnim }],
+                                        backgroundColor: requestSent
+                                            ? Theme.container.inactiveText
+                                            : isBlocked
+                                                ? Theme.dark.secondary
+                                                : Theme.dark.primary
+                                    }
+                                ]}>
+                                    <Text style={styles.addFriendText}>
+                                        {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
+                                    </Text>
+                                </Animated.View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 )}
             </ScrollView>
@@ -524,6 +581,69 @@ export default function FriendProfileScreen() {
                                 )}
                                 ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
                             />
+                        </View>
+                    </TouchableWithoutFeedback>
+                </TouchableOpacity>
+            </Modal>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={isRespondModalVisible}
+                onRequestClose={() => setIsRespondModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPressOut={() => setIsRespondModalVisible(false)}
+                >
+                    <TouchableWithoutFeedback>
+                        <View style={styles.floatingModalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>friend request from: {user?.name}</Text>
+                                <TouchableOpacity onPress={() => setIsRespondModalVisible(false)}>
+                                    <FontAwesome
+                                        name="times-circle"
+                                        size={26}
+                                        color={Theme.container.inactiveText}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.requestActionsRow}>
+                                <TouchableOpacity
+                                    style={[styles.requestActionButton, styles.acceptButton]}
+                                    disabled={friendActionLoading}
+                                    onPress={() => {
+                                        setIsRespondModalVisible(false);
+                                        handlePendingDecision(Number(id), 'accept');
+                                    }}
+                                >
+                                    <Text style={styles.requestActionText}>Accept</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.requestActionButton, styles.declineButton]}
+                                    disabled={friendActionLoading}
+                                    onPress={() => {
+                                        setIsRespondModalVisible(false);
+                                        handlePendingDecision(Number(id), 'decline');
+                                    }}
+                                >
+                                    <Text style={styles.requestActionText}>Decline</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.requestActionButton, styles.blockButton]}
+                                    disabled={friendActionLoading}
+                                    onPress={() => {
+                                        setIsRespondModalVisible(false);
+                                        handlePendingDecision(Number(id), 'block');
+                                    }}
+                                >
+                                    <Text style={styles.requestActionText}>Block</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </TouchableWithoutFeedback>
                 </TouchableOpacity>
@@ -719,6 +839,38 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    requestActionsRow: {
+        flexDirection: 'column',
+        // flexDirection: 'row',
+        gap: 8,
+        marginTop: 4,
+    },
+    requestActionButton: {
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        alignSelf: 'stretch',
+        width: '100%',
+    },
+    acceptButton: {
+        backgroundColor: Theme.dark.primary,
+        borderColor: Theme.dark.primary,
+    },
+    declineButton: {
+        backgroundColor: Theme.container.inactiveBorder,
+        borderColor: Theme.container.inactiveBorder,
+    },
+    blockButton: {
+        backgroundColor: Theme.dark.error,
+        borderColor: Theme.dark.error,
+    },
+    requestActionText: {
+        color: Theme.dark.white,
+        fontWeight: '700',
+        fontSize: 14,
+        textTransform: 'none',
     },
     blockActionButton: {
         borderColor: Theme.dark.error,

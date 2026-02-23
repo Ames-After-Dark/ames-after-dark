@@ -310,48 +310,25 @@ export default function AccountScreen() {
                                         keyExtractor={(item, index) => `${item.user_id_1}-${item.user_id_2}-${index}`}
                                         renderItem={({ item: request }) => {
                                             const requestUser = getOtherUserFromRequest(request);
-                                            const requestUserId = Number(requestUser?.id);
-                                            const isActionLoading = actionLoadingFriendId === requestUserId;
+                                            if (!requestUser) return null;
 
                                             return (
-                                                <View style={styles.requestCard}>
-                                                    <View style={styles.requestHeader}>
-                                                        <Image
-                                                            source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
-                                                            style={styles.friendAvatar}
-                                                        />
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
-                                                            <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
-                                                        </View>
+                                                <TouchableOpacity
+                                                    style={styles.modalFriendRow}
+                                                    onPress={() => {
+                                                        setIsPendingModalVisible(false);
+                                                        router.push(`/account/${requestUser.id}`);
+                                                    }}
+                                                >
+                                                    <Image
+                                                        source={requestUser.avatar || require('../../../../assets/images/Logo.png')}
+                                                        style={styles.modalFriendAvatar}
+                                                    />
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.modalFriendUsername}>@{requestUser.username || 'unknown'}</Text>
+                                                        <Text style={styles.modalFriendName}>{requestUser.name || 'Unknown user'}</Text>
                                                     </View>
-
-                                                    <View style={styles.requestActionsRow}>
-                                                        <TouchableOpacity
-                                                            style={[styles.requestActionButton, styles.acceptButton]}
-                                                            disabled={isActionLoading}
-                                                            onPress={() => handleRequestAction(request, 'accept')}
-                                                        >
-                                                            <Text style={styles.requestActionText}>Accept</Text>
-                                                        </TouchableOpacity>
-
-                                                        <TouchableOpacity
-                                                            style={[styles.requestActionButton, styles.declineButton]}
-                                                            disabled={isActionLoading}
-                                                            onPress={() => handleRequestAction(request, 'decline')}
-                                                        >
-                                                            <Text style={styles.requestActionText}>Decline</Text>
-                                                        </TouchableOpacity>
-
-                                                        <TouchableOpacity
-                                                            style={[styles.requestActionButton, styles.blockButton]}
-                                                            disabled={isActionLoading}
-                                                            onPress={() => handleRequestAction(request, 'block')}
-                                                        >
-                                                            <Text style={styles.requestActionText}>Block</Text>
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                </View>
+                                                </TouchableOpacity>
                                             );
                                         }}
                                         scrollEnabled
@@ -648,8 +625,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: Theme.container.mainBorder,
+        // borderBottomWidth: 1,
+        borderTopWidth: 1,
+        borderColor: Theme.container.mainBorder,
         marginBottom: 16,
     },
     modalTitle: {
