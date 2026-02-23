@@ -27,9 +27,9 @@ export default function TopHeader() {
       </View>
 
       {/* Testing-only time display */}
-      <Text style={styles.testTimeText}>
+      {/* <Text style={styles.testTimeText}>
         Simulated Time: {formatted} (Testing), Mock Data: True
-      </Text>
+      </Text> */}
     </SafeAreaView>
   );
 }
