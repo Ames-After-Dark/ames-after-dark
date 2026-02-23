@@ -225,6 +225,14 @@ export default function FriendProfileScreen() {
 
     useEffect(() => {
         if (id) {
+            const userId = Number(id);
+            
+            // Redirect to account page if viewing own profile
+            if (userId === CURRENT_USER_ID) {
+                router.push('./account');
+                return;
+            }
+
             const fetchUserData = async () => {
                 setLoading(true);
                 try {

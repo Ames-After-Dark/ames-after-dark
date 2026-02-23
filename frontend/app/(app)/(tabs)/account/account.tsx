@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -67,6 +68,12 @@ export default function AccountScreen() {
 
         fetchPendingRequests();
     }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     const getOtherUserFromRequest = (request: PendingFriendRequest): Friend | null => {
         const left = request.users_friendships_user_id_1Tousers;
