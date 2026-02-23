@@ -14,7 +14,6 @@ exports.getUserSettings = async (req, res) => {
   }
 };
 
-
 exports.updateUserSettings = async (req, res) => {
   try {
     const userId = req.params.userId;
