@@ -118,6 +118,24 @@ exports.updateUser = async (id, userData) => {
   });
 };
 
+// Only allow updating username, email, and bio
+exports.updateUserLimited = async (id, updateData) => {
+  // Only pick allowed fields
+  const allowedFields = {};
+  if (updateData.username !== undefined) allowedFields.username = updateData.username;
+  if (updateData.email !== undefined) allowedFields.email = updateData.email;
+  if (updateData.bio !== undefined) allowedFields.bio = updateData.bio;
+
+  return prisma.users.update({
+    where: { id: Number(id) },
+    data: allowedFields,
+    include: {
+      roles: true,
+      user_favorites: true
+    }
+  });
+};
+
 exports.deleteUser = async (id) => {
   return prisma.users.delete({
     where: { id: Number(id) }
@@ -163,3 +181,46 @@ exports.loginUser = async (username) => {
   return user;
 };
 // TEMP_AUTH_END
+
+/**
+ * Get user by Auth0 UID (subject from JWT)
+ * @param {string} auth0Id - The Auth0 user ID (sub claim from JWT)
+ * @returns {Promise<Object|null>} User object or null if not found
+ */
+exports.getUserByAuth0Id = async (auth0Id) => {
+  return prisma.users.findUnique({
+    where: { uid: auth0Id },
+    include: {
+      roles: true
+    }
+  });
+};
+
+/**
+ * Create a new user with Auth0 credentials and registration data
+ * @param {Object} userData - User registration data
+ * @param {string} userData.auth0Id - The Auth0 user ID (sub claim)
+ * @param {string} userData.phoneNumber - User's phone number
+ * @param {string|Date} userData.birthday - User's birthday
+ * @param {string} [userData.email] - User's email (optional, from Auth0)
+ * @param {string} [userData.name] - User's name (optional, from Auth0)
+ * @returns {Promise<Object>} Created user object
+ */
+exports.createUserWithAuth0 = async (userData) => {
+  const { auth0Id, phoneNumber, birthday, email, name } = userData;
+  
+  return prisma.users.create({
+    data: {
+      uid: auth0Id,
+      phone_number: phoneNumber,
+      birthday: new Date(birthday),
+      email: email || null,
+      name: name || null,
+      // Set default role_id if needed, or leave as null for regular users
+      role_id: null
+    },
+    include: {
+      roles: true
+    }
+  });
+};

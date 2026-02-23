@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx prisma generate && node index.js",
+    "start": "node index.js",
+    "prisma": "npx prisma db pull && npx prisma generate",
     "studio": "npx prisma studio",
     "lint": "echo \"Error: no linter specified\" && exit 0",
     "test": "jest --testPathPatterns=src"

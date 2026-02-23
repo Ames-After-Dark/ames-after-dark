@@ -13,6 +13,4 @@ router.post('/', dealController.createDeal);        // Create
 router.put('/:id', dealController.updateDeal);      // Update
 router.delete('/:id', dealController.deleteDeal);   // Delete
 
-
-
 module.exports = router;
