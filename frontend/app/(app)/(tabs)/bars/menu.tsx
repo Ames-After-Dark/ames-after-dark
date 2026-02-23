@@ -8,7 +8,18 @@ import { Theme } from "@/constants/theme";
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { bar, loading } = useBarDetail(id);
-  const sections = bar?.menu?.sections ?? [];
+  const sections = (bar?.menu?.sections ?? [])
+    .map((section, sectionIndex) => ({
+      id: section.id || `section-${sectionIndex}`,
+      title: section.title || "Menu",
+      items: (section.items ?? []).map((item, itemIndex) => ({
+        id: item.id || `${section.id || sectionIndex}-${itemIndex}`,
+        name: item.name || "Unnamed Item",
+        desc: item.desc,
+        price: item.price,
+      })),
+    }))
+    .filter((section) => section.items.length > 0);
 
   if (loading) {
     return (
@@ -30,7 +41,7 @@ export default function BarMenuScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{bar.name} Menu</Text>
-        <Text style={styles.empty}>Menu coming soon.</Text>
+        <Text style={styles.empty}>Menu coming soon!</Text>
       </View>
     );
   }
@@ -42,21 +53,21 @@ export default function BarMenuScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.title}>{bar.name} Menu</Text>
-      {bar.menu?.updatedAt ? (
-        <Text style={styles.subtle}>Updated {bar.menu.updatedAt}</Text>
-      ) : null}
 
       {sections.map((sec) => (
         <View key={sec.id} style={styles.section}>
           <Text style={styles.sectionTitle}>{sec.title}</Text>
-          {sec.items.map((it) => (
-            <View key={it.id} style={styles.itemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{it.name}</Text>
-                {it.desc ? <Text style={styles.itemDesc}>{it.desc}</Text> : null}
+          {sec.items.map((it, index) => (
+            <React.Fragment key={it.id}>
+              <View style={styles.itemRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemName}>{it.name}</Text>
+                  {it.desc ? <Text style={styles.itemDesc}>{it.desc}</Text> : null}
+                </View>
+                {it.price ? <Text style={styles.itemPrice}>{it.price}</Text> : null}
               </View>
-              {it.price ? <Text style={styles.itemPrice}>{it.price}</Text> : null}
-            </View>
+              {index < sec.items.length - 1 ? <View style={styles.itemDivider} /> : null}
+            </React.Fragment>
           ))}
         </View>
       ))}
@@ -114,6 +125,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 8,
     gap: 8,
+  },
+  itemDivider: {
+    height: 1,
+    backgroundColor: Theme.container.mainBorder,
   },
   itemName: {
     color: Theme.container.titleText,

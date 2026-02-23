@@ -37,6 +37,21 @@ interface DealApiResponse {
   [key: string]: any;
 }
 
+interface MenuItemTypeApiResponse {
+  id: number;
+  name: string;
+}
+
+interface MenuItemApiResponse {
+  id: number;
+  location_id: number;
+  menu_item_type_id: number;
+  name: string;
+  description?: string | null;
+  is_available?: boolean | null;
+  [key: string]: any;
+}
+
 /**
  * Fetches all locations along with their associated events and deals,
  * then combines them into the Bar type expected by the frontend.
@@ -178,10 +193,12 @@ export async function getBarById(id: string): Promise<Bar | null> {
 
     if (!location) return null;
 
-    // Fetch all events and deals, then filter for this location
-    const [events, deals] = await Promise.all([
+    // Fetch events, deals, and menu items for this location
+    const [events, deals, menuItems, menuItemTypes] = await Promise.all([
       apiFetch("/events") as Promise<EventApiResponse[]>,
       apiFetch("/deals") as Promise<DealApiResponse[]>,
+      apiFetch(`/menuitems/location/${id}`) as Promise<MenuItemApiResponse[]>,
+      apiFetch("/menuitems/types") as Promise<MenuItemTypeApiResponse[]>,
     ]);
 
     const locationEvents = events.filter((e: EventApiResponse) => e.location_id === location.id);
@@ -246,6 +263,31 @@ export async function getBarById(id: string): Promise<Bar | null> {
           },
     }));
 
+    const groupedMenuItems = new Map<string, { id: string; name: string; desc?: string }[]>();
+
+    const menuTypeNameById = new Map<number, string>(
+      menuItemTypes.map((type) => [type.id, type.name])
+    );
+
+    menuItems
+      .filter((item) => item.is_available !== false)
+      .forEach((item) => {
+        const sectionTitle = menuTypeNameById.get(item.menu_item_type_id) || "Menu";
+        const sectionItems = groupedMenuItems.get(sectionTitle) ?? [];
+        sectionItems.push({
+          id: String(item.id),
+          name: item.name,
+          desc: item.description ?? undefined,
+        });
+        groupedMenuItems.set(sectionTitle, sectionItems);
+      });
+
+    const menuSections = Array.from(groupedMenuItems.entries()).map(([title, items], index) => ({
+      id: `${title.toLowerCase().replace(/\s+/g, "-")}-${index}`,
+      title,
+      items,
+    }));
+
     return {
       id: String(location.id),
       name: location.name,
@@ -253,6 +295,10 @@ export async function getBarById(id: string): Promise<Bar | null> {
       open: location.open,
       dealsScheduled,
       eventsScheduled,
+      menu: {
+        sections: menuSections,
+      },
+      location_type_id: location.location_type_id,
     } as Bar;
   } catch (error) {
     console.error(`Failed to fetch bar ${id}:`, error);
