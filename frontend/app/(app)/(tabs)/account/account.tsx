@@ -43,6 +43,8 @@ export default function AccountScreen() {
     const [actionLoadingFriendId, setActionLoadingFriendId] = useState<number | null>(null);
     const [isModalVisible, setModalVisible] = useState(false);
     const [modalSearchQuery, setModalSearchQuery] = useState('');
+    const [isPendingModalVisible, setIsPendingModalVisible] = useState(false);
+    const [pendingSearchQuery, setPendingSearchQuery] = useState('');
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -126,6 +128,7 @@ export default function AccountScreen() {
     const filteredFriends: Friend[] = friends.filter((f: Friend) =>
         (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const normalizedPendingQuery = pendingSearchQuery.trim().toLowerCase();
 
     return (
         <>
@@ -141,7 +144,7 @@ export default function AccountScreen() {
                         style={styles.profileImage}
                     />
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+                        <Text style={styles.profileName}>{user?.name || 'Loading!'}</Text>
                         <Text style={styles.profileUserName}>{user?.username || ''}</Text>
                     </View>
                     <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
@@ -160,7 +163,7 @@ export default function AccountScreen() {
 
                     <TouchableOpacity
                         style={styles.statButton}
-                        onPress={() => { }}
+                        onPress={() => setIsPendingModalVisible(true)}
                     >
                         <Text style={styles.statNumber}>{pendingRequests.length}</Text>
                         <Text style={styles.statLabelSmall}>pending</Text>
@@ -196,64 +199,6 @@ export default function AccountScreen() {
                         <FontAwesome name="map-marker" size={40} color={Theme.dark.muted} />
                     </View>
                 </View>
-
-                {pendingLoading ? (
-                    <View style={styles.emptyContainer}>
-                        <ActivityIndicator size="small" color="#33CCFF" />
-                        <Text style={styles.emptyText}>Loading requests...</Text>
-                    </View>
-                ) : pendingRequests.length > 0 ? (
-                    pendingRequests.map((request, index) => {
-                        const requestUser = getOtherUserFromRequest(request);
-                        const requestUserId = Number(requestUser?.id);
-                        const isActionLoading = actionLoadingFriendId === requestUserId;
-
-                        return (
-                            <View key={`${request.user_id_1}-${request.user_id_2}-${index}`} style={styles.requestCard}>
-                                <View style={styles.requestHeader}>
-                                    <Image
-                                        source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
-                                        style={styles.friendAvatar}
-                                    />
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
-                                        <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.requestActionsRow}>
-                                    <TouchableOpacity
-                                        style={[styles.requestActionButton, styles.acceptButton]}
-                                        disabled={isActionLoading}
-                                        onPress={() => handleRequestAction(request, 'accept')}
-                                    >
-                                        <Text style={styles.requestActionText}>Accept</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.requestActionButton, styles.declineButton]}
-                                        disabled={isActionLoading}
-                                        onPress={() => handleRequestAction(request, 'decline')}
-                                    >
-                                        <Text style={styles.requestActionText}>Decline</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.requestActionButton, styles.blockButton]}
-                                        disabled={isActionLoading}
-                                        onPress={() => handleRequestAction(request, 'block')}
-                                    >
-                                        <Text style={styles.requestActionText}>Block</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        );
-                    })
-                ) : (
-                    <View style={styles.emptyContainer}>
-                        {/* <Text style={styles.emptyText}>No pending friend requests</Text> */}
-                    </View>
-                )}
 
             </ScrollView>
 
@@ -313,6 +258,111 @@ export default function AccountScreen() {
                                     nestedScrollEnabled
                                     ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
                                 />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            <Modal
+                visible={isPendingModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsPendingModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setIsPendingModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback onPress={() => { }}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Pending Requests</Text>
+                                    <TouchableOpacity onPress={() => setIsPendingModalVisible(false)}>
+                                        <Text style={styles.closeButton}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalSearchContainer}>
+                                    <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} />
+                                    <TextInput
+                                        style={styles.modalSearchBar}
+                                        placeholder="Search pending!"
+                                        placeholderTextColor={Theme.search.inactiveInput}
+                                        value={pendingSearchQuery}
+                                        onChangeText={setPendingSearchQuery}
+                                    />
+                                </View>
+
+                                {pendingLoading ? (
+                                    <View style={styles.emptyContainer}>
+                                        <ActivityIndicator size="small" color="#33CCFF" />
+                                        <Text style={styles.emptyText}>Loading requests!</Text>
+                                    </View>
+                                ) : pendingRequests.length > 0 ? (
+                                    <FlatList
+                                        data={pendingRequests.filter((request) => {
+                                            if (!normalizedPendingQuery) return true;
+                                            const requestUser = getOtherUserFromRequest(request);
+                                            return (
+                                                (requestUser?.name ?? '').toLowerCase().includes(normalizedPendingQuery) ||
+                                                (requestUser?.username ?? '').toLowerCase().includes(normalizedPendingQuery)
+                                            );
+                                        })}
+                                        keyExtractor={(item, index) => `${item.user_id_1}-${item.user_id_2}-${index}`}
+                                        renderItem={({ item: request }) => {
+                                            const requestUser = getOtherUserFromRequest(request);
+                                            const requestUserId = Number(requestUser?.id);
+                                            const isActionLoading = actionLoadingFriendId === requestUserId;
+
+                                            return (
+                                                <View style={styles.requestCard}>
+                                                    <View style={styles.requestHeader}>
+                                                        <Image
+                                                            source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
+                                                            style={styles.friendAvatar}
+                                                        />
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
+                                                            <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
+                                                        </View>
+                                                    </View>
+
+                                                    <View style={styles.requestActionsRow}>
+                                                        <TouchableOpacity
+                                                            style={[styles.requestActionButton, styles.acceptButton]}
+                                                            disabled={isActionLoading}
+                                                            onPress={() => handleRequestAction(request, 'accept')}
+                                                        >
+                                                            <Text style={styles.requestActionText}>Accept</Text>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[styles.requestActionButton, styles.declineButton]}
+                                                            disabled={isActionLoading}
+                                                            onPress={() => handleRequestAction(request, 'decline')}
+                                                        >
+                                                            <Text style={styles.requestActionText}>Decline</Text>
+                                                        </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[styles.requestActionButton, styles.blockButton]}
+                                                            disabled={isActionLoading}
+                                                            onPress={() => handleRequestAction(request, 'block')}
+                                                        >
+                                                            <Text style={styles.requestActionText}>Block</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            );
+                                        }}
+                                        scrollEnabled
+                                        nestedScrollEnabled
+                                        ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
+                                    />
+                                ) : (
+                                    <View style={styles.emptyContainer}>
+                                        <Text style={styles.emptyText}>no pending requests</Text>
+                                    </View>
+                                )}
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
@@ -635,8 +685,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 12,
         paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: Theme.container.mainBorder,
+        borderTopWidth: 1,
+        borderColor: Theme.container.mainBorder,
     },
     modalFriendAvatar: {
         width: 40,
@@ -654,65 +704,4 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 2,
     },
-    // gridRow: {
-    //     flexDirection: 'row',
-    //     justifyContent: 'space-between',
-    //     marginBottom: 15,
-    //     gap: 15,
-    //     paddingHorizontal: 4,
-    // },
-    // featureCard: {
-    //     flex: 1,
-    //     backgroundColor: Theme.container.background,
-    //     borderRadius: 12,
-    //     padding: 15,
-    //     minHeight: 130,
-    //     borderWidth: 1,
-    //     borderColor: Theme.container.mainBorder,
-    // },
-    // featureTitle: {
-    //     color: Theme.dark.white,
-    //     fontSize: 14,
-    //     fontWeight: '600',
-    //     marginBottom: 10,
-    // },
-    // placeholderPhoto: {
-    //     flex: 1,
-    //     backgroundColor: Theme.search.background,
-    //     borderRadius: 8,
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    //     marginTop: 5,
-    // },
-    // streakContent: {
-    //     flex: 1,
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    // },
-    // streakNumber: {
-    //     color: Theme.dark.tertiary,
-    //     fontSize: 32,
-    //     fontWeight: 'bold',
-    // },
-    // statLabel: {
-    //     color: Theme.container.inactiveText,
-    //     fontSize: 12,
-    //     textAlign: 'center',
-    // },
-    // largeCard: {
-    //     backgroundColor: Theme.container.background,
-    //     borderRadius: 12,
-    //     padding: 15,
-    //     height: 160,
-    //     marginBottom: 15,
-    //     borderWidth: 1,
-    //     borderColor: Theme.container.mainBorder,
-    // },
-    // largePlaceholder: {
-    //     flex: 1,
-    //     backgroundColor: Theme.search.background,
-    //     borderRadius: 8,
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    // },
 });
