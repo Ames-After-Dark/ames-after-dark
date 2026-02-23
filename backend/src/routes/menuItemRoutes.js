@@ -14,7 +14,4 @@ router.post('/', menuItemController.createMenuItem);        // Create
 router.put('/:id', menuItemController.updateMenuItem);      // Update
 router.delete('/:id', menuItemController.deleteMenuItem);   // Delete
 
-
-
-
 module.exports = router;
