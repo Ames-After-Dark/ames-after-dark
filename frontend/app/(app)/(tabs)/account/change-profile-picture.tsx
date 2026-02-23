@@ -6,7 +6,7 @@ export default function ChangeProfilePictureScreen() {
     <View style={styles.container}>
                   <Stack.Screen
                       options={{
-                          title: 'Change Profile Puctyre',
+                          title: 'Change Profile Picture',
                           headerBackTitle: 'Settings',
                           headerStyle: {
                               backgroundColor: '#0b0b12',

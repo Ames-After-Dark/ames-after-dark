@@ -94,6 +94,39 @@ export async function getUserById(userId: string | number) {
   }
 }
 
+/**
+ * Updates a user data
+ * option to update username, bio or email
+ * can send any individually or together
+ */
+export interface UpdateUserPayload {
+  username?: string;
+  bio?: string;
+  email?: string;
+}
+
+export const updateUser = async (
+  userId: string | number,
+  updates: UpdateUserPayload
+) => {
+  // Remove undefined fields
+  const filteredUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, value]) => value !== undefined)
+  );
+
+  // Call apiFetch (it should already handle JSON + errors)
+  const data = await apiFetch(`/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(filteredUpdates),
+  });
+
+  return data;
+};
+
+
 export async function getMutualFriends(viewerId: string | number, profileId: string | number): Promise<Friend[]> {
   try {
     // Fetch both lists in parallel for better performance
