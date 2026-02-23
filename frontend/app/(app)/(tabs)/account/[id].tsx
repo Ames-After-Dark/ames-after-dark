@@ -37,16 +37,11 @@ import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-<<<<<<< connect_accounts
     const [searchQuery, setSearchQuery] = useState<string>('');
-=======
->>>>>>> main
     const [user, setUser] = useState<any | null>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
-
-<<<<<<< connect_accounts
     useEffect(() => {
         if (id && typeof id === 'string') {
             const fetchUserData = async () => {
@@ -66,7 +61,6 @@ export default function FriendProfileScreen() {
                 }
             };
             fetchUserData();
-=======
     // Modal State
     const [isModalVisible, setModalVisible] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
@@ -159,18 +153,7 @@ export default function FriendProfileScreen() {
             console.error("Failed to add friend:", err);
             // Keep Alert for errors only
             Alert.alert("Error", "Could not send friend request.");
->>>>>>> main
-        }
-    };
-
-<<<<<<< connect_accounts
-    if (loading) {
-        return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <ActivityIndicator size="large" color="#33CCFF" />
-            </View>
-=======
-    const handleRemoveFriend = async () => {
+ handleRemoveFriend = async () => {
         const friendId = Number(id);
         if (!friendId || Number.isNaN(friendId)) {
             Alert.alert("Error", "Invalid friend ID.");
@@ -200,7 +183,6 @@ export default function FriendProfileScreen() {
                     }
                 }
             ]
->>>>>>> main
         );
     };
 
@@ -298,53 +280,6 @@ export default function FriendProfileScreen() {
             setFriendActionLoading(false);
         }
     };
-
-<<<<<<< connect_accounts
-    if (error || !user) {
-        return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <Text style={styles.emptyText}>Failed to load user profile</Text>
-            </View>
-        );
-    }
-
-    const filteredFriends: Friend[] = friends.filter((f: Friend) =>
-        (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            showsVerticalScrollIndicator={false}
-        >
-
-        <View style={styles.headerRow}>
-            <Image 
-                source={user.avatar || require('../../../../assets/images/Logo.png')} 
-                style={styles.profileImage} 
-            />
-            <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>{user.name || 'Unknown User'}</Text>
-                <Text style={styles.profileEmail}>{user.email || ''}</Text>
-            </View>
-        </View>
-
-        <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>{user.bio || 'No bio available'}</Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-            <FontAwesome name="search" size={18} color="#888" />
-            <TextInput
-                style={styles.searchBar}
-                placeholder={`Search ${user.name || 'user'}'s friends`}
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-            />
-        </View>
-=======
     useEffect(() => {
         if (id) {
             const userId = Number(id);
@@ -420,7 +355,6 @@ export default function FriendProfileScreen() {
             )}
 
             <ScrollView contentContainerStyle={styles.content}>
->>>>>>> main
 
                 {/* --- SHARED HEADER (Used for both Friend & Stranger) --- */}
                 {/* 1. HEADER ROW (Just Profile Pic & Name now) */}
@@ -435,35 +369,6 @@ export default function FriendProfileScreen() {
                     </View>
                 </View>
 
-<<<<<<< connect_accounts
-        {filteredFriends.length > 0 ? (
-            filteredFriends.map((friend: Friend, index: number) => (
-                <TouchableOpacity
-                    key={`${friend.id}-${index}`}
-                    style={styles.friendCard}
-                    activeOpacity={0.7}
-                    onPress={() => router.push(`/account/${friend.id}`)}
-                >
-                <Image
-                    source={friend.avatar || require('../../../../assets/images/Logo.png')}
-                    style={styles.friendAvatar}
-                />
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>{friend.name || 'Unknown'}</Text>
-                    <Text
-                        style={[
-                            styles.friendStatus,
-                            { color: friend.status === 'Online' ? '#33CCFF' : '#aaa' },
-                        ]}
-                    >
-                        {friend.status || 'Offline'}
-                    </Text>
-                    {friend.mutualFriends !== undefined && (
-                        <Text style={styles.mutualText}>
-                            {friend.mutualFriends} mutual friends
-                        </Text>
-                    )}
-=======
                 {/* 2. NEW STATS ROW (Moved here, below header) */}
                 <View style={styles.statsRow}>
                     <TouchableOpacity
@@ -489,7 +394,6 @@ export default function FriendProfileScreen() {
                         <Text style={styles.statNumber}>{friends.length}</Text>
                         <Text style={styles.statLabelSmall}>total</Text>
                     </TouchableOpacity>
->>>>>>> main
                 </View>
 
                 {/* --- CONDITIONAL BODY CONTENT --- */}
