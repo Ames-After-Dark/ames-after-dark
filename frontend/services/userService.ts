@@ -1,11 +1,6 @@
 import { apiFetch } from './apiClient';
 import { Friend } from '@/types/types';
 
-<<<<<<< connect_accounts
-export async function getUserFriends(userId: string | number): Promise<Friend[]> {
-  try {
-    const friends = await apiFetch(`/users/${userId}/friends`);
-=======
 export interface PendingFriendRequest {
   user_id_1: number;
   user_id_2: number;
@@ -82,7 +77,6 @@ export async function removeFriend(userId: string | number, friendId: string | n
 export async function getUserFriends(userId: string | number): Promise<Friend[]> {
   try {
     const friends = await apiFetch(`/friendships/${userId}/friends`);
->>>>>>> main
     return Array.isArray(friends) ? friends : [];
   } catch (error) {
     console.error(`Failed to fetch friends for user ${userId}:`, error);
@@ -99,7 +93,7 @@ export async function getUserById(userId: string | number) {
     throw error;
   }
 }
-<<<<<<< connect_accounts
+
 /**
  * Updates a user data
  * option to update username, bio or email
@@ -132,7 +126,6 @@ export const updateUser = async (
   return data;
 };
 
-=======
 
 export async function getMutualFriends(viewerId: string | number, profileId: string | number): Promise<Friend[]> {
   try {
@@ -182,4 +175,3 @@ export async function signupUser(username: string) {
   }
 }
 // TEMP_AUTH_END
->>>>>>> main

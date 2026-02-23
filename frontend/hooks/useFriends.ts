@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { getUserFriends } from '@/services/userService';
 import { Friend } from '@/types/types';

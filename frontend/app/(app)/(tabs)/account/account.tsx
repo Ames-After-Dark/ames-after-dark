@@ -175,11 +175,6 @@ export default function AccountScreen() {
                     <Text style={styles.bioText}>
                         {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
                     </Text>
-                    {friend.mutualFriends !== undefined && (
-                        <Text style={styles.mutualText}>
-                            {friend.mutualFriends} mutual friends
-                        </Text>
-                    )}
                 </View>
 
                 <View style={styles.gridRow}>

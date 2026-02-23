@@ -15,10 +15,7 @@ import {
     Alert
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { router, useLocalSearchParams, Stack } from 'expo-router';
-
-import { Friend } from '@/types/types';
-import { getUserById, getUserFriends } from '@/services/userService';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Friend } from '@/types/types';
@@ -36,30 +33,11 @@ import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const [searchQuery, setSearchQuery] = useState<string>('');
     const [user, setUser] = useState<any | null>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
-    useEffect(() => {
-        if (id && typeof id === 'string') {
-            const fetchUserData = async () => {
-                setLoading(true);
-                setError(null);
-                try {
-                    const [userData, friendsData] = await Promise.all([
-                        getUserById(id),
-                        getUserFriends(id)
-                    ]);
-                    setUser(userData);
-                    setFriends(friendsData || []);
-                } catch (err) {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch user data'));
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchUserData();
+
     // Modal State
     const [isModalVisible, setModalVisible] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
@@ -87,7 +65,7 @@ export default function FriendProfileScreen() {
     const [toastIcon, setToastIcon] = useState('check'); // Default icon name
 
     const triggerToast = (message: string, icon: string = 'check') => {
-        
+
         setToastMessage(message);
         setToastIcon(icon);
         setShowToast(true);
@@ -152,7 +130,10 @@ export default function FriendProfileScreen() {
             console.error("Failed to add friend:", err);
             // Keep Alert for errors only
             Alert.alert("Error", "Could not send friend request.");
- handleRemoveFriend = async () => {
+        }
+    };
+
+    const handleRemoveFriend = async () => {
         const friendId = Number(id);
         if (!friendId || Number.isNaN(friendId)) {
             Alert.alert("Error", "Invalid friend ID.");
@@ -279,6 +260,7 @@ export default function FriendProfileScreen() {
             setFriendActionLoading(false);
         }
     };
+
     useEffect(() => {
         if (id) {
             const userId = Number(id);
