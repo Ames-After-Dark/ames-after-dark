@@ -15,15 +15,12 @@ import {
     Alert
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-<<<<<<< connect_accounts
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 
 import { Friend } from '@/types/types';
 import { getUserById, getUserFriends } from '@/services/userService';
-=======
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
->>>>>>> main
 
 import { Friend } from '@/types/types';
 import {
