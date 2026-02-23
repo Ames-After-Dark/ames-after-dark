@@ -53,13 +53,13 @@ model friendships {
 }
 
 model location_hours {
-  id             Int       @id(map: "pkey_location_hours") @default(autoincrement())
-  open_time_utc  DateTime  @db.Time(6)
-  close_time_utc DateTime  @db.Time(6)
-  weekday_id     Int?
-  location_id    Int
-  locations      locations @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bar_fk")
-  weekdays       weekdays? @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
+  id          Int       @id(map: "pkey_location_hours") @default(autoincrement())
+  weekday_id  Int
+  location_id Int
+  open_time   String    @db.VarChar(5)
+  close_time  String    @db.VarChar(5)
+  locations   locations @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bar_fk")
+  weekdays    weekdays  @relation(fields: [weekday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_weekday")
 
   @@schema("app")
 }
@@ -73,27 +73,29 @@ model location_types {
 }
 
 model locations {
-  name             String            @db.VarChar
-  id               Int               @id(map: "pkey_locations") @default(autoincrement())
-  address          String?           @db.VarChar
-  latitude         Decimal?          @db.Decimal
-  longitude        Decimal?          @db.Decimal
-  description      String?           @db.VarChar
-  open             Boolean?
-  tags             String[]          @db.VarChar
-  views            Int?              @default(0)
-  nickname         String?           @db.VarChar
-  location_type_id Int?
-  zone_id          Int?
-  deals            deals[]
-  events           events[]
-  location_admins  location_admins[]
-  location_hours   location_hours[]
-  location_types   location_types?   @relation(fields: [location_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location_type")
-  zones            zones?            @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  menu_items       menu_items[]
-  user_favorites   user_favorites[]
-  users            users[]
+  name                     String                     @db.VarChar
+  id                       Int                        @id(map: "pkey_locations") @default(autoincrement())
+  address                  String?                    @db.VarChar
+  latitude                 Decimal?                   @db.Decimal
+  longitude                Decimal?                   @db.Decimal
+  description              String?                    @db.VarChar
+  open                     Boolean?
+  tags                     String[]                   @db.VarChar
+  views                    Int?                       @default(0)
+  nickname                 String?                    @db.VarChar
+  location_type_id         Int?
+  zone_id                  Int?
+  timezone                 String?                    @default("UTC") @db.VarChar(50)
+  deals                    deals[]
+  events                   events[]
+  location_admins          location_admins[]
+  location_hours           location_hours[]
+  location_hours_overrides location_hours_overrides[]
+  location_types           location_types?            @relation(fields: [location_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location_type")
+  zones                    zones?                     @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menu_items               menu_items[]
+  user_favorites           user_favorites[]
+  users                    users[]
 
   @@schema("app")
 }
@@ -257,5 +259,17 @@ model event_occurrences {
 
   @@unique([event_id, start_time_utc, end_time_utc])
   @@index([start_time_utc, end_time_utc], map: "idx_event_occurrences_time")
+  @@schema("app")
+}
+
+model location_hours_overrides {
+  id             Int       @id @default(autoincrement())
+  location_id    Int
+  start_time_utc DateTime  @db.Timestamptz(6)
+  end_time_utc   DateTime  @db.Timestamptz(6)
+  reason         String?   @db.VarChar(255)
+  is_open        Boolean   @default(true)
+  locations      locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@schema("app")
 }
