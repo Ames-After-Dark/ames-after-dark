@@ -149,12 +149,6 @@ export default function AccountScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.bioContainer}>
-                    <Text style={styles.bioText}>
-                        {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
-                    </Text>
-                </View>
-
                 <View style={styles.statsRow}>
                     <TouchableOpacity
                         style={styles.statButton}
@@ -171,6 +165,12 @@ export default function AccountScreen() {
                         <Text style={styles.statNumber}>{pendingRequests.length}</Text>
                         <Text style={styles.statLabelSmall}>pending</Text>
                     </TouchableOpacity>
+                </View>
+
+                <View style={styles.bioContainer}>
+                    <Text style={styles.bioText}>
+                        {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
+                    </Text>
                 </View>
 
                 <View style={styles.gridRow}>
@@ -350,20 +350,98 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     bioContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        padding: 14,
         backgroundColor: Theme.container.background,
+        padding: 14,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
+        marginBottom: 15,
     },
     bioText: {
         color: Theme.container.titleText,
         fontSize: 14,
         fontStyle: 'italic',
         lineHeight: 20,
+    },
+    gridRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+        gap: 15,
+    },
+    featureCard: {
+        flex: 1,
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        padding: 15,
+        minHeight: 130,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    featureTitle: {
+        color: Theme.dark.white,
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    placeholderPhoto: {
+        flex: 1,
+        backgroundColor: Theme.search.background,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    streakContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    streakNumber: {
+        color: Theme.dark.tertiary,
+        fontSize: 32,
+        fontWeight: 'bold',
+    },
+    statLabel: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    largeCard: {
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        padding: 15,
+        height: 160,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    largePlaceholder: {
+        flex: 1,
+        backgroundColor: Theme.search.background,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    verticalListContainer: {
+        marginTop: 10,
+        gap: 12,
+    },
+    wideFeatureCard: {
+        backgroundColor: Theme.container.background,
+        borderRadius: 16,
+        padding: 22,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    lockSubtext: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: 2,
     },
     searchContainer: {
         flexDirection: 'row',
@@ -387,16 +465,17 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         marginVertical: 16,
         paddingHorizontal: 4,
+        gap: 12,
     },
     statButton: {
-        alignItems: 'center',
         flex: 1,
-        paddingVertical: 12,
-        marginHorizontal: 6,
         backgroundColor: Theme.container.background,
+        paddingVertical: 12,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     statNumber: {
         color: Theme.dark.white,
@@ -575,65 +654,65 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 2,
     },
-    gridRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 15,
-        gap: 15,
-        paddingHorizontal: 4,
-    },
-    featureCard: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        minHeight: 130,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    featureTitle: {
-        color: Theme.dark.white,
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    placeholderPhoto: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 5,
-    },
-    streakContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    streakNumber: {
-        color: Theme.dark.tertiary,
-        fontSize: 32,
-        fontWeight: 'bold',
-    },
-    statLabel: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    largeCard: {
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        height: 160,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    largePlaceholder: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    // gridRow: {
+    //     flexDirection: 'row',
+    //     justifyContent: 'space-between',
+    //     marginBottom: 15,
+    //     gap: 15,
+    //     paddingHorizontal: 4,
+    // },
+    // featureCard: {
+    //     flex: 1,
+    //     backgroundColor: Theme.container.background,
+    //     borderRadius: 12,
+    //     padding: 15,
+    //     minHeight: 130,
+    //     borderWidth: 1,
+    //     borderColor: Theme.container.mainBorder,
+    // },
+    // featureTitle: {
+    //     color: Theme.dark.white,
+    //     fontSize: 14,
+    //     fontWeight: '600',
+    //     marginBottom: 10,
+    // },
+    // placeholderPhoto: {
+    //     flex: 1,
+    //     backgroundColor: Theme.search.background,
+    //     borderRadius: 8,
+    //     justifyContent: 'center',
+    //     alignItems: 'center',
+    //     marginTop: 5,
+    // },
+    // streakContent: {
+    //     flex: 1,
+    //     justifyContent: 'center',
+    //     alignItems: 'center',
+    // },
+    // streakNumber: {
+    //     color: Theme.dark.tertiary,
+    //     fontSize: 32,
+    //     fontWeight: 'bold',
+    // },
+    // statLabel: {
+    //     color: Theme.container.inactiveText,
+    //     fontSize: 12,
+    //     textAlign: 'center',
+    // },
+    // largeCard: {
+    //     backgroundColor: Theme.container.background,
+    //     borderRadius: 12,
+    //     padding: 15,
+    //     height: 160,
+    //     marginBottom: 15,
+    //     borderWidth: 1,
+    //     borderColor: Theme.container.mainBorder,
+    // },
+    // largePlaceholder: {
+    //     flex: 1,
+    //     backgroundColor: Theme.search.background,
+    //     borderRadius: 8,
+    //     justifyContent: 'center',
+    //     alignItems: 'center',
+    // },
 });

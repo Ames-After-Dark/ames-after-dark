@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
         color: Theme.container.inactiveText,
         fontSize: 11,
         fontWeight: '600',
-        textTransform: 'uppercase',
+        // textTransform: 'uppercase',
         marginTop: 2,
     },
 });
