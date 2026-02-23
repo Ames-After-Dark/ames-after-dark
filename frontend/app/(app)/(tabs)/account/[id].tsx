@@ -19,7 +19,6 @@ import { router, useLocalSearchParams, Stack } from 'expo-router';
 
 import { Friend } from '@/types/types';
 import { getUserById, getUserFriends } from '@/services/userService';
-import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Friend } from '@/types/types';
