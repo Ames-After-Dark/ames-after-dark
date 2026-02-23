@@ -100,6 +100,7 @@ model locations {
   zones            zones?            @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   menu_items       menu_items[]
   user_favorites   user_favorites[]
+  users            users[]
 
   @@schema("app")
 }
@@ -132,6 +133,8 @@ model users {
   email                                                      String?                @unique @db.VarChar(255)
   name                                                       String?                @db.VarChar(255)
   birthday                                                   DateTime?              @db.Date
+  favorite_profile_location_id                               Int?
+  favorite_profile_drink                                     String?
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
   location_admins                                            location_admins[]
@@ -141,6 +144,7 @@ model users {
   user_locations                                             user_locations?
   user_settings                                              user_settings?
   roles                                                      roles?                 @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
+  locations                                                  locations?             @relation(fields: [favorite_profile_location_id], references: [id], onUpdate: NoAction)
 
   @@schema("app")
 }
