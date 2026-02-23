@@ -22,8 +22,13 @@ import { router } from "expo-router";
 
 import { FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
 import { useTonightData } from "@/hooks/useTonightData";
+import { useFriends } from "@/hooks/useFriends";
+import { useBars } from "@/hooks/useBars";
+import { getLogoAssetForLocationName } from "@/utils/locationLogos";
+import { getNow, isActive, isBarOpen } from "@/config/time";
 
 import { Theme } from "@/constants/theme";
+import type { Friend } from "@/types/types";
 
 // Tabs
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
@@ -36,14 +41,25 @@ const TAB_META = [
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = (typeof TAB_META)[number]["key"];
 
+const CURRENT_USER_ID = 1;
+
 export default function Tonight() {
   // Which tab the user is on
-  const [activeTab, setActiveTab] = useState<TabKey>("open");
+  const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
 
   // Fetch data from database using the custom hook
   const { barsWithTonightData, loading, error } = useTonightData();
+  const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
+  const {
+    friends,
+    loading: friendsLoading,
+    error: friendsError,
+  } = useFriends(CURRENT_USER_ID);
+
+  const hasError = !!error || !!friendsError;
+  const isLoading = loading || friendsLoading || scheduledBarsLoading;
 
   // ----- Compute “active” and “hasDeal” dynamically -----
   // We start from base bar data and compute per-bar values for *this moment*:
@@ -76,22 +92,88 @@ export default function Tonight() {
   }, [activeTab, query, barsWithTonightData]);
 
   // ----- Filter friends -----
-  // If the "Friends" tab is active, we search FRIENDS by name or bar.
+  // If the "Friends" tab is active, we search fetched friends by name/username.
   const filteredFriends = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let data = FRIENDS;
+    let data: Friend[] = friends;
     if (q) {
       data = data.filter(
         (f) =>
-          f.name.toLowerCase().includes(q) ||
-          f.bar.toLowerCase().includes(q)
+          (f.name ?? "").toLowerCase().includes(q) ||
+          (f.username ?? "").toLowerCase().includes(q)
       );
     }
     return data;
-  }, [query]);
+  }, [query, friends]);
+
+  const upcomingDealsData = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const now = getNow();
+    const baseNight = new Date(now);
+    baseNight.setHours(21, 0, 0, 0);
+
+    const nextOpenNight = (() => {
+      for (let offset = 1; offset <= 14; offset++) {
+        const candidate = new Date(baseNight);
+        candidate.setDate(baseNight.getDate() + offset);
+        if (scheduledBars.some((bar) => isBarOpen(bar, candidate))) {
+          return candidate;
+        }
+      }
+      return null;
+    })();
+
+    if (!nextOpenNight) {
+      return {
+        label: "Upcoming Deals",
+        deals: [] as Array<{
+          id: string;
+          barId: string;
+          bar: string;
+          title: string;
+          subtitle: string;
+        }>,
+      };
+    }
+
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+
+    let deals = scheduledBars.flatMap((bar) => {
+      if (!isBarOpen(bar, nextOpenNight)) return [];
+      const activeDeals = (bar.dealsScheduled ?? []).filter((deal) =>
+        isActive(deal.rule, nextOpenNight)
+      );
+
+      return activeDeals.map((deal) => ({
+        id: `${bar.id}-${deal.id}`,
+        barId: String(bar.id),
+        bar: bar.name,
+        title: deal.title,
+        subtitle: deal.subtitle ?? "",
+      }));
+    });
+
+    if (q) {
+      deals = deals.filter(
+        (item) =>
+          item.bar.toLowerCase().includes(q) ||
+          item.title.toLowerCase().includes(q) ||
+          item.subtitle.toLowerCase().includes(q)
+      );
+    }
+
+    return {
+      label: `Upcoming Deals • ${formatter.format(nextOpenNight)}`,
+      deals,
+    };
+  }, [query, scheduledBars]);
 
   // Navigation helpers
-  const goToBarDetail = (id: BarId) =>
+  const goToBarDetail = (id: string) =>
     router.push({
       pathname: "/bars/[id]",
       params: { id },
@@ -105,7 +187,7 @@ export default function Tonight() {
       edges={["left", "right"]}
     >
       {/* Loading state */}
-      {loading && (
+      {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.dark.primary} />
           <Text style={styles.loadingText}>Loading tonight's events...</Text>
@@ -113,7 +195,7 @@ export default function Tonight() {
       )}
 
       {/* Error state */}
-      {error && !loading && (
+      {hasError && !isLoading && (
         <View style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
@@ -126,7 +208,7 @@ export default function Tonight() {
       )}
 
       {/* Main content */}
-      {!loading && !error && (
+      {!isLoading && !hasError && (
         <ScrollView
           stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
           contentContainerStyle={{ paddingBottom: 1 }}
@@ -170,7 +252,9 @@ export default function Tonight() {
                 return (
                   <Pressable
                     key={t.key}
-                    onPress={() => setActiveTab(t.key)}
+                    onPress={() =>
+                      setActiveTab((prev) => (prev === t.key ? null : t.key))
+                    }
                     style={[styles.tabBtn, active && styles.tabBtnActive]}
                   >
                     <Text
@@ -212,19 +296,67 @@ export default function Tonight() {
           </View>
 
           {/* Content area switches between "friends list" and "bars list" */}
-          {activeTab === "friends" ? (
+          {activeTab === null ? (
+            <View style={styles.cardsList}>
+              <Text style={styles.upcomingTitle}>{upcomingDealsData.label}</Text>
+              {upcomingDealsData.deals.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={[styles.card, styles.cardDealsVariant]}
+                  onPress={() => goToBarDetail(item.barId)}
+                >
+                  <Image
+                    source={getLogoAssetForLocationName(item.bar)}
+                    style={styles.cardImg}
+                    resizeMode="cover"
+                  />
+
+                  <View style={{ flex: 1, justifyContent: "center" }}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardSubtitle}>{item.bar}</Text>
+                    {!!item.subtitle && (
+                      <Text style={styles.cardDetail}>{item.subtitle}</Text>
+                    )}
+                    <View style={styles.dealChip}>
+                      <Ionicons
+                        name="pricetags-outline"
+                        size={12}
+                        color="#22d3ee"
+                      />
+                      <Text style={styles.dealChipText}>UPCOMING</Text>
+                    </View>
+                  </View>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Theme.search.inactiveInput}
+                  />
+                </Pressable>
+              ))}
+
+              {!upcomingDealsData.deals.length && (
+                <Text style={styles.emptyText}>No upcoming deals found.</Text>
+              )}
+            </View>
+          ) : activeTab === "friends" ? (
             // -------- Friends View --------
             <View style={styles.friendsList}>
               {filteredFriends.map((f) => (
                 <Pressable
-                  key={f.id}
+                  key={String(f.id)}
                   onPress={goToFriendsTab} // For now, tapping a friend routes to the Friends tab
                   style={styles.friendTile}
                 >
-                  <Image source={f.avatar!} style={styles.friendAvatar} />
+                  <Image
+                    source={f.avatar || require("@/assets/images/Logo.png")}
+                    style={styles.friendAvatar}
+                  />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>{f.name}</Text>
-                    <Text style={styles.friendBar}>{f.bar}</Text>
+                    <Text style={styles.friendName}>
+                      {f.name || f.username || "Friend"}
+                    </Text>
+                    <Text style={styles.friendBar}>{f.status || "Offline"}</Text>
                   </View>
                   <Ionicons
                     name="chevron-forward"
@@ -256,11 +388,15 @@ export default function Tonight() {
                   <Pressable
                     key={item.id}
                     style={[styles.card, isDealsView && styles.cardDealsVariant]}
-                    onPress={() => goToBarDetail(item.id as BarId)}
+                    onPress={() => goToBarDetail(item.id)}
                   >
                     {/* Left: bar logo */}
                     <Image
-                      source={item.image ? { uri: item.image } : require("@/assets/images/Logo.png")}
+                      source={
+                        item.image
+                          ? { uri: item.image }
+                          : getLogoAssetForLocationName(item.bar)
+                      }
                       style={styles.cardImg}
                       resizeMode="cover"
                     />
@@ -536,6 +672,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 24,
     fontSize: 13,
+  },
+  upcomingTitle: {
+    color: Theme.container.titleText,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   
 });

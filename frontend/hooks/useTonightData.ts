@@ -61,7 +61,7 @@ export function useTonightData() {
         bar: location.name,
         event: locationEvents[0]?.name ?? "",
         specials: locationDeals[0]?.title ?? "",
-        isOpen: true, // Since we're using /locations/open endpoint
+        isOpen: !!location.isOpen,
         hasDeal: locationDeals.length > 0,
         image: location.logoUrl,
       } as TonightBarData;
