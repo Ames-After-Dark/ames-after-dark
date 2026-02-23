@@ -34,7 +34,7 @@ export default function BarMenuScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <Text style={styles.loading}>Loading menu…</Text>
+        <Text style={styles.loading}>Loading menu!</Text>
       </View>
     );
   }

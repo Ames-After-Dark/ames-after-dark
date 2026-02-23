@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     menuButton: {
     marginTop: 4,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 12,
     backgroundColor: Theme.dark.secondary,
     alignItems: "center",
     justifyContent: "center",
@@ -256,7 +256,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.3,
   },
-
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background
