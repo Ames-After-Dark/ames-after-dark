@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 12,
         // borderBottomWidth: 1,
-        borderTopWidth: 1,
+        // borderTopWidth: 1,
         borderColor: Theme.container.mainBorder,
         marginBottom: 16,
     },
