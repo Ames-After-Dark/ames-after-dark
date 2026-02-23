@@ -69,10 +69,13 @@ exports.deleteLocation = async (req, res) => {
 
 exports.getOpenLocations = async (req, res) => {
   try {
-    const locations = await locationService.getOpenLocations();
+    // Get UTC from query parameter, fallback to current UTC if not provided
+    const currentUtc = req.query.utc ? new Date(req.query.utc) : new Date();
+    
+    const locations = await locationService.getOpenLocations(currentUtc);
     res.json(locations);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching open locations:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
