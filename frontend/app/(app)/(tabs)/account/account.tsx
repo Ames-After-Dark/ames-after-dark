@@ -10,6 +10,9 @@ import {
     StyleSheet,
     ImageSourcePropType,
     ActivityIndicator,
+    Modal,
+    FlatList,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -38,6 +41,8 @@ export default function AccountScreen() {
     const [pendingRequests, setPendingRequests] = useState<PendingFriendRequest[]>([]);
     const [pendingLoading, setPendingLoading] = useState(false);
     const [actionLoadingFriendId, setActionLoadingFriendId] = useState<number | null>(null);
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [modalSearchQuery, setModalSearchQuery] = useState('');
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -117,163 +122,210 @@ export default function AccountScreen() {
             setActionLoadingFriendId(null);
         }
     };
-    
+
     const filteredFriends: Friend[] = friends.filter((f: Friend) =>
         (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            showsVerticalScrollIndicator={false}
-        >
+        <>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={{ paddingBottom: 80 }}
+                showsVerticalScrollIndicator={false}
+            >
 
-        <View style={styles.headerRow}>
-            <Image
-                source={user?.avatar || require('../../../../assets/images/Logo.png')}
-                style={styles.profileImage}
-            />
-            <View style={{ flex: 1 }}>
-                <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
-                <Text style={styles.profileUserName}>{user?.username || ''}</Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
-                <FontAwesome name="gear" size={24} color="#ccc" />
-            </TouchableOpacity>
-        </View>
+                <View style={styles.headerRow}>
+                    <Image
+                        source={user?.avatar || require('../../../../assets/images/Logo.png')}
+                        style={styles.profileImage}
+                    />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+                        <Text style={styles.profileUserName}>{user?.username || ''}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
+                        <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
+                    </TouchableOpacity>
+                </View>
 
-        <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>
-                {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
-            </Text>
-        </View>
+                <View style={styles.bioContainer}>
+                    <Text style={styles.bioText}>
+                        {user?.bio || 'No bio yet. Add one to tell others about yourself!'}
+                    </Text>
+                </View>
 
-        <View style={styles.searchContainer}>
-            <FontAwesome name="search" size={18} color="#888" />
-            <TextInput
-                style={styles.searchBar}
-                placeholder="Search friends!"
-                placeholderTextColor="#888"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-            />
-        </View>
+                <View style={styles.statsRow}>
+                    <TouchableOpacity
+                        style={styles.statButton}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <Text style={styles.statNumber}>{friends.length}</Text>
+                        <Text style={styles.statLabelSmall}>friends</Text>
+                    </TouchableOpacity>
 
-        <Text style={styles.friendsTitle}>Friends ({filteredFriends.length})</Text>
+                    <TouchableOpacity
+                        style={styles.statButton}
+                        onPress={() => { }}
+                    >
+                        <Text style={styles.statNumber}>{pendingRequests.length}</Text>
+                        <Text style={styles.statLabelSmall}>pending</Text>
+                    </TouchableOpacity>
+                </View>
 
-        <Text style={styles.friendsTitle}>Pending Requests ({pendingRequests.length})</Text>
-
-        {pendingLoading ? (
-            <View style={styles.emptyContainer}>
-                <ActivityIndicator size="small" color="#33CCFF" />
-                <Text style={styles.emptyText}>Loading requests...</Text>
-            </View>
-        ) : pendingRequests.length > 0 ? (
-            pendingRequests.map((request, index) => {
-                const requestUser = getOtherUserFromRequest(request);
-                const requestUserId = Number(requestUser?.id);
-                const isActionLoading = actionLoadingFriendId === requestUserId;
-
-                return (
-                    <View key={`${request.user_id_1}-${request.user_id_2}-${index}`} style={styles.requestCard}>
-                        <View style={styles.requestHeader}>
-                            <Image
-                                source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
-                                style={styles.friendAvatar}
-                            />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
-                                <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.requestActionsRow}>
-                            <TouchableOpacity
-                                style={[styles.requestActionButton, styles.acceptButton]}
-                                disabled={isActionLoading}
-                                onPress={() => handleRequestAction(request, 'accept')}
-                            >
-                                <Text style={styles.requestActionText}>Accept</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.requestActionButton, styles.declineButton]}
-                                disabled={isActionLoading}
-                                onPress={() => handleRequestAction(request, 'decline')}
-                            >
-                                <Text style={styles.requestActionText}>Decline</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.requestActionButton, styles.blockButton]}
-                                disabled={isActionLoading}
-                                onPress={() => handleRequestAction(request, 'block')}
-                            >
-                                <Text style={styles.requestActionText}>Block</Text>
-                            </TouchableOpacity>
+                <View style={styles.gridRow}>
+                    <View style={styles.featureCard}>
+                        <Text style={styles.featureTitle}>fav. drink</Text>
+                        <View style={styles.placeholderPhoto}>
+                            <FontAwesome name="glass" size={24} color={Theme.dark.secondary} />
                         </View>
                     </View>
-                );
-            })
-        ) : (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No pending friend requests</Text>
-            </View>
-        )}
 
-        {loading ? (
-            <View style={styles.emptyContainer}>
-                <ActivityIndicator size="large" color="#33CCFF" />
-                <Text style={styles.emptyText}>Loading friends...</Text>
-            </View>
-        ) : error ? (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Failed to load friends</Text>
-            </View>
-        ) : filteredFriends.length > 0 ? (
-            filteredFriends.map((friend: Friend, index: number) => (
-                <TouchableOpacity
-                    key={`${friend.id}-${index}`}
-                    style={styles.friendCard}
-                    activeOpacity={0.7}
-                    onPress={() => router.push(`/account/${friend.id}`)}
-                >
-                <Image 
-                    source={friend.avatar || require('../../../../assets/images/Logo.png')} 
-                    style={styles.friendAvatar} 
-                />
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>{friend.name || 'Unknown'}</Text>
-                    <Text
-                        style={[
-                            styles.friendStatus,
-                            { color: friend.status === 'Online' ? '#33CCFF' : '#aaa' },
-                        ]}
-                    >
-                    {friend.status || 'Offline'}
-                    </Text>
-                    {friend.mutualFriends !== undefined && (
-                        <Text style={styles.mutualText}>
-                            {friend.mutualFriends} mutual friends
-                        </Text>
-                    )}
+                    <View style={styles.featureCard}>
+                        <Text style={styles.featureTitle}>streak</Text>
+                        <View style={styles.streakContent}>
+                            <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
+                            <Text style={styles.statLabel}>weekends out in a row</Text>
+                        </View>
+                    </View>
                 </View>
-                </TouchableOpacity>
-            ))
-        ) : (
-            <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No friends found :(</Text>
-            </View>
-        )}
-        </ScrollView>
+
+                <View style={styles.largeCard}>
+                    <Text style={styles.featureTitle}>fav. bar w/ official photo</Text>
+                    <View style={styles.largePlaceholder}>
+                        <FontAwesome name="map-marker" size={40} color={Theme.dark.muted} />
+                    </View>
+                </View>
+
+                {pendingLoading ? (
+                    <View style={styles.emptyContainer}>
+                        <ActivityIndicator size="small" color="#33CCFF" />
+                        <Text style={styles.emptyText}>Loading requests...</Text>
+                    </View>
+                ) : pendingRequests.length > 0 ? (
+                    pendingRequests.map((request, index) => {
+                        const requestUser = getOtherUserFromRequest(request);
+                        const requestUserId = Number(requestUser?.id);
+                        const isActionLoading = actionLoadingFriendId === requestUserId;
+
+                        return (
+                            <View key={`${request.user_id_1}-${request.user_id_2}-${index}`} style={styles.requestCard}>
+                                <View style={styles.requestHeader}>
+                                    <Image
+                                        source={requestUser?.avatar || require('../../../../assets/images/Logo.png')}
+                                        style={styles.friendAvatar}
+                                    />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.friendName}>{requestUser?.name || 'Unknown user'}</Text>
+                                        <Text style={styles.friendStatus}>@{requestUser?.username || 'unknown'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.requestActionsRow}>
+                                    <TouchableOpacity
+                                        style={[styles.requestActionButton, styles.acceptButton]}
+                                        disabled={isActionLoading}
+                                        onPress={() => handleRequestAction(request, 'accept')}
+                                    >
+                                        <Text style={styles.requestActionText}>Accept</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.requestActionButton, styles.declineButton]}
+                                        disabled={isActionLoading}
+                                        onPress={() => handleRequestAction(request, 'decline')}
+                                    >
+                                        <Text style={styles.requestActionText}>Decline</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.requestActionButton, styles.blockButton]}
+                                        disabled={isActionLoading}
+                                        onPress={() => handleRequestAction(request, 'block')}
+                                    >
+                                        <Text style={styles.requestActionText}>Block</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        );
+                    })
+                ) : (
+                    <View style={styles.emptyContainer}>
+                        {/* <Text style={styles.emptyText}>No pending friend requests</Text> */}
+                    </View>
+                )}
+
+            </ScrollView>
+
+            <Modal
+                visible={isModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback onPress={() => { }}>
+                            <View style={styles.modalContent}>
+                                <View style={styles.modalHeader}>
+                                    <Text style={styles.modalTitle}>Friends</Text>
+                                    <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                        <Text style={styles.closeButton}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.modalSearchContainer}>
+                                    <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} />
+                                    <TextInput
+                                        style={styles.modalSearchBar}
+                                        placeholder="Search friends!"
+                                        placeholderTextColor={Theme.search.inactiveInput}
+                                        value={modalSearchQuery}
+                                        onChangeText={setModalSearchQuery}
+                                    />
+                                </View>
+
+                                <FlatList
+                                    data={friends.filter((friend: Friend) =>
+                                        friend.name?.toLowerCase().includes(modalSearchQuery.toLowerCase()) ||
+                                        friend.username?.toLowerCase().includes(modalSearchQuery.toLowerCase())
+                                    )}
+                                    keyExtractor={(item, index) => `${item.id}-${index}`}
+                                    renderItem={({ item: friend }) => (
+                                        <TouchableOpacity
+                                            style={styles.modalFriendRow}
+                                            onPress={() => {
+                                                setModalVisible(false);
+                                                router.push(`/account/${friend.id}`);
+                                            }}
+                                        >
+                                            <Image
+                                                source={friend.avatar || require('../../../../assets/images/Logo.png')}
+                                                style={styles.modalFriendAvatar}
+                                            />
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.modalFriendName}>{friend.name || 'Unknown'}</Text>
+                                                <Text style={styles.modalFriendUsername}>@{friend.username || 'unknown'}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )}
+                                    scrollEnabled
+                                    nestedScrollEnabled
+                                    ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
+                                />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0b0b12',
+        backgroundColor: Theme.dark.background,
         paddingHorizontal: 12,
     },
     headerRow: {
@@ -289,7 +341,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     profileName: {
-        color: 'white',
+        color: Theme.dark.white,
         fontSize: 20,
         fontWeight: '700',
     },
@@ -302,13 +354,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 12,
         padding: 14,
-        backgroundColor: "#0f172a",
+        backgroundColor: Theme.container.background,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: "#1f2937",
+        borderColor: Theme.container.mainBorder,
     },
     bioText: {
-        color: '#E5E5E5',
+        color: Theme.container.titleText,
         fontSize: 14,
         fontStyle: 'italic',
         lineHeight: 20,
@@ -316,44 +368,70 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#0f172a',
+        backgroundColor: Theme.search.background,
         borderRadius: 10,
         paddingHorizontal: 10,
         height: 40,
         marginTop: 10,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: "#1f2937",
+        borderColor: Theme.search.border,
     },
     searchBar: {
         flex: 1,
         marginLeft: 8,
-        color: 'white',
+        color: Theme.search.input,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginVertical: 16,
+        paddingHorizontal: 4,
+    },
+    statButton: {
+        alignItems: 'center',
+        flex: 1,
+        paddingVertical: 12,
+        marginHorizontal: 6,
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    statNumber: {
+        color: Theme.dark.white,
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    statLabelSmall: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        marginTop: 4,
     },
     friendsTitle: {
-        color: 'white',
+        color: Theme.dark.white,
         fontSize: 18,
         fontWeight: '600',
         marginBottom: 10,
         paddingHorizontal: 4,
     },
     friendCard: {
-        backgroundColor: '#0f172a',
+        backgroundColor: Theme.container.background,
         borderRadius: 12,
         padding: 12,
         flexDirection: 'row',
         alignItems: 'center',
         marginVertical: 6,
         borderWidth: 1,
-        borderColor: "#1f2937",
+        borderColor: Theme.container.mainBorder,
     },
     requestCard: {
-        backgroundColor: '#0f172a',
+        backgroundColor: Theme.container.background,
         borderRadius: 12,
         padding: 12,
         marginVertical: 6,
         borderWidth: 1,
-        borderColor: '#1f2937',
+        borderColor: Theme.container.mainBorder,
     },
     requestHeader: {
         flexDirection: 'row',
@@ -376,15 +454,15 @@ const styles = StyleSheet.create({
         borderColor: Theme.dark.primary, // '#0ea5e9',
     },
     declineButton: {
-        backgroundColor: '#374151',
-        borderColor: '#4b5563',
+        backgroundColor: Theme.container.inactiveBorder,
+        borderColor: Theme.container.inactiveBorder,
     },
     blockButton: {
         backgroundColor: Theme.dark.error, // '#7f1d1d',
         borderColor: Theme.dark.error, // '#991b1b',
     },
     requestActionText: {
-        color: 'white',
+        color: Theme.dark.white,
         fontWeight: '600',
         fontSize: 12,
     },
@@ -395,7 +473,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     friendName: {
-        color: 'white',
+        color: Theme.container.activeText,
         fontSize: 16,
         fontWeight: '600',
     },
@@ -405,7 +483,7 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     mutualText: {
-        color: '#888',
+        color: Theme.container.inactiveText,
         fontSize: 12,
         marginTop: 2,
     },
@@ -414,7 +492,148 @@ const styles = StyleSheet.create({
         marginTop: 40,
     },
     emptyText: {
-        color: '#ccc',
+        color: Theme.container.inactiveText,
         fontSize: 16,
+        textAlign: 'center',
+        paddingVertical: 20,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        width: '90%',
+        maxHeight: '70%',
+        backgroundColor: Theme.container.background,
+        borderRadius: 24,
+        paddingTop: 16,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        elevation: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.container.mainBorder,
+        marginBottom: 16,
+    },
+    modalTitle: {
+        color: Theme.container.titleText,
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        color: Theme.container.inactiveText,
+        fontSize: 24,
+        fontWeight: '400',
+    },
+    modalSearchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Theme.search.background,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        height: 45,
+        marginHorizontal: 20,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: Theme.search.border,
+    },
+    modalSearchBar: {
+        flex: 1,
+        marginLeft: 10,
+        color: Theme.search.input,
+        fontSize: 16,
+    },
+    modalFriendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.container.mainBorder,
+    },
+    modalFriendAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 12,
+    },
+    modalFriendName: {
+        color: Theme.container.activeText,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalFriendUsername: {
+        color: Theme.container.inactiveText,
+        fontSize: 13,
+        marginTop: 2,
+    },
+    gridRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+        gap: 15,
+        paddingHorizontal: 4,
+    },
+    featureCard: {
+        flex: 1,
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        padding: 15,
+        minHeight: 130,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    featureTitle: {
+        color: Theme.dark.white,
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    placeholderPhoto: {
+        flex: 1,
+        backgroundColor: Theme.search.background,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    streakContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    streakNumber: {
+        color: Theme.dark.tertiary,
+        fontSize: 32,
+        fontWeight: 'bold',
+    },
+    statLabel: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    largeCard: {
+        backgroundColor: Theme.container.background,
+        borderRadius: 12,
+        padding: 15,
+        height: 160,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    largePlaceholder: {
+        flex: 1,
+        backgroundColor: Theme.search.background,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
