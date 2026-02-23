@@ -11,16 +11,17 @@ export default function ChangeUsernameScreen() {
 
   return (
     <View style={styles.container}>
-            <Stack.Screen
-                options={{
-                    title: 'Change Username',
-                    headerBackTitle: 'Settings',
-                    headerStyle: {
-                        backgroundColor: '#0b0b12',
-                    },
-                    headerTintColor: 'white',
-                }}
-            />      <Text style={styles.label}>New Username</Text>
+      <Stack.Screen
+        options={{
+          title: 'Change Username',
+          headerBackTitle: 'Settings',
+          headerStyle: {
+            backgroundColor: '#0b0b12',
+          },
+          headerTintColor: 'white',
+        }}
+      />
+      <Text style={styles.label}>New Username</Text>
       <TextInput
         style={styles.input}
         value={username}
