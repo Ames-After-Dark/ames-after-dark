@@ -600,7 +600,7 @@ export default function FriendProfileScreen() {
                     <TouchableWithoutFeedback>
                         <View style={styles.floatingModalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>friend request from: {user?.name}</Text>
+                                <Text style={styles.modalTitle}>{"friend request from: \n" + user?.name}</Text>
                                 <TouchableOpacity onPress={() => setIsRespondModalVisible(false)}>
                                     <FontAwesome
                                         name="times-circle"
