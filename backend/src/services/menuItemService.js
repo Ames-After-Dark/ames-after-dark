@@ -37,3 +37,17 @@ exports.getMenuItemsByLocationId = async (locationId) => {
     where: { location_id: Number(locationId) }
   });
 };
+
+exports.getMenuItemTypes = async () => {
+  return prisma.menu_item_types.findMany({
+    orderBy: { id: 'asc' }
+  });
+};
+
+exports.createMenuItemType = async (menuItemTypeData) => {
+  return prisma.menu_item_types.create({
+    data: {
+      ...menuItemTypeData
+    }
+  });
+};

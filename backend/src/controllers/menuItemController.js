@@ -65,3 +65,23 @@ exports.getMenuItemsByLocationId = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getMenuItemTypes = async (req, res) => {
+  try {
+    const menuItemTypes = await menuItemService.getMenuItemTypes();
+    res.json(menuItemTypes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.createMenuItemType = async (req, res) => {
+  try {
+    const menuItemType = await menuItemService.createMenuItemType(req.body);
+    res.status(201).json(menuItemType);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
