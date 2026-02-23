@@ -13,10 +13,19 @@ import { router } from 'expo-router';
 
 export default function AccountSettingsScreen(): JSX.Element {
 
+  // TEMP_AUTH_START - Remove when re-enabling Auth0
   const handleSignOut = () => {
     console.log('Signing out.');
-    // You can add sign-out logic here
+    // Navigate back to auth landing (two button screen)
+    router.replace('/(app)/(auth)');
   };
+  // TEMP_AUTH_END
+
+  // Original Auth0 version - uncomment when re-enabling Auth0
+  // const handleSignOut = () => {
+  //   console.log('Signing out.');
+  //   // You can add sign-out logic here
+  // };
 
 
   const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true }) => (

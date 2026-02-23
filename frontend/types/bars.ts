@@ -48,6 +48,7 @@ export type MenuItem = {
   price?: Money | string; // allows "Mkt", "$2 Wells (7–9)", etc.
   desc?: string;
   tag?: "signature" | "draft" | "bottle" | "shot" | "well" | "food" | "nonalcoholic";
+  isAvailable?: boolean;
 };
 
 export type MenuSection = {
@@ -68,6 +69,7 @@ export type Bar = {
   description: string;
 
   favorite?: boolean;
+  open?: boolean;            // from backend (whether bar is open today)
   openingTime?: string;     // display string (e.g., "4:00 PM")
   closingTime?: string;     // display string (e.g., "2:00 AM")
   status?: "Open" | "Closed";
@@ -77,6 +79,8 @@ export type Bar = {
 
   dealsScheduled?: ScheduledDeal[];
   eventsScheduled?: ScheduledEvent[];
+
+  location_type_id: number; // 1=Bar, 2=Restaurant, etc.
 
   // Local mock image assets
   logo?: any;

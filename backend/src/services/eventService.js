@@ -3,11 +3,11 @@ const prisma = new PrismaClient();
 
 exports.getEvents = async () => {
   return prisma.events.findMany({
+    orderBy: { id: 'asc' },
     include: {
       locations: true,
-      weekdays: true
-    },
-    orderBy: { id: 'asc' },
+      event_occurrences: true
+    }
   });
 };
 
@@ -15,52 +15,56 @@ exports.getEventById = async (id) => {
   return prisma.events.findUnique({
     where: { id: Number(id) },
     include: {
-      locations: {
-        include: {
-          location_types: true,
-          location_hours: {
-            include: {
-              weekdays: true
-            }
-          }
-        }
-      },
-      weekdays: true
+      locations: true,
+      event_occurrences: true
     }
   });
 };
 
 exports.createEvent = async (eventData) => {
+  const { occurrences, ...rest } = eventData;
+
   return prisma.events.create({
     data: {
-      ...eventData,
+      ...rest,
       location_id: eventData.location_id ? Number(eventData.location_id) : null,
-      weekday_id: eventData.weekday_id ? Number(eventData.weekday_id) : null,
-      date: eventData.date ? new Date(eventData.date) : null,
-      start_time: eventData.start_time ? new Date(eventData.start_time) : null,
-      end_time: eventData.end_time ? new Date(eventData.end_time) : null,
+      event_occurrences: occurrences && occurrences.length > 0
+        ? {
+            create: occurrences.map((o) => ({
+              start_time_utc: new Date(o.start_time_utc),
+              end_time_utc: new Date(o.end_time_utc)
+            }))
+          }
+        : undefined
     },
     include: {
       locations: true,
-      weekdays: true
+      event_occurrences: true
     }
   });
 };
 
 exports.updateEvent = async (id, eventData) => {
+  const { occurrences, ...rest } = eventData;
+
   return prisma.events.update({
     where: { id: Number(id) },
     data: {
-      ...eventData,
+      ...rest,
       location_id: eventData.location_id ? Number(eventData.location_id) : undefined,
-      weekday_id: eventData.weekday_id ? Number(eventData.weekday_id) : undefined,
-      date: eventData.date ? new Date(eventData.date) : undefined,
-      start_time: eventData.start_time ? new Date(eventData.start_time) : undefined,
-      end_time: eventData.end_time ? new Date(eventData.end_time) : undefined,
+      event_occurrences: occurrences && occurrences.length > 0
+        ? {
+            deleteMany: {}, // delete old occurrences
+            create: occurrences.map((o) => ({
+              start_time_utc: new Date(o.start_time_utc),
+              end_time_utc: new Date(o.end_time_utc)
+            }))
+          }
+        : undefined
     },
     include: {
       locations: true,
-      weekdays: true
+      event_occurrences: true
     }
   });
 };
@@ -73,19 +77,18 @@ exports.deleteEvent = async (id) => {
 
 exports.getActiveEvents = async () => {
   const now = new Date();
-  const currentWeekday = now.getDay(); // Sunday=0, Monday=1, ..., Saturday=6
-  const weekdayId = currentWeekday === 0 ? 7 : currentWeekday; // Adjust if your DB uses 1=Monday, 7=Sunday
-  const currentTime = now.toTimeString().slice(0,5); // "HH:mm"
 
-  return prisma.events.findMany({
+  return prisma.event_occurrences.findMany({
     where: {
-      weekday_id: weekdayId,
-      start_time: { lte: now },
-      end_time: { gte: now }
+      start_time_utc: { lte: now },
+      end_time_utc: { gte: now }
     },
     include: {
-      locations: true,
-      weekdays: true
+      events: {
+        include: {
+          locations: true
+        }
+      }
     }
   });
 };
@@ -94,8 +97,52 @@ exports.getEventsByLocationId = async (locationId) => {
   return prisma.events.findMany({
     where: { location_id: Number(locationId) },
     include: {
-      locations: true,
-      weekdays: true
+      event_occurrences: true,
+      locations: true
     }
   });
+};
+
+exports.createRecurringEvent = async (eventData) => {
+  const { name, location_id, start_time, end_time, start_date, end_date, weekdays } = eventData;
+
+  // Create the event template first
+  const event = await prisma.events.create({
+    data: { name, location_id: Number(location_id) },
+  });
+
+  // Parse dates
+  const startDate = new Date(start_date);
+  const endDate = new Date(end_date);
+
+  // Generate occurrences
+  const occurrences = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const jsWeekday = d.getUTCDay(); // 0=Sunday, 6=Saturday
+    const dbWeekday = jsWeekday === 0 ? 1 : jsWeekday + 1; // map to 1-7 if needed
+
+    if (weekdays.includes(dbWeekday)) {
+      const [startHour, startMin, startSec] = start_time.split(':').map(Number);
+      const [endHour, endMin, endSec] = end_time.split(':').map(Number);
+
+      const occurrenceStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), startHour, startMin, startSec));
+      const occurrenceEnd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), endHour, endMin, endSec));
+
+      occurrences.push({
+        event_id: event.id,
+        start_time_utc: occurrenceStart,
+        end_time_utc: occurrenceEnd
+      });
+    }
+  }
+
+  // Insert occurrences in bulk
+  await prisma.event_occurrences.createMany({
+    data: occurrences
+  });
+
+  return {
+    event,
+    occurrences
+  };
 };

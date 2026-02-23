@@ -1,9 +1,88 @@
 import { apiFetch } from './apiClient';
 import { Friend } from '@/types/types';
 
+<<<<<<< connect_accounts
 export async function getUserFriends(userId: string | number): Promise<Friend[]> {
   try {
     const friends = await apiFetch(`/users/${userId}/friends`);
+=======
+export interface PendingFriendRequest {
+  user_id_1: number;
+  user_id_2: number;
+  friendship_status_id: number;
+  users_friendships_user_id_1Tousers?: Friend;
+  users_friendships_user_id_2Tousers?: Friend;
+}
+
+export async function sendFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to send friend request from ${userId} to ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function getPendingFriendRequests(userId: string | number): Promise<PendingFriendRequest[]> {
+  try {
+    const requests = await apiFetch(`/friendships/${userId}/friend-requests`);
+    return Array.isArray(requests) ? requests : [];
+  } catch (error) {
+    console.error(`Failed to fetch pending friend requests for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function acceptFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/accept`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to accept friend request between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function declineFriendRequest(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/decline`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to decline friend request between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function blockFriend(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}/block`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error(`Failed to block user between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function removeFriend(userId: string | number, friendId: string | number) {
+  try {
+    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error(`Failed to remove friend between ${userId} and ${friendId}:`, error);
+    throw error;
+  }
+}
+
+export async function getUserFriends(userId: string | number): Promise<Friend[]> {
+  try {
+    const friends = await apiFetch(`/friendships/${userId}/friends`);
+>>>>>>> main
     return Array.isArray(friends) ? friends : [];
   } catch (error) {
     console.error(`Failed to fetch friends for user ${userId}:`, error);
@@ -20,6 +99,7 @@ export async function getUserById(userId: string | number) {
     throw error;
   }
 }
+<<<<<<< connect_accounts
 /**
  * Updates a user data
  * option to update username, bio or email
@@ -52,3 +132,54 @@ export const updateUser = async (
   return data;
 };
 
+=======
+
+export async function getMutualFriends(viewerId: string | number, profileId: string | number): Promise<Friend[]> {
+  try {
+    // Fetch both lists in parallel for better performance
+    const [viewerFriends, profileFriends] = await Promise.all([
+      getUserFriends(viewerId),
+      getUserFriends(profileId)
+    ]);
+
+    // Create a Set of viewer friend IDs for O(1) lookup time
+    const viewerFriendIds = new Set(viewerFriends.map(f => f.id));
+
+    // Filter profile friends to only include those in the viewer's list
+    const mutual = profileFriends.filter(f => viewerFriendIds.has(f.id));
+
+    return mutual;
+  } catch (error) {
+    console.error(`Failed to calculate mutual friends between ${viewerId} and ${profileId}:`, error);
+    return []; // Return empty array on failure to avoid breaking the UI
+  }
+}
+
+// TEMP_AUTH_START - Remove when re-enabling Auth0
+export async function loginUser(username: string) {
+  try {
+    const user = await apiFetch(`/users/login`, {
+      method: 'POST',
+      body: JSON.stringify({ username })
+    });
+    return user;
+  } catch (error) {
+    console.error(`Failed to login user ${username}:`, error);
+    throw error;
+  }
+}
+
+export async function signupUser(username: string) {
+  try {
+    const user = await apiFetch(`/users/signup`, {
+      method: 'POST',
+      body: JSON.stringify({ username })
+    });
+    return user;
+  } catch (error) {
+    console.error(`Failed to signup user ${username}:`, error);
+    throw error;
+  }
+}
+// TEMP_AUTH_END
+>>>>>>> main

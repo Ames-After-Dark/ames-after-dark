@@ -86,3 +86,30 @@ exports.getEventsByLocationId = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.createRecurringEvent = async (req, res) => {
+  try {
+    const eventData = req.body;
+
+    // Validate required fields
+    const requiredFields = ['name', 'location_id', 'start_time', 'end_time', 'start_date', 'end_date', 'weekdays'];
+    for (const field of requiredFields) {
+      if (!eventData[field]) {
+        return res.status(400).json({ error: `${field} is required` });
+      }
+    }
+
+    // Call service to create event + occurrences
+    const result = await eventService.createRecurringEvent(eventData);
+
+    return res.status(201).json({
+      message: 'Recurring event created successfully',
+      event: result.event,
+      occurrences: result.occurrences
+    });
+
+  } catch (error) {
+    console.error('Error creating recurring event:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};

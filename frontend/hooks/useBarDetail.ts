@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Bar } from "../types/bars";
-import { apiGet } from "../lib/api";
 import { USE_MOCK } from "../config/runtime";
 import { BARS_BASE } from "../data/mock";
+import { getBarById } from "../services/barsService";
 
 export function useBarDetail(id?: string) {
   const [bar, setBar] = useState<Bar | null>(null);
@@ -19,7 +19,7 @@ export function useBarDetail(id?: string) {
           const found = BARS_BASE.find(b => String(b.id) === String(id)) as Bar | undefined;
           if (!cancelled) setBar(found ?? null);
         } else {
-          const data = await apiGet<Bar>(`/bars/${id}`);
+          const data = await getBarById(id!);
           if (!cancelled) setBar(data);
         }
       } finally {
