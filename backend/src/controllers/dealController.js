@@ -86,3 +86,30 @@ exports.getDealsByLocationId = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.createRecurringDeal = async (req, res) => {
+  try {
+    const dealData = req.body;
+
+    // Validate required fields
+    const requiredFields = ['name', 'location_id', 'start_time', 'end_time', 'start_date', 'end_date', 'weekdays'];
+    for (const field of requiredFields) {
+      if (!dealData[field]) {
+        return res.status(400).json({ error: `${field} is required` });
+      }
+    }
+
+    // Call service to create deal + occurrences
+    const result = await dealService.createRecurringDeal(dealData);
+
+    return res.status(201).json({
+      message: 'Recurring deal created successfully',
+      deal: result.deal,
+      occurrences: result.occurrences
+    });
+
+  } catch (error) {
+    console.error('Error creating recurring deal:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};

@@ -4,6 +4,7 @@ const eventController = require('../controllers/eventController');
 
 router.get('/active', eventController.getActiveEvents);
 router.get('/location/:locationId', eventController.getEventsByLocationId);
+router.post('/recurring', eventController.createRecurringEvent);
 
 // CRUD routes
 router.get('/', eventController.getEvents);           // Read all

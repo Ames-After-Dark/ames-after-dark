@@ -5,6 +5,7 @@ const dealController = require('../controllers/dealController');
 // This needs to be above get deals by id to avoid conflict
 router.get('/active', dealController.getActiveDeals);
 router.get('/location/:locationId', dealController.getDealsByLocationId);
+router.post('/recurring', dealController.createRecurringDeal);
 
 // CRUD routes
 router.get('/', dealController.getDeals);           // Read all
