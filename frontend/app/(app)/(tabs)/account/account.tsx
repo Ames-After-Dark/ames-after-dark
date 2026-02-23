@@ -60,26 +60,27 @@ export default function AccountScreen() {
         fetchUser();
     }, []);
 
-    useEffect(() => {
-        const fetchPendingRequests = async () => {
-            setPendingLoading(true);
-            try {
-                const data = await getPendingFriendRequests(CURRENT_USER_ID);
-                setPendingRequests(data || []);
-            } catch (err) {
-                console.error('Failed to fetch pending requests:', err);
-            } finally {
-                setPendingLoading(false);
-            }
-        };
-
-        fetchPendingRequests();
+    const fetchPendingRequests = React.useCallback(async () => {
+        setPendingLoading(true);
+        try {
+            const data = await getPendingFriendRequests(CURRENT_USER_ID);
+            setPendingRequests(data || []);
+        } catch (err) {
+            console.error('Failed to fetch pending requests:', err);
+        } finally {
+            setPendingLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchPendingRequests();
+    }, [fetchPendingRequests]);
 
     useFocusEffect(
         React.useCallback(() => {
             refetch();
-        }, [refetch])
+            fetchPendingRequests();
+        }, [fetchPendingRequests, refetch])
     );
 
     const getOtherUserFromRequest = (request: PendingFriendRequest): Friend | null => {
