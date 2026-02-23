@@ -50,6 +50,7 @@ export function useTonightData() {
   }, [events]);
 
   // Combine location data with deals and events
+  // Note: 'bars' is already filtered to only open locations via the /locations/open endpoint
   const barsWithTonightData = useMemo(() => {
     return bars.map((location: Location) => {
       const locationDeals = dealsByLocation.get(location.id) || [];
@@ -61,7 +62,7 @@ export function useTonightData() {
         bar: location.name,
         event: locationEvents[0]?.name ?? "",
         specials: locationDeals[0]?.title ?? "",
-        isOpen: true, // Since we're using /locations/open endpoint
+        isOpen: true, // Data from /locations/open endpoint is guaranteed to be open
         hasDeal: locationDeals.length > 0,
         image: location.logoUrl,
       } as TonightBarData;

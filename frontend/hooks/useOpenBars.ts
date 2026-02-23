@@ -21,8 +21,11 @@ export function useOpenBars() {
     const fetchOpenBars = async () => {
       try {
         setLoading(true);
-        // const data = await apiFetch("/locations/open");
-        const data = await apiFetch("/locations");
+        // Fetch only locations that are currently open
+        // Pass current UTC time from device to backend for accurate time-based filtering
+        const now = new Date();
+        const utcParam = now.toISOString();
+        const data = await apiFetch(`/locations/open?utc=${encodeURIComponent(utcParam)}`);
         setBars(data);
         setError(null);
       } catch (err) {

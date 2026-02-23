@@ -243,7 +243,7 @@ export default function Tonight() {
 
           {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
           <View style={styles.stickyTabs}>
-            <Text style={styles.sectionTitle}>Events Tonight</Text>
+            {/* <Text style={styles.sectionTitle}>Events Tonight</Text> */}
 
             {/* Tab row: renders from TAB_META and toggles activeTab */}
             <View style={styles.tabsRow}>
