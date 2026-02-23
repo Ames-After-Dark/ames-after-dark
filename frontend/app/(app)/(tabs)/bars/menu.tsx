@@ -8,6 +8,14 @@ import { Theme } from "@/constants/theme";
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { bar, loading } = useBarDetail(id);
+
+  const formatPrice = (value?: string | number | null) => {
+    if (value == null || value === "") return null;
+    const raw = String(value).trim();
+    const numeric = Number(raw.replace(/[^0-9.]/g, ""));
+    if (!Number.isFinite(numeric)) return raw;
+    return `$${numeric.toFixed(2)}`;
+  };
   const sections = (bar?.menu?.sections ?? [])
     .map((section, sectionIndex) => ({
       id: section.id || `section-${sectionIndex}`,
@@ -17,6 +25,7 @@ export default function BarMenuScreen() {
         name: item.name || "Unnamed Item",
         desc: item.desc,
         price: item.price,
+        isAvailable: item.isAvailable ?? true,
       })),
     }))
     .filter((section) => section.items.length > 0);
@@ -60,11 +69,21 @@ export default function BarMenuScreen() {
           {sec.items.map((it, index) => (
             <React.Fragment key={it.id}>
               <View style={styles.itemRow}>
-                <View style={{ flex: 1 }}>
+                <View style={styles.itemHeaderRow}>
                   <Text style={styles.itemName}>{it.name}</Text>
-                  {it.desc ? <Text style={styles.itemDesc}>{it.desc}</Text> : null}
+                  {it.price ? (
+                    <Text
+                      style={
+                        it.isAvailable
+                          ? styles.itemPrice
+                          : [styles.itemPrice, styles.itemPriceUnavailable]
+                      }
+                    >
+                      {formatPrice(it.price)}
+                    </Text>
+                  ) : null}
                 </View>
-                {it.price ? <Text style={styles.itemPrice}>{it.price}</Text> : null}
+                {it.desc ? <Text style={styles.itemDesc}>{it.desc}</Text> : null}
               </View>
               {index < sec.items.length - 1 ? <View style={styles.itemDivider} /> : null}
             </React.Fragment>
@@ -121,9 +140,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   itemRow: {
+    flexDirection: "column",
+    paddingVertical: 8,
+    gap: 4,
+  },
+  itemHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: 8,
     gap: 8,
   },
   itemDivider: {
@@ -143,7 +166,11 @@ const styles = StyleSheet.create({
   itemPrice: {
     color: Theme.dark.secondary,
     fontWeight: "700",
-    marginLeft: 8,
     fontSize: 14,
+    marginLeft: "auto",
+    textAlign: "right",
+  },
+  itemPriceUnavailable: {
+    color: Theme.container.inactiveText,
   },
 });

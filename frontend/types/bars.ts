@@ -48,6 +48,7 @@ export type MenuItem = {
   price?: Money | string; // allows "Mkt", "$2 Wells (7–9)", etc.
   desc?: string;
   tag?: "signature" | "draft" | "bottle" | "shot" | "well" | "food" | "nonalcoholic";
+  isAvailable?: boolean;
 };
 
 export type MenuSection = {

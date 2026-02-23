@@ -49,7 +49,25 @@ interface MenuItemApiResponse {
   name: string;
   description?: string | null;
   is_available?: boolean | null;
+  price?: string | number | null;
   [key: string]: any;
+}
+
+function toIsoOrNull(value?: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function buildOneTimeRule(dateValue?: string | null) {
+  const iso = toIsoOrNull(dateValue);
+  if (!iso) return null;
+  return {
+    kind: "one-time" as const,
+    tz: "America/Chicago",
+    start: dateValue ?? iso,
+    end: iso,
+  };
 }
 
 /**
@@ -72,63 +90,82 @@ export async function getBars(): Promise<Bar[]> {
       const locationDeals = deals.filter((d: DealApiResponse) => d.location_id === location.id);
 
       // Convert events to ScheduledEvent format
-      const eventsScheduled: ScheduledEvent[] = locationEvents.map((event: EventApiResponse) => ({
-        id: String(event.id),
-        barId: String(location.id),
-        name: event.description,
-        description: event.description,
-        rule: event.repeating
-          ? {
-              kind: "weekly" as const,
-              tz: "America/Chicago",
-              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-              startLocalTime: new Date(event.start_time_utc).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-              endLocalTime: new Date(event.end_time_utc).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-            }
-          : {
-              kind: "one-time" as const,
-              tz: "America/Chicago",
-              start: event.date,
-              end: new Date(event.date).toISOString(),
-            },
-      }));
+      const eventsScheduled: ScheduledEvent[] = locationEvents
+        .map((event: EventApiResponse) => {
+          if (event.repeating) {
+            return {
+              id: String(event.id),
+              barId: String(location.id),
+              name: event.description,
+              description: event.description,
+              rule: {
+                kind: "weekly" as const,
+                tz: "America/Chicago",
+                daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+                startLocalTime: new Date(event.start_time_utc).toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }),
+                endLocalTime: new Date(event.end_time_utc).toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }),
+              },
+            } as ScheduledEvent;
+          }
+
+          const oneTimeRule = buildOneTimeRule(event.date);
+          if (!oneTimeRule) return null;
+
+          return {
+            id: String(event.id),
+            barId: String(location.id),
+            name: event.description,
+            description: event.description,
+            rule: oneTimeRule,
+          } as ScheduledEvent;
+        })
+        .filter((event): event is ScheduledEvent => Boolean(event));
 
       // Convert deals to ScheduledDeal format
-      const dealsScheduled: ScheduledDeal[] = locationDeals.map((deal: DealApiResponse) => ({
-        id: String(deal.id),
-        barId: String(location.id),
-        title: deal.name,
-        rule: deal.repeating
-          ? {
-              kind: "weekly" as const,
-              tz: "America/Chicago",
-              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-              startLocalTime: new Date(deal.start_time_utc).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-              endLocalTime: new Date(deal.end_time_utc).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }),
-            }
-          : {
-              kind: "one-time" as const,
-              tz: "America/Chicago",
-              start: deal.date,
-              end: new Date(deal.date).toISOString(),
-            },
-      }));
+      const dealsScheduled: ScheduledDeal[] = locationDeals
+        .map((deal: DealApiResponse) => {
+          if (deal.repeating) {
+            return {
+              id: String(deal.id),
+              barId: String(location.id),
+              title: deal.name,
+              rule: {
+                kind: "weekly" as const,
+                tz: "America/Chicago",
+                daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+                startLocalTime: new Date(deal.start_time_utc).toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }),
+                endLocalTime: new Date(deal.end_time_utc).toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }),
+              },
+            } as ScheduledDeal;
+          }
+
+          const oneTimeRule = buildOneTimeRule(deal.date);
+          if (!oneTimeRule) return null;
+
+          return {
+            id: String(deal.id),
+            barId: String(location.id),
+            title: deal.name,
+            rule: oneTimeRule,
+          } as ScheduledDeal;
+        })
+        .filter((deal): deal is ScheduledDeal => Boolean(deal));
 
       // derive display opening/closing strings from location_hours when present
       let openingTime: string | undefined = undefined;
@@ -205,65 +242,84 @@ export async function getBarById(id: string): Promise<Bar | null> {
     const locationDeals = deals.filter((d: DealApiResponse) => d.location_id === location.id);
 
     // Convert events to ScheduledEvent format
-    const eventsScheduled: ScheduledEvent[] = locationEvents.map((event: EventApiResponse) => ({
-      id: String(event.id),
-      barId: String(location.id),
-      name: event.description,
-      description: event.description,
-      rule: event.repeating
-        ? {
-            kind: "weekly" as const,
-            tz: "America/Chicago",
-            daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-            startLocalTime: new Date(event.start_time_utc).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-            endLocalTime: new Date(event.end_time_utc).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-          }
-        : {
-            kind: "one-time" as const,
-            tz: "America/Chicago",
-            start: event.date,
-            end: new Date(event.date).toISOString(),
-          },
-    }));
+    const eventsScheduled: ScheduledEvent[] = locationEvents
+      .map((event: EventApiResponse) => {
+        if (event.repeating) {
+          return {
+            id: String(event.id),
+            barId: String(location.id),
+            name: event.description,
+            description: event.description,
+            rule: {
+              kind: "weekly" as const,
+              tz: "America/Chicago",
+              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+              startLocalTime: new Date(event.start_time_utc).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }),
+              endLocalTime: new Date(event.end_time_utc).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }),
+            },
+          } as ScheduledEvent;
+        }
+
+        const oneTimeRule = buildOneTimeRule(event.date);
+        if (!oneTimeRule) return null;
+
+        return {
+          id: String(event.id),
+          barId: String(location.id),
+          name: event.description,
+          description: event.description,
+          rule: oneTimeRule,
+        } as ScheduledEvent;
+      })
+      .filter((event): event is ScheduledEvent => Boolean(event));
 
     // Convert deals to ScheduledDeal format
-    const dealsScheduled: ScheduledDeal[] = locationDeals.map((deal: DealApiResponse) => ({
-      id: String(deal.id),
-      barId: String(location.id),
-      title: deal.name,
-      rule: deal.repeating
-        ? {
-            kind: "weekly" as const,
-            tz: "America/Chicago",
-            daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-            startLocalTime: new Date(deal.start_time_utc).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-            endLocalTime: new Date(deal.end_time_utc).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-          }
-        : {
-            kind: "one-time" as const,
-            tz: "America/Chicago",
-            start: deal.date,
-            end: new Date(deal.date).toISOString(),
-          },
-    }));
+    const dealsScheduled: ScheduledDeal[] = locationDeals
+      .map((deal: DealApiResponse) => {
+        if (deal.repeating) {
+          return {
+            id: String(deal.id),
+            barId: String(location.id),
+            title: deal.name,
+            rule: {
+              kind: "weekly" as const,
+              tz: "America/Chicago",
+              daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+              startLocalTime: new Date(deal.start_time_utc).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }),
+              endLocalTime: new Date(deal.end_time_utc).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              }),
+            },
+          } as ScheduledDeal;
+        }
 
-    const groupedMenuItems = new Map<string, { id: string; name: string; desc?: string }[]>();
+        const oneTimeRule = buildOneTimeRule(deal.date);
+        if (!oneTimeRule) return null;
+
+        return {
+          id: String(deal.id),
+          barId: String(location.id),
+          title: deal.name,
+          rule: oneTimeRule,
+        } as ScheduledDeal;
+      })
+      .filter((deal): deal is ScheduledDeal => Boolean(deal));
+
+    const groupedMenuItems = new Map<string, { id: string; name: string; desc?: string; price?: string; isAvailable: boolean }[]>();
 
     const menuTypeNameById = new Map<number, string>(
       menuItemTypes.map((type) => [type.id, type.name])
@@ -278,6 +334,8 @@ export async function getBarById(id: string): Promise<Bar | null> {
           id: String(item.id),
           name: item.name,
           desc: item.description ?? undefined,
+          price: item.price == null ? undefined : String(item.price),
+          isAvailable: item.is_available !== false,
         });
         groupedMenuItems.set(sectionTitle, sectionItems);
       });
