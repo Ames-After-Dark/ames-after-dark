@@ -1,6 +1,6 @@
 // app/(tabs)/bars/menu.tsx
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { Theme } from "@/constants/theme";
@@ -8,6 +8,7 @@ import { Theme } from "@/constants/theme";
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { bar, loading } = useBarDetail(id);
+  const [activeItem, setActiveItem] = useState<{ name: string; desc: string } | null>(null);
 
   const formatPrice = (value?: string | number | null) => {
     if (value == null || value === "") return null;
@@ -56,41 +57,68 @@ export default function BarMenuScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 48 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.title}>{bar.name} Menu</Text>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>{bar.name} Menu</Text>
 
-      {sections.map((sec) => (
-        <View key={sec.id} style={styles.section}>
-          <Text style={styles.sectionTitle}>{sec.title}</Text>
-          {sec.items.map((it, index) => (
-            <React.Fragment key={it.id}>
-              <View style={styles.itemRow}>
-                <View style={styles.itemHeaderRow}>
-                  <Text style={styles.itemName}>{it.name}</Text>
-                  {it.price ? (
-                    <Text
-                      style={
-                        it.isAvailable
-                          ? styles.itemPrice
-                          : [styles.itemPrice, styles.itemPriceUnavailable]
-                      }
-                    >
-                      {formatPrice(it.price)}
-                    </Text>
-                  ) : null}
-                </View>
-                {it.desc ? <Text style={styles.itemDesc}>{it.desc}</Text> : null}
-              </View>
-              {index < sec.items.length - 1 ? <View style={styles.itemDivider} /> : null}
-            </React.Fragment>
-          ))}
-        </View>
-      ))}
-    </ScrollView>
+        {sections.map((sec) => (
+          <View key={sec.id} style={styles.section}>
+            <Text style={styles.sectionTitle}>{sec.title}</Text>
+            {sec.items.map((it, index) => (
+              <React.Fragment key={it.id}>
+                <Pressable
+                  onPress={() => {
+                    if (it.desc) {
+                      setActiveItem({ name: it.name, desc: it.desc });
+                    }
+                  }}
+                  style={({ pressed }) => [styles.itemPressable, pressed && it.desc ? styles.itemPressed : null]}
+                >
+                  <View style={styles.itemRow}>
+                    <View style={styles.itemHeaderRow}>
+                      <Text style={styles.itemName}>{it.name}</Text>
+                      {it.price ? (
+                        <Text
+                          style={
+                            it.isAvailable
+                              ? styles.itemPrice
+                              : [styles.itemPrice, styles.itemPriceUnavailable]
+                          }
+                        >
+                          {formatPrice(it.price)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                </Pressable>
+                {index < sec.items.length - 1 ? <View style={styles.itemDivider} /> : null}
+              </React.Fragment>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+
+      <Modal
+        transparent
+        visible={Boolean(activeItem)}
+        animationType="fade"
+        onRequestClose={() => setActiveItem(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setActiveItem(null)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>{activeItem?.name}</Text>
+            <Text style={styles.modalDesc}>{activeItem?.desc}</Text>
+            <Pressable style={styles.modalClose} onPress={() => setActiveItem(null)}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -144,6 +172,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 4,
   },
+  itemPressable: {
+    borderRadius: 8,
+  },
+  itemPressed: {
+    opacity: 0.7,
+  },
   itemHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -172,5 +206,44 @@ const styles = StyleSheet.create({
   },
   itemPriceUnavailable: {
     color: Theme.container.inactiveText,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: Theme.container.background,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Theme.container.mainBorder,
+  },
+  modalTitle: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    color: Theme.search.input,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalClose: {
+    marginTop: 16,
+    alignSelf: "flex-end",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: Theme.dark.primary,
+  },
+  modalCloseText: {
+    color: Theme.dark.white,
+    fontWeight: "700",
   },
 });
