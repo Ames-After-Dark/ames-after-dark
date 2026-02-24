@@ -65,7 +65,7 @@ export default function FriendProfileScreen() {
     const [toastIcon, setToastIcon] = useState('check'); // Default icon name
 
     const triggerToast = (message: string, icon: string = 'check') => {
-        
+
         setToastMessage(message);
         setToastIcon(icon);
         setShowToast(true);
