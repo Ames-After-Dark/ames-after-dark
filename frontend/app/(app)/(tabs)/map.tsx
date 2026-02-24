@@ -53,6 +53,15 @@ export default function MapScreen() {
             );
         }
 
+        // Locations are already validated in the service layer
+        if (locations.length === 0) {
+            return (
+                <View style={styles.centered}>
+                    <Text style={styles.infoText}>No locations available to display</Text>
+                </View>
+            );
+        }
+
         const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
 
         return (

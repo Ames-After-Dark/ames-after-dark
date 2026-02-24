@@ -16,8 +16,8 @@ export interface Location {
 interface LocationApiResponse {
     id: number;
     name: string;
-    latitude: number;
-    longitude: number;
+    latitude: number | string;
+    longitude: number | string;
     hours: string;
 }
 
@@ -27,19 +27,52 @@ interface LocationApiResponse {
  */
 export const fetchLocations = async (): Promise<Location[]> => {
 
-    console.log("Fetching locations from the backend.");
+    // console.log("Fetching locations from the backend.");
 
     try {
         const apiLocations: LocationApiResponse[] = await apiFetch('/locations');
-        const locations: Location[] = apiLocations.map(apiLoc => {
-            const logoAsset = getLogoAssetForLocationName(apiLoc.name);
-            return {
-                ...apiLoc,
-                id: String(apiLoc.id),
-                logo: logoAsset,
-            };
-        });
+        // console.log("API response received:", apiLocations?.length, "locations");
+        
+        if (!Array.isArray(apiLocations)) {
+            console.error("API response is not an array:", apiLocations);
+            throw new Error("Invalid API response format");
+        }
 
+        const locations: Location[] = apiLocations
+            .map((apiLoc, index) => {
+                // console.log(`Processing location ${index + 1}:`, apiLoc.name, apiLoc.latitude, apiLoc.longitude);
+                
+                // Convert latitude and longitude to numbers if they're strings
+                const latitude = typeof apiLoc.latitude === 'string' ? parseFloat(apiLoc.latitude) : apiLoc.latitude;
+                const longitude = typeof apiLoc.longitude === 'string' ? parseFloat(apiLoc.longitude) : apiLoc.longitude;
+                
+                // Validate location data - return null for invalid locations
+                if (!apiLoc.name || 
+                    typeof latitude !== 'number' || 
+                    typeof longitude !== 'number' || 
+                    isNaN(latitude) || 
+                    isNaN(longitude) ||
+                    latitude < -90 || 
+                    latitude > 90 ||
+                    longitude < -180 || 
+                    longitude > 180) {
+                    console.warn(`Skipping location with invalid coordinates: ${apiLoc.name || 'unknown'}`, { latitude, longitude });
+                    return null;
+                }
+                
+                const logoAsset = getLogoAssetForLocationName(apiLoc.name);
+                return {
+                    id: String(apiLoc.id),
+                    name: apiLoc.name,
+                    latitude,
+                    longitude,
+                    hours: apiLoc.hours || 'Hours not available',
+                    logo: logoAsset,
+                };
+            })
+            .filter((location): location is Location => location !== null);
+
+        console.log("Successfully processed", locations.length, "valid locations out of", apiLocations.length, "total");
         return locations;
     }
     catch (error) {
