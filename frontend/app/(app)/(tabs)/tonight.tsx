@@ -50,7 +50,7 @@ export default function Tonight() {
   const [query, setQuery] = useState("");
 
   // Fetch data from database using the custom hook
-  const { barsWithTonightData, loading, error } = useTonightData();
+  const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
   const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
   const {
     friends,
@@ -60,13 +60,6 @@ export default function Tonight() {
 
   const hasError = !!error || !!friendsError;
   const isLoading = loading || friendsLoading || scheduledBarsLoading;
-
-  // ----- Compute “active” and “hasDeal” dynamically -----
-  // We start from base bar data and compute per-bar values for *this moment*:
-  // - event: the first currently active event name (fallback to first scheduled)
-  // - specials: the first currently active deal title (if any)
-  // - isOpen: based on each bar's hours and "now"
-  // - hasDeal: whether there is at least 1 active deal right now
 
   // ----- Filter for active tab -----
   // Take the computed list and filter based on the selected tab + text query.
@@ -83,13 +76,29 @@ export default function Tonight() {
     if (q) {
       data = data.filter(
         (d) =>
-          d.bar.toLowerCase().includes(q) ||
-          d.event.toLowerCase().includes(q) ||
+          (d.bar || "").toLowerCase().includes(q) ||
+          (d.event || "").toLowerCase().includes(q) ||
           (d.specials ?? "").toLowerCase().includes(q)
       );
     }
     return data;
   }, [activeTab, query, barsWithTonightData]);
+
+  // ----- Filter deals for "Deals Tonight" tab -----
+  const filteredDeals = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let data = allActiveDealsTonight || [];
+
+    if (q) {
+      data = data.filter(
+        (d) =>
+          d.bar.toLowerCase().includes(q) ||
+          d.title.toLowerCase().includes(q) ||
+          (d.subtitle ?? "").toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }, [query, allActiveDealsTonight]);
 
   // ----- Filter friends -----
   // If the "Friends" tab is active, we search fetched friends by name/username.
@@ -125,7 +134,7 @@ export default function Tonight() {
 
     if (!nextOpenNight) {
       return {
-        label: "Upcoming Deals",
+        label: "Upcoming Deals & Events",
         deals: [] as Array<{
           id: string;
           barId: string;
@@ -336,7 +345,7 @@ export default function Tonight() {
               ))}
 
               {!upcomingDealsData.deals.length && (
-                <Text style={styles.emptyText}>No upcoming deals found.</Text>
+                <Text style={styles.emptyText}>No upcoming deals or events found.</Text>
               )}
             </View>
           ) : activeTab === "friends" ? (
@@ -370,90 +379,96 @@ export default function Tonight() {
                 <Text style={styles.emptyText}>No nearby friends found.</Text>
               )}
             </View>
-          ) : (
-            // -------- Bars/Deals View --------
+          ) : activeTab === "open" ? (
+            // -------- Open Now View --------
             <View style={styles.cardsList}>
-              {filteredBars.map((item) => {
-                // If we’re on "deals", emphasize the deal/event rather than the bar
-                const isDealsView = activeTab === "deals";
-                const headerText = isDealsView
-                  ? item.specials || item.event
-                  : item.bar;
-                const subtitleText = isDealsView ? item.bar : item.event;
-                const detailText = isDealsView
-                  ? item.event
-                  : item.specials ?? "";
-
-                return (
-                  <Pressable
-                    key={item.id}
-                    style={[styles.card, isDealsView && styles.cardDealsVariant]}
-                    onPress={() => goToBarDetail(item.id)}
-                  >
-                    {/* Left: bar logo */}
-                    <Image
-                      source={
-                        item.image
-                          ? { uri: item.image }
-                          : getLogoAssetForLocationName(item.bar)
-                      }
-                      style={styles.cardImg}
-                      resizeMode="cover"
-                    />
-
-                    {/* Middle: text content */}
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <Text style={styles.cardTitle}>{headerText}</Text>
-                      <Text style={styles.cardSubtitle}>{subtitleText}</Text>
-                      {!!detailText && (
-                        <Text style={styles.cardDetail}>{detailText}</Text>
-                      )}
-                      {isDealsView && (
-                        <View style={styles.dealChip}>
-                          <Ionicons name="pricetags-outline" size={12} color="#22d3ee" />
-                          <Text style={styles.dealChipText}>DEAL</Text>
-                        </View>
-                      )}
+              {filteredBars.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={styles.card}
+                  onPress={() => goToBarDetail(item.id)}
+                >
+                  <Image
+                    source={getLogoAssetForLocationName(item.bar)}
+                    style={styles.cardImg}
+                    resizeMode="cover"
+                  />
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text style={styles.cardTitle}>{item.bar}</Text>
+                    {!!item.event && (
+                      <Text style={styles.cardSubtitle}>{item.event}</Text>
+                    )}
+                    {!!item.openHours && (
+                      <Text style={styles.cardDetail}>Hours: {item.openHours}</Text>
+                    )}
+                    {!!item.specials && (
+                      <Text style={styles.cardDetail}>{item.specials}</Text>
+                    )}
+                  </View>
+                  <View style={styles.rightContainer}>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
+                      ]}
+                    >
+                      <Text style={styles.statusPillText}>
+                        {item.isOpen ? "Open" : "Closed"}
+                      </Text>
                     </View>
-
-                    {/* Right: Status Pill + Chevron (Centered Vertically) */}
-                    <View style={styles.rightContainer}>
-                      {activeTab === "open" && (
-                        <View
-                          style={[
-                            styles.statusPill,
-                            { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
-                          ]}
-                        >
-                          <Text style={styles.statusPillText}>
-                            {item.isOpen ? "Open" : "Closed"}
-                          </Text>
-                        </View>
-                      )}
-                      <Ionicons
-                        name="chevron-forward"
-                        size={18}
-                        color={Theme.search.inactiveInput}
-                      />
-                    </View>
-                  </Pressable>
-                );
-              })}
-              {/* Empty-state for bar/deals search results */}
+                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
+                  </View>
+                </Pressable>
+              ))}
               {!filteredBars.length && (
-                <Text style={styles.emptyText}>No results for tonight.</Text>
+                <Text style={styles.emptyText}>No bars currently open.</Text>
               )}
             </View>
-          )}
+          ) : activeTab === "deals" ? (
+            // -------- Deals View --------
+            <View style={styles.cardsList}>
+              {filteredDeals.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={[styles.card, styles.cardDealsVariant]}
+                  onPress={() => goToBarDetail(item.barId)}
+                >
+                  <Image
+                    source={getLogoAssetForLocationName(item.bar)}
+                    style={styles.cardImg}
+                    resizeMode="cover"
+                  />
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardSubtitle}>{item.bar}</Text>
+                    {!!item.subtitle && (
+                      <Text style={styles.cardDetail}>{item.subtitle}</Text>
+                    )}
+                  </View>
+                  <View style={styles.rightContainer}>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: Theme.dark.primary },
+                      ]}
+                    >
+                      <Text style={styles.statusPillText}>Deal</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
+                  </View>
+                </Pressable>
+              ))}
+              {!filteredDeals.length && (
+                <Text style={styles.emptyText}>No deals available tonight.</Text>
+              )}
+            </View>
+          ) : null}
         </ScrollView>
       )}
     </SafeAreaView>
   );
 }
 
-// -------- Styles --------
-// Colors are mostly dark mode with subtle borders and neon-ish accents.
-// A few variants (e.g., cardDealsVariant) tweak tone for the Deals view.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
