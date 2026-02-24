@@ -47,7 +47,15 @@ export const fetchLocations = async (): Promise<Location[]> => {
                 const longitude = typeof apiLoc.longitude === 'string' ? parseFloat(apiLoc.longitude) : apiLoc.longitude;
                 
                 // Validate location data - return null for invalid locations
-                if (!apiLoc.name || typeof latitude !== 'number' || typeof longitude !== 'number' || isNaN(latitude) || isNaN(longitude)) {
+                if (!apiLoc.name || 
+                    typeof latitude !== 'number' || 
+                    typeof longitude !== 'number' || 
+                    isNaN(latitude) || 
+                    isNaN(longitude) ||
+                    latitude < -90 || 
+                    latitude > 90 ||
+                    longitude < -180 || 
+                    longitude > 180) {
                     console.warn(`Skipping location with invalid coordinates: ${apiLoc.name || 'unknown'}`, { latitude, longitude });
                     return null;
                 }

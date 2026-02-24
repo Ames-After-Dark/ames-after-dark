@@ -53,27 +53,8 @@ export default function MapScreen() {
             );
         }
 
-        // Filter out any locations with invalid coordinates
-        const validLocations = locations.filter(location => {
-            const isValid = location && 
-                typeof location.latitude === 'number' && 
-                typeof location.longitude === 'number' &&
-                !isNaN(location.latitude) && 
-                !isNaN(location.longitude) &&
-                location.latitude >= -90 && 
-                location.latitude <= 90 &&
-                location.longitude >= -180 && 
-                location.longitude <= 180;
-            
-            if (!isValid) {
-                console.warn('Filtered out invalid location:', location);
-            }
-            return isValid;
-        });
-
-        console.log(`Rendering ${validLocations.length} valid locations out of ${locations.length} total`);
-
-        if (validLocations.length === 0) {
+        // Locations are already validated in the service layer
+        if (locations.length === 0) {
             return (
                 <View style={styles.centered}>
                     <Text style={styles.infoText}>No locations available to display</Text>
@@ -101,7 +82,7 @@ export default function MapScreen() {
                 }
                 onRegionChangeComplete={handleRegionChange}
             >
-                {validLocations.map((location) => (
+                {locations.map((location) => (
                 <Marker
                     key={location.id}
                     coordinate={{ latitude: location.latitude, longitude: location.longitude }}
