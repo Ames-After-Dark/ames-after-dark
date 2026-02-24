@@ -16,8 +16,8 @@ export interface Location {
 interface LocationApiResponse {
     id: number;
     name: string;
-    latitude: number | string;  
-    longitude: number | string; 
+    latitude: number | string;
+    longitude: number | string;
     hours: string;
 }
 
