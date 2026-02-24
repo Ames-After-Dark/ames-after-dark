@@ -345,7 +345,7 @@ export default function Tonight() {
               ))}
 
               {!upcomingDealsData.deals.length && (
-                <Text style={styles.emptyText}>No upcoming deals or events found.</Text>
+                <Text style={styles.emptyText}>No upcoming deals or events found. Check back later!</Text>
               )}
             </View>
           ) : activeTab === "friends" ? (
