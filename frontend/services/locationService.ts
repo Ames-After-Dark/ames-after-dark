@@ -16,8 +16,8 @@ export interface Location {
 interface LocationApiResponse {
     id: number;
     name: string;
-    latitude: number | string;  // API might return as string
-    longitude: number | string; // API might return as string
+    latitude: number | string;  
+    longitude: number | string; 
     hours: string;
 }
 
@@ -27,11 +27,11 @@ interface LocationApiResponse {
  */
 export const fetchLocations = async (): Promise<Location[]> => {
 
-    console.log("Fetching locations from the backend.");
+    // console.log("Fetching locations from the backend.");
 
     try {
         const apiLocations: LocationApiResponse[] = await apiFetch('/locations');
-        console.log("API response received:", apiLocations?.length, "locations");
+        // console.log("API response received:", apiLocations?.length, "locations");
         
         if (!Array.isArray(apiLocations)) {
             console.error("API response is not an array:", apiLocations);
@@ -40,7 +40,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
 
         const locations: Location[] = apiLocations
             .map((apiLoc, index) => {
-                console.log(`Processing location ${index + 1}:`, apiLoc.name, apiLoc.latitude, apiLoc.longitude);
+                // console.log(`Processing location ${index + 1}:`, apiLoc.name, apiLoc.latitude, apiLoc.longitude);
                 
                 // Convert latitude and longitude to numbers if they're strings
                 const latitude = typeof apiLoc.latitude === 'string' ? parseFloat(apiLoc.latitude) : apiLoc.latitude;
@@ -62,7 +62,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
                     logo: logoAsset,
                 };
             })
-            .filter((location): location is Location => location !== null); // Filter out null values
+            .filter((location): location is Location => location !== null);
 
         console.log("Successfully processed", locations.length, "valid locations out of", apiLocations.length, "total");
         return locations;
