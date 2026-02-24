@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getActiveEvents, Event } from "@/services/eventsService";
 
 export function useEvents() {
@@ -6,23 +6,23 @@ export function useEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const data = await getActiveEvents();
-        setEvents(data);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to fetch events"));
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
+  const fetchEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getActiveEvents();
+      setEvents(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Failed to fetch events"));
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { events, loading, error };
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  return { events, loading, error, refetch: fetchEvents };
 }
