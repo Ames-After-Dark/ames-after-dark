@@ -1,12 +1,13 @@
 import Constants from "expo-constants";
 
-const SMUGMUG_API_KEY = Constants.expoConfig?.extra?.SMUGMUG_API_KEY;
-const USER = "chaseanderson";
-const SMUGMUG_API_BASE = "https://api.smugmug.com/api/v2";
+// Configurable extras (put these in expo config extra)
+const R2_API_TOKEN = Constants.expoConfig?.extra?.CLOUDFLARE_R2_API_TOKEN;
+const R2_ACCOUNT_ID = Constants.expoConfig?.extra?.CLOUDFLARE_R2_ACCOUNT_ID;
+const R2_BUCKET = Constants.expoConfig?.extra?.CLOUDFLARE_R2_BUCKET;
+const R2_S3_ENDPOINT = Constants.expoConfig?.extra?.CLOUDFLARE_R2_S3_ENDPOINT; // e.g. https://<id>.r2.cloudflarestorage.com
 
-// ensures API key is working
-if (!SMUGMUG_API_KEY) {
-  console.warn("Missing SMUGMUG_API_KEY — using fallback images");
+if (!R2_API_TOKEN || !R2_ACCOUNT_ID || !R2_BUCKET || !R2_S3_ENDPOINT) {
+  console.warn("Missing Cloudflare R2 config (CLOUDFLARE_R2_*) — using fallback images");
 }
 
 export type Photo = {
@@ -20,47 +21,25 @@ export type Album = {
   barName: string;
   date: string;
   coverUrl: string | null;
-  albumUri: string;
+  albumUri: string; // object prefix for the album in R2
 };
 
+function encodeKeyForUrl(key: string): string {
+  return key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
 /**
- * Fetches photos for a given bar by the Album URI.
- * Falls back to mock images if SmugMug fetch fails/none found.
+ * Build a public S3-style URL for an R2 object key.
+ * If R2_S3_ENDPOINT is set, it constructs a path-style URL: `${endpoint}/${bucket}/${key}`
  */
-export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
-  try {
-    const url = `https://api.smugmug.com${albumUri}?APIKey=${SMUGMUG_API_KEY}`;
-    const imagesRes = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "AmesAfterDark/1.0",
-      },
-    });
-
-    if (!imagesRes.ok) throw new Error(`Images fetch failed: ${imagesRes.statusText}`);
-
-    const imagesData = await imagesRes.json();
-    const images = imagesData?.Response?.AlbumImage ?? [];
-
-    const photos = images.map((img: any) => ({
-      id: img.ImageKey,
-      image: {
-        uri:
-          img.Sizes?.LargestImage?.Url || img.ArchivedUri || img.Uri,
-      },
-    }));
-
-    if (!photos.length) throw new Error("No photos found");
-    return photos;
-  } catch (err) {
-    console.warn("SmugMug fetch failed, falling back:", err);
-
-    // fallback to dummy local images
-    return Array.from({ length: 9 }, (_, i) => ({
-      id: `mock-${i}`,
-      image: require("@/assets/images/Logo.png"),
-    }));
-  }
+function urlForKey(key: string) {
+  // prefer S3 client endpoint (path-style)
+  const endpoint = R2_S3_ENDPOINT?.replace(/\/$/, "") || "";
+  const bucket = R2_BUCKET || "";
+  return `${endpoint}/${bucket}/${encodeKeyForUrl(key)}`;
 }
 
 /**
@@ -69,7 +48,6 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
  */
 function extractFolderEndDate(folderName: string): string | null {
   if (!folderName) return null;
-  // Find tokens like 1-31, 12/20, etc.
   const tokenRegex = /\b(\d{1,2}[\/\-]\d{1,2})\b/g;
   const matches: string[] = [];
   let m: RegExpExecArray | null;
@@ -82,131 +60,164 @@ function extractFolderEndDate(folderName: string): string | null {
 
 /**
  * Parse a date token like "2-7" or "1/31" into a Date object (month-day).
- * Assumes current year, but if that date is in the future, it rolls back to previous year.
  */
 function parseFolderDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const parts = dateStr.split(/[-\/]/);
   if (parts.length !== 2) return null;
-
   const month = parseInt(parts[0].trim(), 10) - 1;
   const day = parseInt(parts[1].trim(), 10);
   if (isNaN(month) || isNaN(day)) return null;
-
   const now = new Date();
   let year = now.getFullYear();
   let candidate = new Date(year, month, day);
-  // If candidate is in the future, it likely refers to previous year
-  if (candidate > now) {
-    candidate = new Date(year - 1, month, day);
-  }
+  if (candidate > now) candidate = new Date(year - 1, month, day);
   return candidate;
 }
 
-// Fetches albums from the most recent weekend folder
-export async function getLatestWeekendAlbums(): Promise<Album[]> {
+/**
+ * List objects in R2 under a given prefix using Cloudflare Account API.
+ */
+async function listR2Objects(prefix = "", limit = 1000): Promise<any[]> {
+  if (!R2_API_TOKEN || !R2_ACCOUNT_ID || !R2_BUCKET) return [];
+  const base = `https://api.cloudflare.com/client/v4/accounts/${R2_ACCOUNT_ID}/r2/buckets/${R2_BUCKET}/objects`;
+  const url = `${base}?limit=${limit}${prefix ? `&prefix=${encodeURIComponent(prefix)}` : ""}`;
   try {
-    const foldersRes = await fetch(
-      `${SMUGMUG_API_BASE}/folder/user/${USER}!folders?APIKey=${SMUGMUG_API_KEY}`,
-      {
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "AmesAfterDark/1.0",
-        },
-      }
-    );
-    if (!foldersRes.ok)
-      throw new Error(`Folders fetch failed: ${foldersRes.statusText}`);
-
-    const foldersData = await foldersRes.json();
-    const folders = foldersData?.Response?.Folder ?? [];
-
-    // Fetch only Big 4 folders and extract end dates
-    type FolderItem = { folder: any; endDateStr: string; endDate: Date };
-    const bigFourFolders: FolderItem[] = folders
-      .filter((f: any) => {
-        const name = f.Name?.toLowerCase() || "";
-        return name.startsWith("big 4") || name.startsWith("big4");
-      })
-      .map((f: any) => {
-        const endDateStr = extractFolderEndDate(f.Name) || "";
-        const parsed = parseFolderDate(endDateStr);
-        return { folder: f, endDateStr, endDate: parsed } as any;
-      })
-      .filter((item: { endDate: null; }) => item.endDate !== null) as FolderItem[];
-
-    if (bigFourFolders.length === 0) {
-      console.warn("No Big 4 folders found");
-      return [];
-    }
-
-    // Sort by parsed date descending and pick the latest
-    bigFourFolders.sort((a, b) => (b.endDate.getTime() - a.endDate.getTime()));
-    const latestFolder = bigFourFolders[0];
-    console.log(`Fetching albums from latest weekend folder: ${latestFolder.folder.Name}`);
-    // Fetch albums from only the latest folder
-    const albumsUrl = `https://api.smugmug.com${latestFolder.folder.Uris.FolderAlbums.Uri}?APIKey=${SMUGMUG_API_KEY}`;
-    const albumsRes = await fetch(albumsUrl, {
+    const res = await fetch(url, {
       headers: {
+        Authorization: `Bearer ${R2_API_TOKEN}`,
         Accept: "application/json",
-        "User-Agent": "AmesAfterDark/1.0",
       },
     });
+    if (!res.ok) {
+      console.warn("R2 list objects failed: ", res.status, res.statusText);
+      return [];
+    }
+    const data = await res.json();
+    const objects = data?.result?.objects || data?.objects || data?.result || [];
+    // each object should have a 'key' property
+    return objects;
+  } catch (err) {
+    console.warn("R2 list error: ", err);
+    return[];
+  }
+}
 
-    if (!albumsRes.ok) {
-      console.warn(`Albums fetch failed: ${albumsRes.statusText}`);
+/**
+ * Fetches photos for a given album prefix in the R2 bucket.
+ * albumUri is the prefix for the album (e.g. "big4/2-7/SomeAlbum/")
+ */
+export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
+  try {
+    if (!albumUri) return [];
+    // remove leading slash
+    let prefix = albumUri.replace(/^\//, "");
+    // ensure prefix ends with slash so we only list objects within the album
+    if (!prefix.endsWith("/")) prefix = `${prefix}/`;
+
+    const objs = await listR2Objects(prefix, 2000);
+    const items = objs.filter((o: any) => o?.key).map((o: any) => o);
+    const photos = items.map((it: any) => ({ id: it.key, image: { uri: urlForKey(it.key) } }));
+    if (!photos.length) throw new Error("No photos found in album");
+    return photos;
+  } catch (err) {
+    console.warn("R2 fetch failed, falling back: ", err);
+    return Array.from({ length: 9 }, (_, i) => ({ id: `mock-${i}`, image: require("@/assets/images/Logo.png") }));
+  }
+}
+
+/**
+ * Fetch albums from the most recent "Big 4" weekend folder.
+ * Detect folders by looking for keys that contain 'big4' or 'big 4' and
+ * then pick the latest folder by parsing embedded date tokens.
+ */
+export async function getLatestWeekendAlbums(): Promise<Album[]> {
+  try {
+    // list a large set of objects to discover folder names
+    const allObjects = await listR2Objects("", 2000);
+    if (!allObjects || allObjects.length === 0) {
+      console.warn("No objects found in R2 bucket");
       return [];
     }
 
-    const albumsData = await albumsRes.json();
-    const allAlbums = albumsData?.Response?.Album ?? [];
-
-    // fetch image cover
-    const enriched: Album[] = await Promise.all(
-      allAlbums.map(async (a: any) => {
-        let coverUrl = null;
-        try {
-          if (a.Uris?.HighlightImage?.Uri) {
-            const coverRes = await fetch(
-              `https://api.smugmug.com${a.Uris.HighlightImage.Uri}?APIKey=${SMUGMUG_API_KEY}`,
-              {
-                headers: {
-                  Accept: "application/json",
-                  "User-Agent": "AmesAfterDark/1.0",
-                },
-              }
-            );
-            if (coverRes.ok) {
-              const coverData = await coverRes.json();
-              coverUrl =
-                coverData?.Response?.Image?.LargestImage?.Url ||
-                coverData?.Response?.Image?.ArchivedUri ||
-                null;
-            }
-          }
-        } catch {
-          // ignore
+    // Find folder names that follow a 'big4' or 'big 4' segment
+    const folderSet = new Set<string>();
+    for (const obj of allObjects) {
+      const key: string = obj?.key || "";
+      const parts = key.split("/");
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i].toLowerCase();
+        if (p === "big4" || p === "big 4") {
+          const folderName = parts[i + 1] || "";
+          if (folderName) folderSet.add(folderName);
         }
+      }
+    }
 
-        // Extract barName + date from album name like "Sips 2-8"
-        const parts = (a.Name || "").split(" ");
-        const date: string = parts.at(-1) || "";
-        const bar = parts.slice(0, -1).join(" ");
+    const folders = Array.from(folderSet);
+    const folderItems = folders
+      .map((name) => ({ name, endDateStr: extractFolderEndDate(name) || "", endDate: parseFolderDate(extractFolderEndDate(name) || "") }))
+      .filter((f) => f.endDate !== null)
+      .sort((a, b) => (b.endDate!.getTime() - a.endDate!.getTime()));
 
-        return {
-          id: a.AlbumKey,
-          name: a.Name,
-          barName: bar,
-          date,
-          coverUrl,
-          albumUri: a.Uris?.AlbumImages?.Uri,
-        };
-      })
-    );
+    if (folderItems.length === 0) {
+      console.warn("No Big 4 folders found in R2");
+      return [];
+    }
 
-    return enriched;
+    const latestFolder = folderItems[0].name;
+    // Now list objects under the big4/latestFolder prefix
+    // We need to find the parent 'big4' segment to build correct prefix
+    // Search one example key to find the exact 'big4/<folder>' prefix
+    let prefixBase = "";
+    for (const obj of allObjects) {
+      const key: string = obj?.key || "";
+      const match = key.match(/(big4|big 4)\/(.+?)\//i);
+      if (match && match[2] === latestFolder) {
+        // extract everything up to and including the folder name
+        const idx = key.toLowerCase().indexOf(match[0].toLowerCase());
+        if (idx !== -1) {
+          prefixBase = key.substring(0, idx) + match[0];
+          break;
+        }
+      }
+    }
+    // fallback: construct prefix as 'big4/<latestFolder>/'
+    if (!prefixBase) prefixBase = `big4/${latestFolder}/`;
+
+    const albumObjects = await listR2Objects(prefixBase, 5000);
+    // Group by album (assume album folders are the next segment after folder)
+    const albumsMap: Record<string, any[]> = {};
+    for (const o of albumObjects) {
+      const k: string = o.key || "";
+      // remove prefixBase from key
+      let relative = k;
+      if (k.startsWith(prefixBase)) relative = k.substring(prefixBase.length);
+      const parts = relative.split("/");
+      const albumName = parts[0] || "__root__";
+      if (!albumsMap[albumName]) albumsMap[albumName] = [];
+      albumsMap[albumName].push(o);
+    }
+
+    const albums: Album[] = Object.entries(albumsMap).map(([albumName, items]) => {
+      // try to pick a cover (first image)
+      const first = items.find((it: any) => it && it.key && !it.key.endsWith("/"));
+      const coverUrl = first ? urlForKey(first.key) : null;
+      // Attempt to find a date token in the folder name and use it as the album date
+      const dateToken = folderItems[0].endDateStr || "";
+      return {
+        id: `${latestFolder}/${albumName}`,
+        name: `${albumName} ${dateToken}`.trim(),
+        barName: albumName,
+        date: dateToken,
+        coverUrl,
+        albumUri: `${prefixBase}${albumName}/`,
+      };
+    });
+
+    return albums;
   } catch (err) {
-    console.warn("Album fetch failed:", err);
+    console.warn("getLatestWeekendAlbums failed:", err);
     return [];
   }
 }
