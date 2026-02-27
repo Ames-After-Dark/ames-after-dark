@@ -227,10 +227,10 @@ export default function Tonight() {
   }, [query, scheduledBars]);
 
   // Navigation helpers
-  const goToBarDetail = (id: string) =>
+  const goToBarDetail = (id: string, backTo: "home" | "bars" = "bars") =>
     router.push({
       pathname: "/bars/[id]",
-      params: { id },
+      params: { id, backTo },
     });
 
   const goToFriendsTab = () => router.navigate("/account/account");
@@ -283,7 +283,7 @@ export default function Tonight() {
               return (
                 <Pressable
                   key={poster.id}
-                  onPress={() => goToBarDetail(barId)}
+                  onPress={() => goToBarDetail(barId, "home")}
                   style={{ borderRadius: 12 }}
                 >
                   <Image
