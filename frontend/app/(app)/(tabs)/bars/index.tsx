@@ -6,6 +6,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
+import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import ErrorState from "@/components/ui/error-state";
 import type { Bar } from "@/types/bars";
 import { IMG } from "../../../../assets/assets"; 
 import { getNow, isBarOpen } from "@/config/time";
@@ -30,7 +32,7 @@ export default function Bars() {
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const { bars, loading } = useBars({ q: search || undefined });
+  const { bars, loading, error } = useBars({ q: search || undefined });
 
     const [now, setNow] = useState(getNow());
 
@@ -77,6 +79,8 @@ useEffect(() => {
     };
 
   const isFav = (b: Bar) => fav[String(b.id)] ?? !!b.favorite;
+
+  const hasError = !!error || shouldForceErrorPage("bars");
 
     const visibleBars = useMemo(() => {
         if (!bars) return [];
@@ -155,6 +159,14 @@ useEffect(() => {
       </TouchableOpacity>
     );
   };
+
+  if (hasError) {
+    return (
+      <View style={styles.container}>
+        <ErrorState title="Unable to load bars" subtitle="Please try again later." />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

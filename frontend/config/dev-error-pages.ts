@@ -3,7 +3,11 @@ export type ErrorPageKey =
   | "map"
   | "barDetail"
   | "barMenu"
-  | "locationSettings";
+  | "locationSettings"
+  | "account"
+  | "friendProfile"
+  | "bars"
+  | "gallery";
 
 const FORCE_ALL_ERROR_PAGES = false;
 
@@ -13,6 +17,10 @@ const FORCE_ERROR_PAGES: Record<ErrorPageKey, boolean> = {
   barDetail: false,
   barMenu: false,
   locationSettings: false,
+  account: false,
+  friendProfile: false,
+  bars: false,
+  gallery: false,
 };
 
 export function shouldForceErrorPage(page: ErrorPageKey): boolean {

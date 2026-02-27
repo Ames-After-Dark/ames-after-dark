@@ -29,6 +29,8 @@ import {
     removeFriend,
     sendFriendRequest
 } from '@/services/userService';
+import { shouldForceErrorPage } from '@/config/dev-error-pages';
+import ErrorState from '@/components/ui/error-state';
 import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
@@ -318,6 +320,14 @@ export default function FriendProfileScreen() {
             <ActivityIndicator size="large" color={Theme.dark.secondary || 'white'} />
         </View>
     );
+
+    if (error || shouldForceErrorPage('friendProfile')) {
+        return (
+            <View style={styles.container}>
+                <ErrorState title="Unable to load friend profile" subtitle="Please try again later." />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
