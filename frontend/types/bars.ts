@@ -1,23 +1,8 @@
 // types/bar.ts
+import type { TimeRule } from "@/types/types";
 
 // ---------- Core Ids ----------
 export type BarId = string;
-
-// ---------- Scheduling ----------
-export type TimeRule =
-  | {
-      kind: "one-time";
-      start: string; // ISO datetime
-      end: string;   // ISO datetime
-      tz: string;    // e.g., "America/Chicago"
-    }
-  | {
-      kind: "weekly";
-      tz: string;            // e.g., "America/Chicago"
-      daysOfWeek: number[];  // 0 (Sun) ... 6 (Sat)
-      startLocalTime: string; // "HH:mm"
-      endLocalTime: string;   // "HH:mm"
-    };
 
 export type ScheduledDeal = {
   id: string;

@@ -1,4 +1,4 @@
-import type { TimeRule } from "@/types/bars";
+import type { TimeRule } from "@/types/types";
 
 export const getNow = (): Date => new Date();
 
