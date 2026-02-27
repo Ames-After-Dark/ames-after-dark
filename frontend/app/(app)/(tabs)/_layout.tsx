@@ -116,7 +116,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* TONIGHT (index.tsx) */}
+      {/* TONIGHT */}
       <Tabs.Screen
         name="tonight"
         options={{
