@@ -23,7 +23,10 @@ export default function MapScreen() {
         if (!selectedLocation) return;
 
         // Navigate to the bar's page
-        router.push(`/bars/${selectedLocation.id}`);
+        router.push({
+            pathname: "/bars/[id]",
+            params: { id: String(selectedLocation.id), backTo: "map" },
+        });
 
         // Close the modal after leaving the maps page
         setSelectedLocation(null);

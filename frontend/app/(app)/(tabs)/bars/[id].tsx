@@ -45,13 +45,18 @@ const barLogoMap: { [key: string]: any } = {
 };
 
 export default function BarProfile() {
-  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: "home" | "bars" }>();
+  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: "home" | "bars" | "map" }>();
   const router = useRouter();
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
   const handleBack = () => {
     if (backTo === "home") {
       router.replace("/(app)/(tabs)/tonight");
+      return;
+    }
+
+    if (backTo === "map") {
+      router.replace("/(app)/(tabs)/map");
       return;
     }
 
