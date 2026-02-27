@@ -13,7 +13,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
-import { getNow, isActive, isBarOpen } from "@/config/time";
+import { getNow, isActive } from "@/utils/schedule";
 import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
 
 import { Theme } from '@/constants/theme';

@@ -2,8 +2,8 @@
 // High-level: This screen renders the "Tonight" tab with 3 views:
 //  - Open Now (bars currently open)
 //  - Deals Tonight (bars with an active scheduled deal)
-//  - Friends near you (mock list of friends + where they are)
-// Data comes from local mock sources and time utilities to decide "open"/"active".
+//  - Friends near you
+// Data comes from backend APIs and schedule utilities.
 
 import React, { useMemo, useState } from "react";
 import {
@@ -20,12 +20,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { FRIENDS, TONIGHT_POSTERS, BarId } from "@/data/mock";
 import { useTonightData } from "@/hooks/useTonightData";
 import { useFriends } from "@/hooks/useFriends";
 import { useBars } from "@/hooks/useBars";
+import { IMG } from "@/assets/assets";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
-import { getNow, isActive, isBarOpen } from "@/config/time";
+import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 
 import { Theme } from "@/constants/theme";
 import type { Friend } from "@/types/types";
@@ -40,6 +40,29 @@ const TAB_META = [
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = (typeof TAB_META)[number]["key"];
+
+const HERO_POSTERS = [
+  {
+    id: "outlaws-tuesday",
+    barName: "Outlaws",
+    image: IMG.DealOutlawsTuesday,
+  },
+  {
+    id: "blue-owl-pool-tuesday",
+    barName: "The Blue Owl Bar",
+    image: IMG.DealBlueOwlPoolTuesday,
+  },
+  {
+    id: "paddys-disney-trivia",
+    barName: "Paddy's Irish Pub",
+    image: IMG.DealPaddysDisneyTrivia,
+  },
+  {
+    id: "cys-cherry-bombs",
+    barName: "Cy's Roost",
+    image: IMG.DealCysCherryBombs,
+  },
+] as const;
 
 const CURRENT_USER_ID = 1;
 
@@ -115,6 +138,28 @@ export default function Tonight() {
     return data;
   }, [query, friends]);
 
+  const tonightPosters = useMemo(() => {
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    return HERO_POSTERS.map((poster) => {
+      const posterKey = normalize(poster.barName);
+      const matchedBar = scheduledBars.find((bar) => {
+        const barKey = normalize(bar.name);
+        return (
+          barKey === posterKey ||
+          barKey.includes(posterKey) ||
+          posterKey.includes(barKey)
+        );
+      });
+
+      return {
+        id: poster.id,
+        barId: matchedBar ? String(matchedBar.id) : null,
+        image: poster.image,
+      };
+    });
+  }, [scheduledBars]);
+
   const upcomingDealsData = useMemo(() => {
     const q = query.trim().toLowerCase();
     const now = getNow();
@@ -135,13 +180,13 @@ export default function Tonight() {
     if (!nextOpenNight) {
       return {
         label: "Upcoming Deals & Events",
-        deals: [] as Array<{
+        deals: [] as {
           id: string;
           barId: string;
           bar: string;
           title: string;
           subtitle: string;
-        }>,
+        }[],
       };
     }
 
@@ -199,7 +244,7 @@ export default function Tonight() {
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Theme.dark.primary} />
-          <Text style={styles.loadingText}>Loading tonight's events...</Text>
+          <Text style={styles.loadingText}>Loading tonight&apos;s events...</Text>
         </View>
       )}
 
@@ -211,7 +256,7 @@ export default function Tonight() {
             size={48}
             color={Theme.dark.primary}
           />
-          <Text style={styles.errorText}>Unable to load tonight's events</Text>
+          <Text style={styles.errorText}>Unable to load tonight&apos;s events</Text>
           <Text style={styles.errorSubtext}>Please try again later</Text>
         </View>
       )}
@@ -230,14 +275,15 @@ export default function Tonight() {
             contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
             style={{ marginBottom: 12 }}
           >
-            {TONIGHT_POSTERS.map((poster) => {
+            {tonightPosters.map((poster) => {
               // Guard so TS & runtime both know barId is present
-              if (!poster.barId) return null;
+              const barId = poster.barId;
+              if (!barId) return null;
 
               return (
                 <Pressable
                   key={poster.id}
-                  onPress={() => goToBarDetail(poster.barId as BarId)}
+                  onPress={() => goToBarDetail(barId)}
                   style={{ borderRadius: 12 }}
                 >
                   <Image
