@@ -26,6 +26,8 @@ import { useFriends } from "@/hooks/useFriends";
 import { useBars } from "@/hooks/useBars";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 import { getNow, isActive, isBarOpen } from "@/config/time";
+import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import ErrorState from "@/components/ui/error-state";
 
 import { Theme } from "@/constants/theme";
 import type { Friend } from "@/types/types";
@@ -58,7 +60,7 @@ export default function Tonight() {
     error: friendsError,
   } = useFriends(CURRENT_USER_ID);
 
-  const hasError = !!error || !!friendsError;
+  const hasError = !!error || !!friendsError || shouldForceErrorPage("tonight");
   const isLoading = loading || friendsLoading || scheduledBarsLoading;
 
   // ----- Filter for active tab -----
@@ -205,15 +207,7 @@ export default function Tonight() {
 
       {/* Error state */}
       {hasError && !isLoading && (
-        <View style={styles.errorContainer}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={48}
-            color={Theme.dark.primary}
-          />
-          <Text style={styles.errorText}>Unable to load tonight's events</Text>
-          <Text style={styles.errorSubtext}>Please try again later</Text>
-        </View>
+        <ErrorState title="Unable to load tonight's events" />
       )}
 
       {/* Main content */}
@@ -484,26 +478,6 @@ const styles = StyleSheet.create({
     color: Theme.container.inactiveText,
     marginTop: 12,
     fontSize: 14,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Theme.dark.background,
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    color: Theme.container.titleText,
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  errorSubtext: {
-    color: Theme.container.inactiveText,
-    fontSize: 14,
-    marginTop: 6,
-    textAlign: "center",
   },
   heroImage: {
     width: 300,

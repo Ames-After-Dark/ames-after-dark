@@ -77,6 +77,6 @@ export const fetchLocations = async (): Promise<Location[]> => {
     }
     catch (error) {
         console.error("Error in locationService.fetchLocations: ", error);
-        throw new Error("Failed to fetch locations. Please try again.");
+        throw new Error("Failed to fetch locations. Please try again later.");
     }
 };

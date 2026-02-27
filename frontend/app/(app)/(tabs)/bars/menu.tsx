@@ -3,7 +3,9 @@ import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useBarDetail } from "@/hooks/useBarDetail";
+import { shouldForceErrorPage } from "@/config/dev-error-pages";
 import { Theme } from "@/constants/theme";
+import ErrorState from "@/components/ui/error-state";
 
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,10 +41,10 @@ export default function BarMenuScreen() {
     );
   }
 
-  if (!bar) {
+  if (!bar || shouldForceErrorPage("barMenu")) {
     return (
       <View style={styles.container}>
-        <Text style={styles.empty}>Bar not found.</Text>
+        <ErrorState title="Bar not found" subtitle="Please try again later." />
       </View>
     );
   }

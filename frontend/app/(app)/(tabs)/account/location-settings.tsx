@@ -14,7 +14,9 @@ import { Stack } from "expo-router";
 import { FontAwesome } from '@expo/vector-icons';
 
 import { Friend } from '@/types/types';
+import { shouldForceErrorPage } from '@/config/dev-error-pages';
 import { getUserFriends } from '@/services/userService';
+import ErrorState from '@/components/ui/error-state';
 
 export default function LocationVisibilityScreen() {
   const [shareWithAll, setShareWithAll] = useState(true);
@@ -46,11 +48,12 @@ export default function LocationVisibilityScreen() {
     (f.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleFriendSelection = (id: string) => {
+  const toggleFriendSelection = (id: string | number) => {
+    const idString = String(id);
     setSelectedFriends((prev) =>
-      prev.includes(id)
-        ? prev.filter((fid) => fid !== id)
-        : [...prev, id]
+      prev.includes(idString)
+        ? prev.filter((fid) => fid !== idString)
+        : [...prev, idString]
     );
   };
 
@@ -72,7 +75,7 @@ export default function LocationVisibilityScreen() {
     );
   }
 
-  if (error) {
+  if (error || shouldForceErrorPage('locationSettings')) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <Stack.Screen
@@ -85,7 +88,7 @@ export default function LocationVisibilityScreen() {
             headerTintColor: 'white',
           }}
         />
-        <Text style={styles.errorText}>Failed to load friends</Text>
+        <ErrorState title="Failed to load friends." subtitle="Please try again later." />
       </View>
     );
   }
@@ -136,10 +139,10 @@ export default function LocationVisibilityScreen() {
           {filteredFriends.length > 0 ? (
             <FlatList
               data={filteredFriends}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => String(item.id)}
               showsVerticalScrollIndicator={false}
               renderItem={({ item }) => {
-                const selected = selectedFriends.includes(item.id);
+                const selected = selectedFriends.includes(String(item.id));
                 return (
                   <TouchableOpacity
                     style={[styles.friendItem, selected && styles.selectedFriend]}
@@ -265,10 +268,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#ccc',
-    fontSize: 16,
-  },
-  errorText: {
-    color: '#ff6b6b',
     fontSize: 16,
   },
 });

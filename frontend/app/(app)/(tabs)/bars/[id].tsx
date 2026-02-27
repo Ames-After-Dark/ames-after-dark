@@ -14,7 +14,9 @@ import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { getNow, isActive, isBarOpen } from "@/config/time";
+import { shouldForceErrorPage } from "@/config/dev-error-pages";
 import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
+import ErrorState from "@/components/ui/error-state";
 
 import { Theme } from '@/constants/theme';
 
@@ -62,10 +64,10 @@ export default function BarProfile() {
     );
   }
 
-  if (!bar) {
+  if (!bar || shouldForceErrorPage("barDetail")) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: Theme.dark.error, padding: 16 }}>Bar not found.</Text>
+        <ErrorState title="Bar not found" subtitle="Please try again later." />
       </View>
     );
   }
