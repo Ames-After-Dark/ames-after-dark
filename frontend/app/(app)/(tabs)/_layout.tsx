@@ -57,6 +57,7 @@ export default function TabLayout() {
     <Tabs
       initialRouteName="tonight"  
       screenOptions={{
+        
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
