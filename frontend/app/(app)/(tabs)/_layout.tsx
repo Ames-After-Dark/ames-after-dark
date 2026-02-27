@@ -11,7 +11,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import TopHeader from "@/components/TopHeader";
 
 const ICON_OFFSET_Y = -13;
-const TAB_BAR_HORIZONTAL_MARGIN = 10;
+const TAB_BAR_HORIZONTAL_MARGIN = 5;
 const TAB_BAR_BOTTOM_GAP = 25;
 const TAB_BAR_HEIGHT = 64;
 const TAB_CONTENT_BOTTOM_PADDING = 12;
@@ -68,8 +68,8 @@ export default function TabLayout() {
 
         tabBarStyle: {
           position: 'absolute',
-          left: TAB_BAR_HORIZONTAL_MARGIN,
-          right: TAB_BAR_HORIZONTAL_MARGIN,
+          marginLeft: TAB_BAR_HORIZONTAL_MARGIN,
+          marginRight: TAB_BAR_HORIZONTAL_MARGIN,
           bottom: tabBarBottom,
           height: TAB_BAR_HEIGHT,
           borderRadius: 999,
