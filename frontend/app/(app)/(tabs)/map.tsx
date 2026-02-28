@@ -175,7 +175,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginTop: 16,
         marginHorizontal: 16,
-        marginBottom: 16,
     },
     modalBackdrop: {
         flex: 1,
