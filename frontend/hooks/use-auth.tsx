@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { useAuth0 } from "react-native-auth0"
 import { useRouter, useSegments, useRootNavigationState } from "expo-router"
 import { checkUserStatus, UserStatus } from "@/services/userService"
+import { config } from "@/auth0.config"
 
 // Define the shape of our auth context
 type AuthContextType = {
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signIn = async () => {
         try {
-          await authorize()
+          await authorize({ audience: config.audience })
           const credentials = await getCredentials()
           console.log("Auth credentials obtained")
           
