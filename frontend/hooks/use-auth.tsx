@@ -62,7 +62,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signIn = async () => {
         try {
-          await authorize()
+          
+          await authorize({ audience: 'ames-after-dark-api' })
           const credentials = await getCredentials()
           console.log("Auth credentials obtained")
           
