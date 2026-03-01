@@ -75,7 +75,8 @@ exports.checkUserStatus = async (req, res) => {
   try {
     // Get Auth0 user ID from JWT token (populated by optionalJwt middleware)
     // Will be undefined if no token or invalid token
-    const auth0Id = req.auth?.sub;
+    // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
     
     if (!auth0Id) {
       // No token or invalid token - user is not authenticated
@@ -138,10 +139,11 @@ exports.completeUserRegistration = async (req, res) => {
     console.log('== REGISTRATION DEBUG ==');
     console.log('Headers:', req.headers?.authorization ? 'Bearer token present' : 'NO TOKEN');
     console.log('req.auth:', req.auth);
-    console.log('req.auth?.sub:', req.auth?.sub);
+    console.log('req.auth?.payload?.sub:', req.auth?.payload?.sub);
     
     // Get Auth0 user ID from the JWT token (guaranteed by middleware)
-    const auth0Id = req.auth?.sub;
+    // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
     
     if (!auth0Id) {
       console.log('Returning 401 - no auth0Id found');
@@ -182,8 +184,9 @@ exports.completeUserRegistration = async (req, res) => {
     }
 
     // Get additional user info from JWT token if available
-    const email = req.auth?.email || null;
-    const name = req.auth?.name || null;
+    // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
+    const email = req.auth?.payload?.email || req.auth?.email || null;
+    const name = req.auth?.payload?.name || req.auth?.name || null;
 
     // Create new user
     const newUser = await userService.createUserWithAuth0({
