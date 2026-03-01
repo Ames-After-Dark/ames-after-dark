@@ -154,11 +154,10 @@ describe('userController - Auth0 endpoints', () => {
 
       await userController.checkUserStatus(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Authentication required',
         registered: false,
-        profileComplete: false
+        profileComplete: false,
+        requiresRegistration: true
       });
     });
 

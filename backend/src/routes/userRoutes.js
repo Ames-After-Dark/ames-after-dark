@@ -8,11 +8,6 @@ const { checkJwt, optionalJwt } = require('../middleware/authMiddleware');
 router.get('/auth/status', optionalJwt, userController.checkUserStatus); // Check user status (validates token if present)
 router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration (requires auth)
 
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-router.post('/signup', userController.createUser);
-router.post('/login', userController.loginUser);
-// TEMP_AUTH_END
-
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
 router.get('/:userId/friends', userController.getUserFriends);
