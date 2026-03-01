@@ -62,10 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signIn = async () => {
         try {
-          
-          await authorize({ audience: 'ames-after-dark-api' })
+          await authorize({ audience: config.audience })
           const credentials = await getCredentials()
-          console.log("Auth credentials obtained")
+          console.log("Auth credentials obtained:", credentials ? "YES" : "NO")
+          if (credentials?.accessToken) {
+            console.log("Access token length:", credentials.accessToken.length)
+          }
           
           // Check user registration status
           if (credentials?.accessToken) {
