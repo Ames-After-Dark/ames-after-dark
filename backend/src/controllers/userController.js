@@ -74,7 +74,15 @@ exports.updateUserLimited = async (req, res) => {
 exports.checkUserStatus = async (req, res) => {
   try {
     // Get Auth0 user ID from the JWT token (guaranteed by middleware)
-    const auth0Id = req.auth.sub;
+    const auth0Id = req.auth?.sub;
+    
+    if (!auth0Id) {
+      return res.status(401).json({
+        message: 'Authentication required',
+        registered: false,
+        profileComplete: false
+      });
+    }
 
     // Check if user exists in database
     const user = await userService.getUserByAuth0Id(auth0Id);
@@ -125,7 +133,11 @@ exports.checkUserStatus = async (req, res) => {
 exports.completeUserRegistration = async (req, res) => {
   try {
     // Get Auth0 user ID from the JWT token (guaranteed by middleware)
-    const auth0Id = req.auth.sub;
+    const auth0Id = req.auth?.sub;
+    
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
 
     const { phoneNumber, birthday } = req.body;
 
