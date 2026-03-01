@@ -9,8 +9,10 @@ router.get('/:userId/friends', userController.getUserFriends);
 router.get('/', userController.getUsers);         // Read all
 router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
-// router.get('/auth/status', userController.checkUserStatus); // Check user status
-// router.post('/auth/register', userController.completeUserRegistration); // Create user with signup info
+
+// Auth0 protected routes
+router.get('/auth/status', checkJwt, userController.checkUserStatus); // Check user status
+router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration
 
 // TEMP_AUTH_START - Remove when re-enabling Auth0
 router.post('/signup', userController.createUser);

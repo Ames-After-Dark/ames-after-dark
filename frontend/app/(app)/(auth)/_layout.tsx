@@ -1,39 +1,24 @@
-// TEMP_AUTH_START - Remove when re-enabling Auth0
 import { Stack } from 'expo-router';
+import { useAuth } from "@/hooks/use-auth"
+import { View, ActivityIndicator } from "react-native";
 
 export default function AuthLayout() {
+    const { isLoading} = useAuth()
+
+    if (isLoading) {
+        <View style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#0a0a0a'
+        }}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    }
+
     return (
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="signup" />
         </Stack>
     );
 }
-// TEMP_AUTH_END
-
-// Original Auth0 version - uncomment when re-enabling Auth0
-// import { Stack } from 'expo-router';
-// import { useAuth } from "@/hooks/use-auth"
-// import { View, ActivityIndicator } from "react-native";
-
-// export default function AuthLayout() {
-//     const { isLoading} = useAuth()
-
-//     if (isLoading) {
-//         <View style={{
-//             flex: 1,
-//             justifyContent: 'center',
-//             alignItems: 'center',
-//             backgroundColor: '#0a0a0a'
-//         }}>
-//         <ActivityIndicator size="large" color="#2563eb" />
-//       </View>
-//     }
-
-//     return (
-//         <Stack screenOptions={{ headerShown: false }}>
-//           <Stack.Screen name="index" />
-//         </Stack>
-//     );
-// }

@@ -148,30 +148,75 @@ export async function getMutualFriends(viewerId: string | number, profileId: str
   }
 }
 
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-export async function loginUser(username: string) {
+// Auth0 endpoints
+export interface UserStatus {
+  registered: boolean;
+  profileComplete: boolean;
+  requiresRegistration: boolean;
+  userId?: number;
+  user?: {
+    id: number;
+    email: string | null;
+    name: string | null;
+    hasPhoneNumber: boolean;
+    hasBirthday: boolean;
+  };
+}
+
+export interface CompleteRegistrationData {
+  phoneNumber: string;
+  birthday: string; // YYYY-MM-DD format
+}
+
+export interface CompleteRegistrationResponse {
+  message: string;
+  user: {
+    id: number;
+    email: string | null;
+    name: string | null;
+    phoneNumber: string;
+    birthday: string;
+  };
+}
+
+/**
+ * Check if the authenticated user is registered and has completed their profile
+ * Requires Auth0 authentication
+ */
+export async function checkUserStatus(accessToken: string): Promise<UserStatus> {
   try {
-    const user = await apiFetch(`/users/login`, {
-      method: 'POST',
-      body: JSON.stringify({ username })
+    const status = await apiFetch(`/users/auth/status`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
     });
-    return user;
+    return status;
   } catch (error) {
-    console.error(`Failed to login user ${username}:`, error);
+    console.error('Failed to check user status:', error);
     throw error;
   }
 }
 
-export async function signupUser(username: string) {
+/**
+ * Complete user registration with phone number and birthday
+ * Requires Auth0 authentication
+ */
+export async function completeUserRegistration(
+  accessToken: string,
+  data: CompleteRegistrationData
+): Promise<CompleteRegistrationResponse> {
   try {
-    const user = await apiFetch(`/users/signup`, {
+    const response = await apiFetch(`/users/auth/register`, {
       method: 'POST',
-      body: JSON.stringify({ username })
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(data)
     });
-    return user;
+    return response;
   } catch (error) {
-    console.error(`Failed to signup user ${username}:`, error);
+    console.error('Failed to complete user registration:', error);
     throw error;
   }
 }
-// TEMP_AUTH_END
