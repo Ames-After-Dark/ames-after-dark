@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signIn = async () => {
         try {
-          await authorize({ audience: config.audience })
+          await authorize()
           const credentials = await getCredentials()
           console.log("Auth credentials obtained")
           
