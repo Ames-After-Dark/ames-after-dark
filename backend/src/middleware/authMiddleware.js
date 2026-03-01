@@ -6,7 +6,7 @@ const { auth } = require('express-oauth2-jwt-bearer');
 // exist and be verified against the Auth0 JSON Web Key Set.
 // TEMPORARILY removing audience for debugging
 const checkJwt = auth({
-    // audience: 'ames-after-dark-api',  // Commented out for debugging
+    audience: 'ames-after-dark-api',
     issuerBaseURL: 'https://dev-lz0c3j2voxj6hy6v.us.auth0.com/',
 });
 
