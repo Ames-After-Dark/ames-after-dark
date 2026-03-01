@@ -64,51 +64,6 @@ exports.updateUserLimited = async (req, res) => {
   }
 };
 
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-// POST /api/users/signup
-exports.createUser = async (req, res) => {
-  try {
-    const { username } = req.body;
-    
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-    
-    // Check if user already exists
-    const existingUser = await userService.loginUser(username);
-    if (existingUser) {
-      return res.status(409).json({ message: 'Username already exists' });
-    }
-    
-    const user = await userService.createUser({ username });
-    res.status(201).json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-// POST /api/users/login
-exports.loginUser = async (req, res) => {
-  try {
-    const { username } = req.body;
-    
-    if (!username) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-    
-    const user = await userService.loginUser(username);
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-    
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-// TEMP_AUTH_END
 
 /**
  * GET /api/users/auth/status
@@ -118,16 +73,8 @@ exports.loginUser = async (req, res) => {
  */
 exports.checkUserStatus = async (req, res) => {
   try {
-    // Get Auth0 user ID from the JWT token (set by auth middleware)
-    const auth0Id = req.auth?.sub;
-    
-    if (!auth0Id) {
-      return res.status(401).json({ 
-        message: 'Authentication required',
-        registered: false,
-        profileComplete: false
-      });
-    }
+    // Get Auth0 user ID from the JWT token (guaranteed by middleware)
+    const auth0Id = req.auth.sub;
 
     // Check if user exists in database
     const user = await userService.getUserByAuth0Id(auth0Id);
@@ -177,14 +124,8 @@ exports.checkUserStatus = async (req, res) => {
  */
 exports.completeUserRegistration = async (req, res) => {
   try {
-    // Get Auth0 user ID from the JWT token
-    const auth0Id = req.auth?.sub;
-    
-    if (!auth0Id) {
-      return res.status(401).json({ 
-        message: 'Authentication required'
-      });
-    }
+    // Get Auth0 user ID from the JWT token (guaranteed by middleware)
+    const auth0Id = req.auth.sub;
 
     const { phoneNumber, birthday } = req.body;
 
