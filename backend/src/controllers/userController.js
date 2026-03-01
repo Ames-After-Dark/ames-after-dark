@@ -138,6 +138,9 @@ exports.completeUserRegistration = async (req, res) => {
     // DEBUG: Log what we received
     console.log('== REGISTRATION DEBUG ==');
     console.log('Headers:', req.headers?.authorization ? 'Bearer token present' : 'NO TOKEN');
+    console.log('Content-Type:', req.headers?.['content-type']);
+    console.log('req.body:', req.body);
+    console.log('req.body type:', typeof req.body);
     console.log('req.auth:', req.auth);
     console.log('req.auth?.payload?.sub:', req.auth?.payload?.sub);
     
@@ -150,7 +153,7 @@ exports.completeUserRegistration = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { phoneNumber, birthday } = req.body;
+    const { phoneNumber, birthday } = req.body || {};
 
     // Validate required fields
     if (!phoneNumber || !birthday) {
