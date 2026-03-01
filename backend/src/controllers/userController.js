@@ -136,7 +136,7 @@ exports.completeUserRegistration = async (req, res) => {
   try {
     // DEBUG: Log what we received
     console.log('== REGISTRATION DEBUG ==');
-    console.log('Headers:', req.headers.authorization ? 'Bearer token present' : 'NO TOKEN');
+    console.log('Headers:', req.headers?.authorization ? 'Bearer token present' : 'NO TOKEN');
     console.log('req.auth:', req.auth);
     console.log('req.auth?.sub:', req.auth?.sub);
     
