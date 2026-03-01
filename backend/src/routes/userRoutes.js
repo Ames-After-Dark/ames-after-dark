@@ -19,4 +19,7 @@ router.post('/signup', userController.createUser);
 router.post('/login', userController.loginUser);
 // TEMP_AUTH_END
 
+// PUT /api/users/:id - update username, email, bio only
+router.put('/:id', userController.updateUserLimited);
+
 module.exports = router;
