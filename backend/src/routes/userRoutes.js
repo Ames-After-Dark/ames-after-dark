@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const checkJwt = require('../middleware/authMiddleware');
+const { checkJwt, optionalJwt } = require('../middleware/authMiddleware');
 
 // Auth0 protected routes - MUST come before /:id routes
-router.get('/auth/status', checkJwt, userController.checkUserStatus); // Check user status
-router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration
+// Note: /auth/status uses optionalJwt to validate token if present but allow through if not
+router.get('/auth/status', optionalJwt, userController.checkUserStatus); // Check user status (validates token if present)
+router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration (requires auth)
 
 // TEMP_AUTH_START - Remove when re-enabling Auth0
 router.post('/signup', userController.createUser);

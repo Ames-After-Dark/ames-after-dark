@@ -67,20 +67,22 @@ exports.updateUserLimited = async (req, res) => {
 
 /**
  * GET /api/users/auth/status
- * Check if authenticated user exists in DB and has completed registration
- * Requires Auth0 JWT authentication
+ * Check if authenticated user exists in DB and has completed registration  
+ * Uses optionalJwt middleware - validates token if present, allows through if not
  * Returns registration status and whether user needs to complete profile
  */
 exports.checkUserStatus = async (req, res) => {
   try {
-    // Get Auth0 user ID from the JWT token (guaranteed by middleware)
+    // Get Auth0 user ID from JWT token (populated by optionalJwt middleware)
+    // Will be undefined if no token or invalid token
     const auth0Id = req.auth?.sub;
     
     if (!auth0Id) {
-      return res.status(401).json({
-        message: 'Authentication required',
+      // No token or invalid token - user is not authenticated
+      return res.json({
         registered: false,
-        profileComplete: false
+        profileComplete: false,
+        requiresRegistration: true
       });
     }
 
