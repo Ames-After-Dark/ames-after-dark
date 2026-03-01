@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useAuth0 } from "react-native-auth0"
 import { useRouter, useSegments, useRootNavigationState } from "expo-router"
+import { checkUserStatus, UserStatus } from "@/services/userService"
 
 // Define the shape of our auth context
 type AuthContextType = {
@@ -12,6 +13,9 @@ type AuthContextType = {
     setIsSwitching: (value: boolean) => void
     user: any
     error: Error | null
+    userStatus: UserStatus | null
+    refreshUserStatus: () => Promise<void>
+    getAccessToken: () => Promise<string | null>
 }
 
 // Create the context with a default value
@@ -26,23 +30,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isSwitching, setIsSwitching] = useState(false)
+    const [userStatus, setUserStatus] = useState<UserStatus | null>(null)
 
     useEffect(() => {
       if (user) {
         console.log("User session found:", user.email || user.name)
         setIsAuthenticated(true)
+        // Check user status when user is found
+        refreshUserStatus()
       } else {
         console.log("No user session")
         setIsAuthenticated(false)
+        setUserStatus(null)
       }
       setIsLoading(false)
     }, [user])
+
+    const refreshUserStatus = async () => {
+      try {
+        const credentials = await getCredentials()
+        if (credentials?.accessToken) {
+          const status = await checkUserStatus(credentials.accessToken)
+          setUserStatus(status)
+          console.log("User status:", status)
+        }
+      } catch (e) {
+        console.error("Error fetching user status:", e)
+      }
+    }
 
     const signIn = async () => {
         try {
           await authorize()
           const credentials = await getCredentials()
           console.log("Auth credentials obtained")
+          
+          // Check user registration status
+          if (credentials?.accessToken) {
+            await refreshUserStatus()
+          }
         } catch (e) {
           console.error("Login error:", e)
         }
@@ -53,6 +79,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await clearSession()
         } catch (e) {
           console.error("Logout error:", e)
+        }
+    }
+
+    const getAccessToken = async (): Promise<string | null> => {
+        try {
+          const credentials = await getCredentials()
+          return credentials?.accessToken || null
+        } catch (e) {
+          console.error("Error getting access token:", e)
+          return null
         }
     }
 
@@ -67,6 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsSwitching,
         user,
         error,
+        userStatus,
+        refreshUserStatus,
+        getAccessToken,
       }}
     >
       {children}
