@@ -9,6 +9,7 @@ export type ErrorPageKey =
   | "bars"
   | "gallery";
 
+// Global dev config to force error states for testing UI
 const FORCE_ALL_ERROR_PAGES = false;
 
 const FORCE_ERROR_PAGES: Record<ErrorPageKey, boolean> = {
