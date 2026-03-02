@@ -12,7 +12,7 @@ export default {
     newArchEnabled: true,
 
 	//EAS OTA Configuration settings
-    owner: "amesafterdark"
+    owner: "amesafterdark",
     updates: {
       url: "https://u.expo.dev/3087f40f-3c08-44de-8f1d-b4feaa8bfb6d"
     },
