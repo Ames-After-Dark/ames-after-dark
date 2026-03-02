@@ -207,11 +207,6 @@ export async function completeUserRegistration(
   data: CompleteRegistrationData
 ): Promise<CompleteRegistrationResponse> {
   try {
-    console.log('completeUserRegistration called with token length:', accessToken?.length || 'NO TOKEN');
-    console.log('First 20 chars of token:', accessToken?.substring(0, 20));
-    console.log('Registration data:', data);
-    console.log('Stringified data:', JSON.stringify(data));
-    
     const response = await apiFetch(`/users/auth/register`, {
       method: 'POST',
       headers: {

@@ -9,21 +9,6 @@ const checkJwt = auth({
     issuerBaseURL: 'https://dev-lz0c3j2voxj6hy6v.us.auth0.com/',
 });
 
-// Wrapper to add debugging
-const checkJwtWithDebug = (req, res, next) => {
-    console.log('== CHECKJWT MIDDLEWARE DEBUG ==');
-    console.log('Authorization header:', req.headers.authorization ? 'Present' : 'MISSING');
-    
-    checkJwt(req, res, (err) => {
-        if (err) {
-            console.log('checkJwt ERROR:', err.message);
-            console.log('Error status:', err.status);
-            return next(err);
-        }
-        console.log('checkJwt SUCCESS - req.auth:', req.auth);
-        next();
-    });
-};
 // Optional JWT middleware - validates token if present, but allows requests without tokens
 const optionalJwt = (req, res, next) => {
     // Check if Authorization header exists
@@ -39,7 +24,6 @@ const optionalJwt = (req, res, next) => {
     checkJwt(req, res, (err) => {
         if (err) {
             // Token validation failed, treat as no auth (don't propagate error)
-            console.log('JWT validation failed, treating as unauthenticated:', err.message);
             req.auth = {};
             return next();
         }
@@ -49,6 +33,6 @@ const optionalJwt = (req, res, next) => {
 };
 
 module.exports = {
-    checkJwt: checkJwtWithDebug,
+    checkJwt,
     optionalJwt
 };

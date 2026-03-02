@@ -135,21 +135,11 @@ exports.checkUserStatus = async (req, res) => {
  */
 exports.completeUserRegistration = async (req, res) => {
   try {
-    // DEBUG: Log what we received
-    console.log('== REGISTRATION DEBUG ==');
-    console.log('Headers:', req.headers?.authorization ? 'Bearer token present' : 'NO TOKEN');
-    console.log('Content-Type:', req.headers?.['content-type']);
-    console.log('req.body:', req.body);
-    console.log('req.body type:', typeof req.body);
-    console.log('req.auth:', req.auth);
-    console.log('req.auth?.payload?.sub:', req.auth?.payload?.sub);
-    
     // Get Auth0 user ID from the JWT token (guaranteed by middleware)
     // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
     
     if (!auth0Id) {
-      console.log('Returning 401 - no auth0Id found');
       return res.status(401).json({ message: 'Authentication required' });
     }
 
