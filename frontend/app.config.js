@@ -11,7 +11,10 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 
-    ios: { supportsTablet: true },
+    ios: { 
+      supportsTablet: true,
+      bundleIdentifier: "com.anonymous.amesafterdark"
+    },
 
     android: {
       adaptiveIcon: {
@@ -24,6 +27,7 @@ export default {
       predictiveBackGestureEnabled: false,
       package: "com.anonymous.amesafterdark"
     },
+
 
     web: {
       output: "static",
