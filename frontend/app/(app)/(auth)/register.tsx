@@ -122,7 +122,7 @@ export default function RegisterScreen() {
       <View style={styles.container}>
         <View style={styles.content}>
           <View style={{ width: '100%' }}>
-            <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
+            <ThemedText style={styles.title}>Complete Your Profile !!!!!!</ThemedText>
             <ThemedText style={styles.subtitle}>
               We need a few more details to get you started
             </ThemedText>
