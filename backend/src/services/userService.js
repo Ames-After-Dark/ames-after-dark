@@ -204,8 +204,8 @@ exports.createUserWithAuth0 = async (userData) => {
       birthday: new Date(birthday),
       email: email || null,
       name: name || null,
-      // Set default role_id if needed, or leave as null for regular users
-      role_id: null
+      // Set role_id to 1 for regular users
+      role_id: 1
     },
     include: {
       roles: true

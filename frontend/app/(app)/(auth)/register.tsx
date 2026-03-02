@@ -16,7 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const { user, getAccessToken } = useAuth()
+  const { user, getAccessToken, refreshUserStatus } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -89,14 +89,16 @@ export default function RegisterScreen() {
         phoneNumber: cleanedPhone,
         birthday: formatDate(birthday)
       })
+      
+      // Refresh user status in auth context
+      await refreshUserStatus()
 
-      Alert.alert("Success", "Registration completed!", [
-        { text: "OK", onPress: () => router.replace('/(app)/(tabs)' as any) }
-      ])
+      // Navigate to home screen immediately
+      router.replace('/(app)/(tabs)' as any)
     } catch (error: any) {
       console.error("Registration error:", error)
-      Alert.alert("Registration Failed", error.message || "Failed to complete registration")
-    } finally {
+      const errorMessage = error.message || "Failed to complete registration"
+      Alert.alert("Registration Failed", errorMessage)
       setIsLoading(false)
     }
   }
