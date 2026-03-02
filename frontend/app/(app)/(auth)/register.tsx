@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native"
 import { useState } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -49,10 +51,22 @@ export default function RegisterScreen() {
   }
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios') // Keep picker open on iOS
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false)
+    }
+
     if (selectedDate) {
       setBirthday(selectedDate)
+
+      if (Platform.OS === 'ios') {
+        setShowDatePicker(false)
+      }
     }
+  }
+
+  const handleDismissInputs = () => {
+    Keyboard.dismiss()
+    setShowDatePicker(false)
   }
 
   const handleSubmit = async () => {
@@ -104,70 +118,75 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={{ width: '100%' }}>
-          <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            We need a few more details to get you started
+    <TouchableWithoutFeedback onPress={handleDismissInputs} accessible={false}>
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={{ width: '100%' }}>
+            <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              We need a few more details to get you started
+            </ThemedText>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Phone Number</ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="(555) 555-5555"
+              placeholderTextColor="#666"
+              value={phoneNumber}
+              onChangeText={handlePhoneChange}
+              keyboardType="phone-pad"
+              maxLength={14}
+              editable={!isLoading}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Birthday</ThemedText>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                Keyboard.dismiss()
+                setShowDatePicker(true)
+              }}
+              disabled={isLoading}
+            >
+              <ThemedText style={styles.dateButtonText}>
+                {formatDate(birthday)}
+              </ThemedText>
+            </TouchableOpacity>
+            
+            {showDatePicker && (
+              <DateTimePicker
+                value={birthday}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'default' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+              />
+            )}
+          </View>
+
+          <ThemedText style={styles.note}>
+            You must be 21 or older to use this app
           </ThemedText>
-        </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Phone Number</ThemedText>
-          <TextInput
-            style={styles.input}
-            placeholder="(555) 555-5555"
-            placeholderTextColor="#666"
-            value={phoneNumber}
-            onChangeText={handlePhoneChange}
-            keyboardType="phone-pad"
-            maxLength={14}
-            editable={!isLoading}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Birthday</ThemedText>
           <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSubmit}
             disabled={isLoading}
           >
-            <ThemedText style={styles.dateButtonText}>
-              {formatDate(birthday)}
-            </ThemedText>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
+            )}
           </TouchableOpacity>
-          
-          {showDatePicker && (
-            <DateTimePicker
-              value={birthday}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(1900, 0, 1)}
-            />
-          )}
         </View>
-
-        <ThemedText style={styles.note}>
-          You must be 21 or older to use this app
-        </ThemedText>
-
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
-          )}
-        </TouchableOpacity>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   )
 }
 
