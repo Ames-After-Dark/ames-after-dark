@@ -37,7 +37,7 @@ export default function RegisterScreen() {
   const formatPhoneNumber = (text: string): string => {
     // Remove all non-digits
     const cleaned = text.replace(/\D/g, '')
-    
+
     // Format as (XXX) XXX-XXXX
     if (cleaned.length <= 3) {
       return cleaned
@@ -83,7 +83,7 @@ export default function RegisterScreen() {
     // Validate phone number
     const cleanedPhone = phoneNumber.replace(/\D/g, '')
     if (cleanedPhone.length !== 10) {
-      Alert.alert("Invalid Phone",  "Please enter a valid 10-digit phone number")
+      Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number")
       return
     }
 
@@ -92,9 +92,9 @@ export default function RegisterScreen() {
     const age = today.getFullYear() - birthday.getFullYear()
     const monthDiff = today.getMonth() - birthday.getMonth()
     const dayDiff = today.getDate() - birthday.getDate()
-    
+
     const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age
-    
+
     if (actualAge < 21) {
       Alert.alert("Age Restriction", "You must be at least 21 years old to use this app")
       return
@@ -104,7 +104,7 @@ export default function RegisterScreen() {
     try {
       // Get access token from Auth0
       const accessToken = await getAccessToken()
-      
+
       if (!accessToken) {
         throw new Error('No access token available')
       }
@@ -113,7 +113,7 @@ export default function RegisterScreen() {
         phoneNumber: cleanedPhone,
         birthday: formatDate(birthday)
       })
-      
+
       // Refresh user status in auth context
       await refreshUserStatus()
 
