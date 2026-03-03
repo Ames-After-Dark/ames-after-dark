@@ -7,13 +7,31 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "com.anonymous.amesafterdark",
+    scheme: "com.amesafterdark.app",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 
+<<<<<<< HEAD
     ios: { 
       supportsTablet: true,
       bundleIdentifier: "com.anonymous.amesafterdark"
+=======
+	//EAS OTA Configuration settings
+    owner: "amesafterdark",
+    updates: {
+      url: "https://u.expo.dev/3087f40f-3c08-44de-8f1d-b4feaa8bfb6d"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+
+    ios: { supportsTablet: true,
+           bundleIdentifier: "com.amesafterdark.app",
+     	   buildNumber: "3", //increment this from last successful upload
+      	   infoPlist: {
+             ITSAppUsesNonExemptEncryption: false
+     	    }
+>>>>>>> main
     },
 
     android: {

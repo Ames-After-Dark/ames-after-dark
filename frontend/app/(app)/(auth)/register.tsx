@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  InputAccessoryView,
 } from "react-native"
 import { useState } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -21,6 +24,7 @@ export default function RegisterScreen() {
   const [birthday, setBirthday] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const inputAccessoryViewID = "phoneInputDone"
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear()
@@ -104,70 +108,89 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={{ width: '100%' }}>
-          <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            We need a few more details to get you started
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={{ width: '100%' }}>
+            <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              We need a few more details to get you started
+            </ThemedText>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Phone Number</ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="(555) 555-5555"
+              placeholderTextColor="#666"
+              value={phoneNumber}
+              onChangeText={handlePhoneChange}
+              keyboardType="phone-pad"
+              maxLength={14}
+              editable={!isLoading}
+              returnKeyType="done"
+              inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Birthday</ThemedText>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                Keyboard.dismiss()
+                setShowDatePicker(true)
+              }}
+              disabled={isLoading}
+            >
+              <ThemedText style={styles.dateButtonText}>
+                {formatDate(birthday)}
+              </ThemedText>
+            </TouchableOpacity>
+            
+            {showDatePicker && (
+              <DateTimePicker
+                value={birthday}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1900, 0, 1)}
+              />
+            )}
+          </View>
+
+          <ThemedText style={styles.note}>
+            You must be 21 or older to use this app
           </ThemedText>
-        </View>
 
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Phone Number</ThemedText>
-          <TextInput
-            style={styles.input}
-            placeholder="(555) 555-5555"
-            placeholderTextColor="#666"
-            value={phoneNumber}
-            onChangeText={handlePhoneChange}
-            keyboardType="phone-pad"
-            maxLength={14}
-            editable={!isLoading}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Birthday</ThemedText>
           <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSubmit}
             disabled={isLoading}
           >
-            <ThemedText style={styles.dateButtonText}>
-              {formatDate(birthday)}
-            </ThemedText>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
+            )}
           </TouchableOpacity>
-          
-          {showDatePicker && (
-            <DateTimePicker
-              value={birthday}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(1900, 0, 1)}
-            />
-          )}
         </View>
-
-        <ThemedText style={styles.note}>
-          You must be 21 or older to use this app
-        </ThemedText>
-
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
-          )}
-        </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <InputAccessoryView nativeID={inputAccessoryViewID}>
+            <View style={styles.accessoryView}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={Keyboard.dismiss}
+              >
+                <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </InputAccessoryView>
+        )}
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   )
 }
 
@@ -261,6 +284,25 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  accessoryView: {
+    backgroundColor: "#1a1a1a",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  doneButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  doneButtonText: {
+    color: "#2563eb",
     fontSize: 16,
     fontWeight: "600",
   },

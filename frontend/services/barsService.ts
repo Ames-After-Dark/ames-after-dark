@@ -1,5 +1,4 @@
 import { apiFetch } from "./apiClient";
-import { getNow } from "@/config/time";
 import type { Bar, ScheduledDeal, ScheduledEvent } from "@/types/bars";
 
 interface LocationApiResponse {
@@ -173,7 +172,7 @@ export async function getBars(): Promise<Bar[]> {
       const locHours = (location as any).location_hours;
       if (Array.isArray(locHours) && locHours.length) {
         // determine current weekday in America/Chicago to pick the relevant entry
-        const now = getNow();
+        const now = new Date();
         const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
         const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
         const inTz = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), 0);

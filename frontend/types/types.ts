@@ -29,3 +29,19 @@ export interface UserProfile {
 export type UserDatabase = {
     [key: string]: UserProfile;
 };
+
+// added here from bars
+export type TimeRule =
+    |   {
+            kind: "one-time";
+            start: string;
+            end: string;
+            tz: string;
+        }
+    |   {
+            kind: "weekly";
+            tz: string;
+            daysOfWeek: number[];
+            startLocalTime: string;
+            endLocalTime: string;
+        };
