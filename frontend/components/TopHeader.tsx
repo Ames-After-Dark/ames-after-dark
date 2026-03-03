@@ -1,20 +1,8 @@
 // components/TopHeader.tsx
-import { View, Image, Pressable, StyleSheet, Text } from "react-native";
+import { View, Image, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { getNow } from "@/config/time"; // import shared helper
-import { router } from 'expo-router';
 
 export default function TopHeader() {
-  const now = getNow();
-
-  // Include weekday and local time
-  const formatted = now.toLocaleString([], {
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
     <SafeAreaView edges={["top"]} style={{ backgroundColor: "#0B0C12" }}>
       <View style={styles.wrap}>
