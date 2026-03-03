@@ -10,6 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  InputAccessoryView,
+  Modal,
 } from "react-native"
 import { useState } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -21,6 +25,7 @@ export default function RegisterScreen() {
   const [birthday, setBirthday] = useState(new Date())
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const inputAccessoryViewID = "phoneInputDone"
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear()
@@ -32,7 +37,7 @@ export default function RegisterScreen() {
   const formatPhoneNumber = (text: string): string => {
     // Remove all non-digits
     const cleaned = text.replace(/\D/g, '')
-    
+
     // Format as (XXX) XXX-XXXX
     if (cleaned.length <= 3) {
       return cleaned
@@ -48,18 +53,37 @@ export default function RegisterScreen() {
     setPhoneNumber(formatted)
   }
 
+  const [tempBirthday, setTempBirthday] = useState(new Date())
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios') // Keep picker open on iOS
-    if (selectedDate) {
-      setBirthday(selectedDate)
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false)
+      if (selectedDate) {
+        setBirthday(selectedDate)
+      }
+    } else {
+      // On iOS, just update temp value
+      if (selectedDate) {
+        setTempBirthday(selectedDate)
+      }
     }
+  }
+
+  const handleDatePickerCancel = () => {
+    setShowDatePicker(false)
+    setTempBirthday(birthday) // Reset to current value
+  }
+
+  const handleDatePickerDone = () => {
+    setBirthday(tempBirthday)
+    setShowDatePicker(false)
   }
 
   const handleSubmit = async () => {
     // Validate phone number
     const cleanedPhone = phoneNumber.replace(/\D/g, '')
     if (cleanedPhone.length !== 10) {
-      Alert.alert("Invalid Phone",  "Please enter a valid 10-digit phone number")
+      Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number")
       return
     }
 
@@ -68,9 +92,9 @@ export default function RegisterScreen() {
     const age = today.getFullYear() - birthday.getFullYear()
     const monthDiff = today.getMonth() - birthday.getMonth()
     const dayDiff = today.getDate() - birthday.getDate()
-    
+
     const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age
-    
+
     if (actualAge < 21) {
       Alert.alert("Age Restriction", "You must be at least 21 years old to use this app")
       return
@@ -80,7 +104,7 @@ export default function RegisterScreen() {
     try {
       // Get access token from Auth0
       const accessToken = await getAccessToken()
-      
+
       if (!accessToken) {
         throw new Error('No access token available')
       }
@@ -89,7 +113,7 @@ export default function RegisterScreen() {
         phoneNumber: cleanedPhone,
         birthday: formatDate(birthday)
       })
-      
+
       // Refresh user status in auth context
       await refreshUserStatus()
 
@@ -104,70 +128,133 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={{ width: '100%' }}>
-          <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            We need a few more details to get you started
-          </ThemedText>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Phone Number</ThemedText>
-          <TextInput
-            style={styles.input}
-            placeholder="(555) 555-5555"
-            placeholderTextColor="#666"
-            value={phoneNumber}
-            onChangeText={handlePhoneChange}
-            keyboardType="phone-pad"
-            maxLength={14}
-            editable={!isLoading}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <ThemedText style={styles.label}>Birthday</ThemedText>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
-            disabled={isLoading}
-          >
-            <ThemedText style={styles.dateButtonText}>
-              {formatDate(birthday)}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={{ width: '100%' }}>
+            <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              We need a few more details to get you started
             </ThemedText>
-          </TouchableOpacity>
-          
-          {showDatePicker && (
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Phone Number</ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="(555) 555-5555"
+              placeholderTextColor="#666"
+              value={phoneNumber}
+              onChangeText={handlePhoneChange}
+              keyboardType="phone-pad"
+              maxLength={14}
+              editable={!isLoading}
+              returnKeyType="done"
+              inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Birthday</ThemedText>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                Keyboard.dismiss()
+                setTempBirthday(birthday)
+                setShowDatePicker(true)
+              }}
+              disabled={isLoading}
+            >
+              <ThemedText style={styles.dateButtonText}>
+                {formatDate(birthday)}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {/* Date Picker Modal for iOS */}
+          {Platform.OS === 'ios' && showDatePicker && (
+            <Modal
+              transparent={true}
+              animationType="slide"
+              visible={showDatePicker}
+              onRequestClose={handleDatePickerCancel}
+            >
+              <TouchableWithoutFeedback onPress={handleDatePickerCancel}>
+                <View style={styles.modalOverlay}>
+                  <TouchableWithoutFeedback>
+                    <View style={styles.datePickerContainer}>
+                      <View style={styles.datePickerHeader}>
+                        <TouchableOpacity
+                          onPress={handleDatePickerCancel}
+                          style={styles.datePickerButton}
+                        >
+                          <ThemedText style={styles.datePickerCancelText}>Cancel</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleDatePickerDone}
+                          style={styles.datePickerButton}
+                        >
+                          <ThemedText style={styles.datePickerDoneText}>Done</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={tempBirthday}
+                        mode="date"
+                        display="spinner"
+                        onChange={handleDateChange}
+                        maximumDate={new Date()}
+                        minimumDate={new Date(1900, 0, 1)}
+                        textColor="#fff"
+                      />
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+
+          {/* Date Picker for Android */}
+          {Platform.OS === 'android' && showDatePicker && (
             <DateTimePicker
               value={birthday}
               mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="default"
               onChange={handleDateChange}
               maximumDate={new Date()}
               minimumDate={new Date(1900, 0, 1)}
             />
           )}
+
+          <ThemedText style={styles.note}>
+            You must be 21 or older to use this app
+          </ThemedText>
+
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
+            )}
+          </TouchableOpacity>
         </View>
-
-        <ThemedText style={styles.note}>
-          You must be 21 or older to use this app
-        </ThemedText>
-
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
-          )}
-        </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <InputAccessoryView nativeID={inputAccessoryViewID}>
+            <View style={styles.accessoryView}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={Keyboard.dismiss}
+              >
+                <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </InputAccessoryView>
+        )}
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   )
 }
 
@@ -261,6 +348,57 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  accessoryView: {
+    backgroundColor: "#1a1a1a",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  doneButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  doneButtonText: {
+    color: "#2563eb",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  datePickerContainer: {
+    backgroundColor: "#1a1a1a",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  datePickerButton: {
+    padding: 8,
+  },
+  datePickerCancelText: {
+    color: "#999",
+    fontSize: 16,
+  },
+  datePickerDoneText: {
+    color: "#2563eb",
     fontSize: 16,
     fontWeight: "600",
   },
