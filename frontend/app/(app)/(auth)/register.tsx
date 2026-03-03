@@ -13,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   InputAccessoryView,
+  Modal,
 } from "react-native"
 import { useState } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -52,11 +53,30 @@ export default function RegisterScreen() {
     setPhoneNumber(formatted)
   }
 
+  const [tempBirthday, setTempBirthday] = useState(new Date())
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios') // Keep picker open on iOS
-    if (selectedDate) {
-      setBirthday(selectedDate)
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false)
+      if (selectedDate) {
+        setBirthday(selectedDate)
+      }
+    } else {
+      // On iOS, just update temp value
+      if (selectedDate) {
+        setTempBirthday(selectedDate)
+      }
     }
+  }
+
+  const handleDatePickerCancel = () => {
+    setShowDatePicker(false)
+    setTempBirthday(birthday) // Reset to current value
+  }
+
+  const handleDatePickerDone = () => {
+    setBirthday(tempBirthday)
+    setShowDatePicker(false)
   }
 
   const handleSubmit = async () => {
@@ -140,6 +160,7 @@ export default function RegisterScreen() {
               style={styles.dateButton}
               onPress={() => {
                 Keyboard.dismiss()
+                setTempBirthday(birthday)
                 setShowDatePicker(true)
               }}
               disabled={isLoading}
@@ -148,18 +169,61 @@ export default function RegisterScreen() {
                 {formatDate(birthday)}
               </ThemedText>
             </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={birthday}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={handleDateChange}
-                maximumDate={new Date()}
-                minimumDate={new Date(1900, 0, 1)}
-              />
-            )}
           </View>
+
+          {/* Date Picker Modal for iOS */}
+          {Platform.OS === 'ios' && showDatePicker && (
+            <Modal
+              transparent={true}
+              animationType="slide"
+              visible={showDatePicker}
+              onRequestClose={handleDatePickerCancel}
+            >
+              <TouchableWithoutFeedback onPress={handleDatePickerCancel}>
+                <View style={styles.modalOverlay}>
+                  <TouchableWithoutFeedback>
+                    <View style={styles.datePickerContainer}>
+                      <View style={styles.datePickerHeader}>
+                        <TouchableOpacity
+                          onPress={handleDatePickerCancel}
+                          style={styles.datePickerButton}
+                        >
+                          <ThemedText style={styles.datePickerCancelText}>Cancel</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleDatePickerDone}
+                          style={styles.datePickerButton}
+                        >
+                          <ThemedText style={styles.datePickerDoneText}>Done</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={tempBirthday}
+                        mode="date"
+                        display="spinner"
+                        onChange={handleDateChange}
+                        maximumDate={new Date()}
+                        minimumDate={new Date(1900, 0, 1)}
+                        textColor="#fff"
+                      />
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+
+          {/* Date Picker for Android */}
+          {Platform.OS === 'android' && showDatePicker && (
+            <DateTimePicker
+              value={birthday}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+              minimumDate={new Date(1900, 0, 1)}
+            />
+          )}
 
           <ThemedText style={styles.note}>
             You must be 21 or older to use this app
@@ -302,6 +366,38 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   doneButtonText: {
+    color: "#2563eb",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  datePickerContainer: {
+    backgroundColor: "#1a1a1a",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  datePickerButton: {
+    padding: 8,
+  },
+  datePickerCancelText: {
+    color: "#999",
+    fontSize: 16,
+  },
+  datePickerDoneText: {
     color: "#2563eb",
     fontSize: 16,
     fontWeight: "600",
