@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "app";
-
 -- CreateTable
 CREATE TABLE "app"."deals" (
     "id" SERIAL NOT NULL,
@@ -232,13 +229,6 @@ CREATE TABLE "app"."location_hours_overrides" (
     CONSTRAINT "location_hours_overrides_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "app"."temp_test_table" (
-    "id" INTEGER NOT NULL,
-
-    CONSTRAINT "temp_test_table_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE UNIQUE INDEX "friendship_statuses_name_key" ON "app"."friendship_statuses"("name");
 
@@ -337,4 +327,3 @@ ALTER TABLE "app"."event_occurrences" ADD CONSTRAINT "event_occurrences_event_id
 
 -- AddForeignKey
 ALTER TABLE "app"."location_hours_overrides" ADD CONSTRAINT "location_hours_overrides_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
-
