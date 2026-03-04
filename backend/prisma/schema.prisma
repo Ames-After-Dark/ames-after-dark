@@ -130,6 +130,7 @@ model users {
   birthday                                                   DateTime?              @db.Date
   favorite_profile_location_id                               Int?
   favorite_profile_drink                                     String?
+  phone_number                                               String?                @db.VarChar(25)
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
   location_admins                                            location_admins[]

@@ -169,18 +169,6 @@ exports.getUserFriends = async (userId) => {
   });
 };
 
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-exports.loginUser = async (username) => {
-  // Simple login: just check if user exists by username
-  const user = await prisma.users.findFirst({
-    where: { username: username },
-    include: {
-      roles: true
-    }
-  });
-  return user;
-};
-// TEMP_AUTH_END
 
 /**
  * Get user by Auth0 UID (subject from JWT)
@@ -216,8 +204,8 @@ exports.createUserWithAuth0 = async (userData) => {
       birthday: new Date(birthday),
       email: email || null,
       name: name || null,
-      // Set default role_id if needed, or leave as null for regular users
-      role_id: null
+      // Set role_id to 1 for regular users
+      role_id: 1
     },
     include: {
       roles: true

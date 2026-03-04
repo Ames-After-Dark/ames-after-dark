@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from "@/hooks/use-auth"
 import {
   View,
   Text,
@@ -12,20 +13,12 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export default function AccountSettingsScreen(): JSX.Element {
+  const { signOut, user } = useAuth()
 
-  // TEMP_AUTH_START - Remove when re-enabling Auth0
   const handleSignOut = () => {
     console.log('Signing out.');
-    // Navigate back to auth landing (two button screen)
-    router.replace('/(app)/(auth)');
+    signOut();
   };
-  // TEMP_AUTH_END
-
-  // Original Auth0 version - uncomment when re-enabling Auth0
-  // const handleSignOut = () => {
-  //   console.log('Signing out.');
-  //   // You can add sign-out logic here
-  // };
 
 
   const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true }) => (
@@ -48,7 +41,7 @@ export default function AccountSettingsScreen(): JSX.Element {
           style={styles.profileImage}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>Your Name</Text>
+          <Text style={styles.profileName}>user.{user?.username || 'default'}</Text>
           <Text style={styles.profileEmail}>your@email.com</Text>
         </View>
       </View>
