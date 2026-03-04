@@ -7,25 +7,34 @@ on:
 jobs:
   merge_and_deploy:
     runs-on: [self-hosted]
+
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
     steps:
-      - name: Checkout repo
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: development   # start from development branch
-          
-      - name: Merge development into main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin development
-          git checkout main
+
+      - name: Fetch development
+        run: git fetch origin development
+
+      - name: Merge development into main
+        run: |
           git merge origin/development --no-ff -m "Automated merge from development to main"
+
+      - name: Push main
+        run: |
           git push https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }} main
 
       - name: Deploy to production
