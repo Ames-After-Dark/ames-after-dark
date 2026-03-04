@@ -8,7 +8,6 @@ import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
 import type { Bar } from "@/types/bars";
 import { IMG } from "../../../../assets/assets"; 
-import { getNow, isBarOpen } from "@/config/time";
 
 import { Theme } from '@/constants/theme';
 
@@ -31,15 +30,6 @@ export default function Bars() {
   const [search, setSearch] = useState("");
 
   const { bars, loading } = useBars({ q: search || undefined });
-
-    const [now, setNow] = useState(getNow());
-
-        useEffect(() => {
-            const interval = setInterval(() => {
-            setNow(getNow());
-        }, 10000); // 10 seconds
-        return () => clearInterval(interval);
-    }, []);
 
   // --- favorites overlay fix ---
   const [fav, setFav] = useState<Record<string, boolean>>({});
@@ -115,7 +105,7 @@ useEffect(() => {
 
         return filteredBars.sort((a, b) => Number(isFav(b)) - Number(isFav(a)));
 
-    }, [bars, filter, search, fav, now]);
+    }, [bars, filter, search, fav]);
 
 
   const renderBar = ({ item }: { item: Bar & { __openNow?: boolean } }) => {
