@@ -274,3 +274,9 @@ model location_hours_overrides {
 
   @@schema("app")
 }
+
+model temp_test_table {
+  id Int @id
+
+  @@schema("app")
+}
