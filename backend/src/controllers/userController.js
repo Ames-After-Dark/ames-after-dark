@@ -77,7 +77,7 @@ exports.checkUserStatus = async (req, res) => {
     // Will be undefined if no token or invalid token
     // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
-    
+
     if (!auth0Id) {
       // No token or invalid token - user is not authenticated
       return res.json({
@@ -89,7 +89,7 @@ exports.checkUserStatus = async (req, res) => {
 
     // Check if user exists in database
     const user = await userService.getUserByAuth0Id(auth0Id);
-    
+
     if (!user) {
       // User doesn't exist in DB yet
       return res.json({
@@ -102,7 +102,8 @@ exports.checkUserStatus = async (req, res) => {
     // User exists - check if they have completed profile (phone number and birthday)
     const hasPhoneNumber = user.phone_number !== null && user.phone_number !== undefined;
     const hasBirthday = user.birthday !== null && user.birthday !== undefined;
-    const profileComplete = hasPhoneNumber && hasBirthday;
+    const hasUsername = user.username !== null && user.username !== undefined;
+    const profileComplete = hasPhoneNumber && hasBirthday && hasUsername;
 
     return res.json({
       registered: true,
@@ -114,13 +115,14 @@ exports.checkUserStatus = async (req, res) => {
         email: user.email,
         name: user.name,
         hasPhoneNumber: hasPhoneNumber,
-        hasBirthday: hasBirthday
+        hasBirthday: hasBirthday,
+        hasUsername: hasUsername
       }
     });
 
   } catch (err) {
     console.error('Error checking user status:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -138,7 +140,7 @@ exports.completeUserRegistration = async (req, res) => {
     // Get Auth0 user ID from the JWT token (guaranteed by middleware)
     // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
-    
+
     if (!auth0Id) {
       return res.status(401).json({ message: 'Authentication required' });
     }
@@ -159,7 +161,7 @@ exports.completeUserRegistration = async (req, res) => {
 
     // Validate phone number, birthday, and username format
     const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username);
-    
+
     if (!validation.valid) {
       return res.status(400).json({
         message: 'Validation failed',
@@ -180,7 +182,7 @@ exports.completeUserRegistration = async (req, res) => {
 
     // Check if user already exists
     const existingUser = await userService.getUserByAuth0Id(auth0Id);
-    
+
     if (existingUser) {
       return res.status(409).json({
         message: 'User already registered',
@@ -217,7 +219,7 @@ exports.completeUserRegistration = async (req, res) => {
 
   } catch (err) {
     console.error('Error completing user registration:', err);
-    
+
     // Handle unique constraint violations (e.g., duplicate email)
     if (err.code === 'P2002') {
       return res.status(409).json({
@@ -225,8 +227,8 @@ exports.completeUserRegistration = async (req, res) => {
         field: err.meta?.target
       });
     }
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -269,7 +271,7 @@ exports.checkUsernameAvailability = async (req, res) => {
 
   } catch (err) {
     console.error('Error checking username availability:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -285,7 +287,7 @@ exports.getUsernameByAuth = async (req, res) => {
   try {
     // Get Auth0 user ID from the JWT token
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
-    
+
     if (!auth0Id) {
       return res.status(401).json({ message: 'Authentication required' });
     }
@@ -294,8 +296,8 @@ exports.getUsernameByAuth = async (req, res) => {
     const username = await userService.getUsernameByAuth0Id(auth0Id);
 
     if (!username) {
-      return res.status(404).json({ 
-        message: 'Username not found for this user' 
+      return res.status(404).json({
+        message: 'Username not found for this user'
       });
     }
 
@@ -305,7 +307,7 @@ exports.getUsernameByAuth = async (req, res) => {
 
   } catch (err) {
     console.error('Error getting username:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
