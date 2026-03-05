@@ -295,12 +295,7 @@ exports.getUsernameByAuth = async (req, res) => {
     // Get username by Auth0 ID
     const username = await userService.getUsernameByAuth0Id(auth0Id);
 
-    if (!username) {
-      return res.status(404).json({
-        message: 'Username not found for this user'
-      });
-    }
-
+    // Return null if user hasn't set a username yet (during registration flow)
     return res.json({
       username: username
     });

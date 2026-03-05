@@ -243,19 +243,14 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
 /**
  * Get username for the authenticated user
  * Requires Auth0 authentication
+ * Returns { username: string | null } - null if user hasn't set username yet
  */
-export async function getUsernameByAuth(accessToken: string): Promise<{ username: string }> {
-  try {
-    const response = await apiFetch(`/users/auth/username`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    return response;
-  } catch (error) {
-    // Don't log 404 errors - user may not have a username yet (during registration)
-    // Just re-throw so the caller can handle it
-    throw error;
-  }
+export async function getUsernameByAuth(accessToken: string): Promise<{ username: string | null }> {
+  const response = await apiFetch(`/users/auth/username`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  return response;
 }

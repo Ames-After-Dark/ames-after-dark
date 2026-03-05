@@ -53,16 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user])
 
     const fetchUsername = async () => {
-      try {
-        const credentials = await getCredentials()
-        if (credentials?.accessToken) {
-          const response = await getUsernameByAuth(credentials.accessToken)
-          setUsername(response.username)
-        }
-      } catch (e) {
-        // Username not found yet (user might not have completed registration)
-        // This is expected, so we silently set username to null
-        setUsername(null)
+      const credentials = await getCredentials()
+      if (credentials?.accessToken) {
+        const response = await getUsernameByAuth(credentials.accessToken)
+        // Response will contain { username: string | null }
+        setUsername(response.username)
       }
     }
 
