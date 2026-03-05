@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text"
 import { useAuth } from "@/hooks/use-auth"
-import { completeUserRegistration } from "@/services/userService"
+import { completeUserRegistration, checkUsernameAvailability } from "@/services/userService"
 import { useRouter } from "expo-router"
 import {
   StyleSheet,
@@ -15,17 +15,87 @@ import {
   InputAccessoryView,
   Modal,
 } from "react-native"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const { user, getAccessToken, refreshUserStatus } = useAuth()
+  const { user, getAccessToken, refreshUserStatus, refreshUsername } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
+  const [username, setUsername] = useState("")
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const inputAccessoryViewID = "phoneInputDone"
+  const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Validate username format
+  const validateUsernameFormat = (username: string): { valid: boolean; error: string | null } => {
+    if (username.length === 0) {
+      return { valid: false, error: null }
+    }
+    if (username.length < 3 || username.length > 20) {
+      return { valid: false, error: 'Username must be 3-20 characters' }
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return { valid: false, error: 'Only letters, numbers, _ and - allowed' }
+    }
+    return { valid: true, error: null }
+  }
+
+  // Check username availability with debounce
+  useEffect(() => {
+    // Clear previous timeout
+    if (usernameCheckTimeout.current) {
+      clearTimeout(usernameCheckTimeout.current)
+    }
+
+    // Reset status if username is empty
+    if (username.length === 0) {
+      setUsernameStatus('idle')
+      setUsernameError(null)
+      return
+    }
+
+    // Validate format first
+    const formatValidation = validateUsernameFormat(username)
+    if (!formatValidation.valid) {
+      setUsernameStatus('invalid')
+      setUsernameError(formatValidation.error)
+      return
+    }
+
+    // Set checking status immediately for valid format
+    setUsernameStatus('checking')
+    setUsernameError(null)
+
+    // Debounce the API call
+    usernameCheckTimeout.current = setTimeout(async () => {
+      try {
+        const result = await checkUsernameAvailability(username)
+        if (result.available) {
+          setUsernameStatus('available')
+          setUsernameError(null)
+        } else {
+          setUsernameStatus('taken')
+          setUsernameError('Username is already taken')
+        }
+      } catch (error) {
+        console.error('Error checking username:', error)
+        setUsernameStatus('invalid')
+        setUsernameError('Error checking username')
+      }
+    }, 500) // 500ms debounce
+
+    // Cleanup
+    return () => {
+      if (usernameCheckTimeout.current) {
+        clearTimeout(usernameCheckTimeout.current)
+      }
+    }
+  }, [username])
 
   const formatDate = (date: Date): string => {
     const year = date.getFullYear()
@@ -80,6 +150,23 @@ export default function RegisterScreen() {
   }
 
   const handleSubmit = async () => {
+    // Validate username
+    if (username.length === 0) {
+      Alert.alert("Missing Username", "Please enter a username")
+      return
+    }
+
+    const formatValidation = validateUsernameFormat(username)
+    if (!formatValidation.valid) {
+      Alert.alert("Invalid Username", formatValidation.error || "Please enter a valid username")
+      return
+    }
+
+    if (usernameStatus !== 'available') {
+      Alert.alert("Username Unavailable", "Please choose an available username")
+      return
+    }
+
     // Validate phone number
     const cleanedPhone = phoneNumber.replace(/\D/g, '')
     if (cleanedPhone.length !== 10) {
@@ -111,11 +198,13 @@ export default function RegisterScreen() {
 
       await completeUserRegistration(accessToken, {
         phoneNumber: cleanedPhone,
-        birthday: formatDate(birthday)
+        birthday: formatDate(birthday),
+        username: username
       })
 
-      // Refresh user status in auth context
+      // Refresh user status and username in auth context
       await refreshUserStatus()
+      await refreshUsername()
 
       // Navigate to home screen immediately
       router.replace('/(app)/(tabs)' as any)
@@ -136,6 +225,42 @@ export default function RegisterScreen() {
             <ThemedText style={styles.subtitle}>
               We need a few more details to get you started
             </ThemedText>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <ThemedText style={styles.label}>Username</ThemedText>
+            <View style={{ position: 'relative' }}>
+              <TextInput
+                style={[
+                  styles.input,
+                  usernameStatus === 'available' && styles.inputValid,
+                  (usernameStatus === 'taken' || usernameStatus === 'invalid') && styles.inputInvalid
+                ]}
+                placeholder="username"
+                placeholderTextColor="#666"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isLoading}
+                returnKeyType="next"
+                inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+              />
+              {usernameStatus === 'checking' && (
+                <View style={styles.inputIcon}>
+                  <ActivityIndicator size="small" color="#666" />
+                </View>
+              )}
+              {usernameStatus === 'available' && (
+                <ThemedText style={styles.inputIcon}>✓</ThemedText>
+              )}
+            </View>
+            {usernameError && (
+              <ThemedText style={styles.errorText}>{usernameError}</ThemedText>
+            )}
+            {usernameStatus === 'available' && (
+              <ThemedText style={styles.successText}>Username available!</ThemedText>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
@@ -313,6 +438,31 @@ const styles = StyleSheet.create({
     color: "#fff",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
+  },
+  inputValid: {
+    borderColor: "#22c55e",
+    borderWidth: 2,
+  },
+  inputInvalid: {
+    borderColor: "#ef4444",
+    borderWidth: 2,
+  },
+  inputIcon: {
+    position: "absolute",
+    right: 16,
+    top: 14,
+    fontSize: 20,
+    color: "#22c55e",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#ef4444",
+    marginTop: 4,
+  },
+  successText: {
+    fontSize: 12,
+    color: "#22c55e",
+    marginTop: 4,
   },
   dateButton: {
     width: "100%",
