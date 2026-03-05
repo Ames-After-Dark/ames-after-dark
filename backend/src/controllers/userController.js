@@ -129,9 +129,9 @@ exports.checkUserStatus = async (req, res) => {
 
 /**
  * POST /api/users/auth/register
- * Complete user registration with phone number and birthday
+ * Complete user registration with phone number, birthday, and username
  * Requires Auth0 JWT authentication
- * Body: { phoneNumber: string, birthday: string (YYYY-MM-DD) }
+ * Body: { phoneNumber: string, birthday: string (YYYY-MM-DD), username: string }
  */
 exports.completeUserRegistration = async (req, res) => {
   try {
@@ -143,26 +143,38 @@ exports.completeUserRegistration = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { phoneNumber, birthday } = req.body || {};
+    const { phoneNumber, birthday, username } = req.body || {};
 
     // Validate required fields
-    if (!phoneNumber || !birthday) {
+    if (!phoneNumber || !birthday || !username) {
       return res.status(400).json({
-        message: 'Phone number and birthday are required',
+        message: 'Phone number, birthday, and username are required',
         errors: {
           phoneNumber: !phoneNumber ? 'Phone number is required' : undefined,
-          birthday: !birthday ? 'Birthday is required' : undefined
+          birthday: !birthday ? 'Birthday is required' : undefined,
+          username: !username ? 'Username is required' : undefined
         }
       });
     }
 
-    // Validate phone number and birthday
-    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday);
+    // Validate phone number, birthday, and username format
+    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username);
     
     if (!validation.valid) {
       return res.status(400).json({
         message: 'Validation failed',
         errors: validation.errors
+      });
+    }
+
+    // Check if username is already taken
+    const usernameAvailable = await userService.isUsernameAvailable(username);
+    if (!usernameAvailable) {
+      return res.status(409).json({
+        message: 'Username already taken',
+        errors: {
+          username: 'This username is already taken'
+        }
       });
     }
 
@@ -186,6 +198,7 @@ exports.completeUserRegistration = async (req, res) => {
       auth0Id: auth0Id,
       phoneNumber: phoneNumber,
       birthday: birthday,
+      username: username,
       email: email,
       name: name
     });
@@ -196,6 +209,7 @@ exports.completeUserRegistration = async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         name: newUser.name,
+        username: newUser.username,
         phoneNumber: newUser.phone_number,
         birthday: newUser.birthday
       }
@@ -212,6 +226,85 @@ exports.completeUserRegistration = async (req, res) => {
       });
     }
     
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * GET /api/users/auth/check-username?username=xxx
+ * Check if a username is available
+ * Public endpoint - no authentication required
+ * Query param: username
+ */
+exports.checkUsernameAvailability = async (req, res) => {
+  try {
+    const { username } = req.query;
+
+    if (!username) {
+      return res.status(400).json({
+        message: 'Username is required',
+        available: false
+      });
+    }
+
+    // Validate username format
+    const validation = validationService.validateUsername(username);
+    if (!validation.valid) {
+      return res.status(400).json({
+        message: validation.error,
+        available: false
+      });
+    }
+
+    // Check if username is available
+    const available = await userService.isUsernameAvailable(username);
+
+    return res.json({
+      available: available,
+      username: username
+    });
+
+  } catch (err) {
+    console.error('Error checking username availability:', err);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * GET /api/users/auth/username
+ * Get username for the authenticated user
+ * Requires Auth0 JWT authentication
+ */
+exports.getUsernameByAuth = async (req, res) => {
+  try {
+    // Get Auth0 user ID from the JWT token
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Get username by Auth0 ID
+    const username = await userService.getUsernameByAuth0Id(auth0Id);
+
+    if (!username) {
+      return res.status(404).json({ 
+        message: 'Username not found for this user' 
+      });
+    }
+
+    return res.json({
+      username: username
+    });
+
+  } catch (err) {
+    console.error('Error getting username:', err);
     return res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined

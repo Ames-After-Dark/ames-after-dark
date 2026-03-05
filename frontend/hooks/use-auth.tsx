@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useAuth0 } from "react-native-auth0"
 import { useRouter, useSegments, useRootNavigationState } from "expo-router"
-import { checkUserStatus, UserStatus } from "@/services/userService"
+import { checkUserStatus, UserStatus, getUsernameByAuth } from "@/services/userService"
 import { config } from "@/auth0.config"
 
 // Define the shape of our auth context
@@ -15,6 +15,7 @@ type AuthContextType = {
     user: any
     error: Error | null
     userStatus: UserStatus | null
+    username: string | null
     refreshUserStatus: () => Promise<void>
     getAccessToken: () => Promise<string | null>
 }
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isSwitching, setIsSwitching] = useState(false)
     const [userStatus, setUserStatus] = useState<UserStatus | null>(null)
+    const [username, setUsername] = useState<string | null>(null)
 
     useEffect(() => {
       if (user) {
@@ -39,13 +41,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true)
         // Check user status when user is found
         refreshUserStatus()
+        // Fetch username
+        fetchUsername()
       } else {
         console.log("No user session")
         setIsAuthenticated(false)
         setUserStatus(null)
+        setUsername(null)
       }
       setIsLoading(false)
     }, [user])
+
+    const fetchUsername = async () => {
+      try {
+        const credentials = await getCredentials()
+        if (credentials?.accessToken) {
+          const response = await getUsernameByAuth(credentials.accessToken)
+          setUsername(response.username)
+        }
+      } catch (e) {
+        // Username not found yet (user might not have completed registration)
+        console.log("Username not found:", e)
+        setUsername(null)
+      }
+    }
 
     const refreshUserStatus = async () => {
       try {
@@ -72,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Check user registration status
           if (credentials?.accessToken) {
             await refreshUserStatus()
+            await fetchUsername()
           }
         } catch (e) {
           console.error("Login error:", e)
@@ -81,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signOut = async () => {
         try {
           await clearSession()
+          setUsername(null)
         } catch (e) {
           console.error("Logout error:", e)
         }
@@ -108,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         error,
         userStatus,
+        username,
         refreshUserStatus,
         getAccessToken,
       }}

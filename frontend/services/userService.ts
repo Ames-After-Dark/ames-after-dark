@@ -166,6 +166,7 @@ export interface UserStatus {
 export interface CompleteRegistrationData {
   phoneNumber: string;
   birthday: string; // YYYY-MM-DD format
+  username: string;
 }
 
 export interface CompleteRegistrationResponse {
@@ -174,6 +175,7 @@ export interface CompleteRegistrationResponse {
     id: number;
     email: string | null;
     name: string | null;
+    username: string;
     phoneNumber: string;
     birthday: string;
   };
@@ -218,6 +220,41 @@ export async function completeUserRegistration(
     return response;
   } catch (error) {
     console.error('Failed to complete user registration:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if a username is available
+ * Public endpoint - no authentication required
+ */
+export async function checkUsernameAvailability(username: string): Promise<{ available: boolean; username: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/check-username?username=${encodeURIComponent(username)}`, {
+      method: 'GET'
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to check username availability:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get username for the authenticated user
+ * Requires Auth0 authentication
+ */
+export async function getUsernameByAuth(accessToken: string): Promise<{ username: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/username`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to get username:', error);
     throw error;
   }
 }
