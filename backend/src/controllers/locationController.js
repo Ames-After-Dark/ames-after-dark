@@ -90,3 +90,31 @@ exports.getLocationsWithHours = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// GET /api/locations/admin/:id
+exports.getLocationsByAdminId = async (req, res) => {
+  const adminId = parseInt(req.params.id, 10);
+  if (isNaN(adminId)) return res.status(400).json({ message: 'Invalid ID' });
+
+  try {
+    const locations = await locationService.getLocationsByAdminId(adminId);
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/locations/views/:id
+exports.getTotalLocationViewsById = async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
+
+  try {
+    const views = await locationService.getTotalLocationViews(id);
+    res.json(views);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
