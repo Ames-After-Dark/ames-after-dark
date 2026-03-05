@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (e) {
         // Username not found yet (user might not have completed registration)
-        console.log("Username not found:", e)
+        // This is expected, so we silently set username to null
         setUsername(null)
       }
     }

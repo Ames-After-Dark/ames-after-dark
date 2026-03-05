@@ -254,7 +254,8 @@ export async function getUsernameByAuth(accessToken: string): Promise<{ username
     });
     return response;
   } catch (error) {
-    console.error('Failed to get username:', error);
+    // Don't log 404 errors - user may not have a username yet (during registration)
+    // Just re-throw so the caller can handle it
     throw error;
   }
 }
