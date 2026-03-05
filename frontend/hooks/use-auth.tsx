@@ -17,6 +17,7 @@ type AuthContextType = {
     userStatus: UserStatus | null
     username: string | null
     refreshUserStatus: () => Promise<void>
+    refreshUsername: () => Promise<void>
     getAccessToken: () => Promise<string | null>
 }
 
@@ -126,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userStatus,
         username,
         refreshUserStatus,
+        refreshUsername: fetchUsername,
         getAccessToken,
       }}
     >

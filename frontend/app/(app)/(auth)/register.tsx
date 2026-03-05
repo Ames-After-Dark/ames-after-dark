@@ -20,7 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const { user, getAccessToken, refreshUserStatus } = useAuth()
+  const { user, getAccessToken, refreshUserStatus, refreshUsername } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
   const [username, setUsername] = useState("")
@@ -202,8 +202,9 @@ export default function RegisterScreen() {
         username: username
       })
 
-      // Refresh user status in auth context
+      // Refresh user status and username in auth context
       await refreshUserStatus()
+      await refreshUsername()
 
       // Navigate to home screen immediately
       router.replace('/(app)/(tabs)' as any)
