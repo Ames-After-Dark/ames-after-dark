@@ -245,7 +245,7 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
  * Requires Auth0 authentication
  * Returns { username: string | null } - null if user hasn't set username yet
  */
-export async function getUsernameByAuth(accessToken: string): Promise<{ username: string | null }> {
+export async function getUsernameByAuth(accessToken: string): Promise<{ hasUsername: boolean, username: string | null }> {
   const response = await apiFetch(`/users/auth/username`, {
     method: 'GET',
     headers: {

@@ -297,6 +297,7 @@ exports.getUsernameByAuth = async (req, res) => {
 
     // Return null if user hasn't set a username yet (during registration flow)
     return res.json({
+      hasUsername: username !== null,
       username: username
     });
 
