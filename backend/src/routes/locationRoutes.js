@@ -7,6 +7,10 @@ router.get('/open', locationController.getOpenLocations);
 // Get locations with their hours included
 router.get('/with-hours', locationController.getLocationsWithHours);
 
+router.get('/admin/:id', locationController.getLocationsByAdminId);
+
+router.get('/views/:id', locationController.getTotalLocationViewsById);
+
 // CRUD routes
 router.get('/', locationController.getLocations);         // Read all
 router.get('/:id', locationController.getLocationById);  // Read one

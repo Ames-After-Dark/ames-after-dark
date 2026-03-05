@@ -6,10 +6,14 @@ jest.mock('../../services/userService', () => ({
   deleteUser: jest.fn(),
   getUserByAuth0Id: jest.fn(),
   createUserWithAuth0: jest.fn(),
+  getUserFriends: jest.fn(),
+  isUsernameAvailable: jest.fn(),
+  getUsernameByAuth0Id: jest.fn(),
 }));
 
 jest.mock('../../services/validationService', () => ({
   validateUserRegistrationData: jest.fn(),
+  validateUsername: jest.fn(),
 }));
 
 const userService = require('../../services/userService');
@@ -184,7 +188,8 @@ describe('userController - Auth0 endpoints', () => {
         phone_number: '123-456-7890',
         birthday: new Date('2000-01-15'),
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
+        username: 'testuser'
       };
       userService.getUserByAuth0Id.mockResolvedValue(user);
       
@@ -203,7 +208,8 @@ describe('userController - Auth0 endpoints', () => {
           email: 'test@example.com',
           name: 'Test User',
           hasPhoneNumber: true,
-          hasBirthday: true
+          hasBirthday: true,
+          hasUsername: true
         }
       });
     });
@@ -234,7 +240,8 @@ describe('userController - Auth0 endpoints', () => {
           email: 'test@example.com',
           name: 'Test User',
           hasPhoneNumber: false,
-          hasBirthday: true
+          hasBirthday: true,
+          hasUsername: false
         }
       });
     });
@@ -290,7 +297,7 @@ describe('userController - Auth0 endpoints', () => {
     test('returns 400 when missing phone number', async () => {
       const req = {
         auth: { sub: 'auth0|123456' },
-        body: { birthday: '2000-01-15' }
+        body: { birthday: '2000-01-15', username: 'testuser' }
       };
       const res = createRes();
 
@@ -298,10 +305,11 @@ describe('userController - Auth0 endpoints', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Phone number and birthday are required',
+        message: 'Phone number, birthday, and username are required',
         errors: {
           phoneNumber: 'Phone number is required',
-          birthday: undefined
+          birthday: undefined,
+          username: undefined
         }
       });
     });
@@ -309,7 +317,7 @@ describe('userController - Auth0 endpoints', () => {
     test('returns 400 when missing birthday', async () => {
       const req = {
         auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890' }
+        body: { phoneNumber: '123-456-7890', username: 'testuser' }
       };
       const res = createRes();
 
@@ -317,10 +325,11 @@ describe('userController - Auth0 endpoints', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Phone number and birthday are required',
+        message: 'Phone number, birthday, and username are required',
         errors: {
           phoneNumber: undefined,
-          birthday: 'Birthday is required'
+          birthday: 'Birthday is required',
+          username: undefined
         }
       });
     });
@@ -336,13 +345,13 @@ describe('userController - Auth0 endpoints', () => {
 
       const req = {
         auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123', birthday: '2010-01-01' }
+        body: { phoneNumber: '123', birthday: '2010-01-01', username: 'test' }
       };
       const res = createRes();
 
       await userController.completeUserRegistration(req, res);
 
-      expect(validationService.validateUserRegistrationData).toHaveBeenCalledWith('123', '2010-01-01');
+      expect(validationService.validateUserRegistrationData).toHaveBeenCalledWith('123', '2010-01-01', 'test');
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         message: 'Validation failed',
@@ -358,6 +367,7 @@ describe('userController - Auth0 endpoints', () => {
         valid: true,
         errors: null
       });
+      userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue({
         id: 1,
         uid: 'auth0|123456'
@@ -365,7 +375,7 @@ describe('userController - Auth0 endpoints', () => {
 
       const req = {
         auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15' }
+        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser' }
       };
       const res = createRes();
 
@@ -383,11 +393,13 @@ describe('userController - Auth0 endpoints', () => {
         valid: true,
         errors: null
       });
+      userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue(null);
       
       const newUser = {
         id: 10,
         uid: 'auth0|123456',
+        username: 'testuser',
         phone_number: '123-456-7890',
         birthday: new Date('2000-01-15'),
         email: 'test@example.com',
@@ -401,7 +413,7 @@ describe('userController - Auth0 endpoints', () => {
           email: 'test@example.com',
           name: 'Test User'
         },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15' }
+        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser' }
       };
       const res = createRes();
 
@@ -411,6 +423,7 @@ describe('userController - Auth0 endpoints', () => {
         auth0Id: 'auth0|123456',
         phoneNumber: '123-456-7890',
         birthday: '2000-01-15',
+        username: 'testuser',
         email: 'test@example.com',
         name: 'Test User'
       });
@@ -421,6 +434,7 @@ describe('userController - Auth0 endpoints', () => {
           id: 10,
           email: 'test@example.com',
           name: 'Test User',
+          username: 'testuser',
           phoneNumber: '123-456-7890',
           birthday: newUser.birthday
         }
@@ -432,11 +446,13 @@ describe('userController - Auth0 endpoints', () => {
         valid: true,
         errors: null
       });
+      userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue(null);
       
       const newUser = {
         id: 11,
         uid: 'auth0|789012',
+        username: 'minimaluser',
         phone_number: '555-123-4567',
         birthday: new Date('1995-06-20'),
         email: null,
@@ -446,7 +462,7 @@ describe('userController - Auth0 endpoints', () => {
 
       const req = {
         auth: { sub: 'auth0|789012' },
-        body: { phoneNumber: '555-123-4567', birthday: '1995-06-20' }
+        body: { phoneNumber: '555-123-4567', birthday: '1995-06-20', username: 'minimaluser' }
       };
       const res = createRes();
 
@@ -456,6 +472,7 @@ describe('userController - Auth0 endpoints', () => {
         auth0Id: 'auth0|789012',
         phoneNumber: '555-123-4567',
         birthday: '1995-06-20',
+        username: 'minimaluser',
         email: null,
         name: null
       });
@@ -467,7 +484,12 @@ describe('userController - Auth0 endpoints', () => {
         valid: true,
         errors: null
       });
+      validationService.validateUsername.mockReturnValue({
+        valid: true,
+        errors: null
+      });
       userService.getUserByAuth0Id.mockResolvedValue(null);
+      userService.isUsernameAvailable.mockResolvedValue(true);
       
       const duplicateError = new Error('Unique constraint failed');
       duplicateError.code = 'P2002';
@@ -476,7 +498,7 @@ describe('userController - Auth0 endpoints', () => {
 
       const req = {
         auth: { sub: 'auth0|123456', email: 'duplicate@example.com' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15' }
+        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser' }
       };
       const res = createRes();
 
@@ -494,12 +516,13 @@ describe('userController - Auth0 endpoints', () => {
         valid: true,
         errors: null
       });
+      userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue(null);
       userService.createUserWithAuth0.mockRejectedValue(new Error('DB Connection Failed'));
 
       const req = {
         auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15' }
+        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser' }
       };
       const res = createRes();
 

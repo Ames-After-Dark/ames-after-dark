@@ -97,12 +97,40 @@ const calculateAge = (birthDate) => {
 };
 
 /**
+ * Validates a username
+ * @param {string} username - The username to validate
+ * @returns {Object} { valid: boolean, error: string | null }
+ */
+exports.validateUsername = (username) => {
+  if (!username) {
+    return { valid: false, error: 'Username is required' };
+  }
+
+  if (typeof username !== 'string') {
+    return { valid: false, error: 'Username must be a string' };
+  }
+
+  // Username must be 3-20 characters
+  if (username.length < 3 || username.length > 20) {
+    return { valid: false, error: 'Username must be between 3 and 20 characters' };
+  }
+
+  // Username can only contain letters, numbers, underscores, and hyphens
+  if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+    return { valid: false, error: 'Username can only contain letters, numbers, underscores, and hyphens' };
+  }
+
+  return { valid: true, error: null };
+};
+
+/**
  * Validates both phone number and birthday
  * @param {string} phoneNumber - The phone number to validate
  * @param {string | Date} birthday - The birthday to validate
+ * @param {string} username - The username to validate (optional)
  * @returns {Object} { valid: boolean, errors: Object }
  */
-exports.validateUserRegistrationData = (phoneNumber, birthday) => {
+exports.validateUserRegistrationData = (phoneNumber, birthday, username = null) => {
   const phoneValidation = exports.validatePhoneNumber(phoneNumber);
   const birthdayValidation = exports.validateBirthday(birthday);
 
@@ -114,8 +142,16 @@ exports.validateUserRegistrationData = (phoneNumber, birthday) => {
     errors.birthday = birthdayValidation.error;
   }
 
+  // Validate username if provided
+  if (username) {
+    const usernameValidation = exports.validateUsername(username);
+    if (!usernameValidation.valid) {
+      errors.username = usernameValidation.error;
+    }
+  }
+
   return {
-    valid: phoneValidation.valid && birthdayValidation.valid,
+    valid: Object.keys(errors).length === 0,
     errors: Object.keys(errors).length > 0 ? errors : null
   };
 };

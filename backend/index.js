@@ -58,6 +58,7 @@ const friendshipRoutes = require('./src/routes/friendshipRoutes');
 const eventRoutes = require('./src/routes/eventRoutes');
 const dealRoutes = require('./src/routes/dealRoutes');
 const menuItemRoutes = require('./src/routes/menuItemRoutes');
+const r2Routes = require('./src/routes/r2Routes');
 
 app.use('/api/locations', locationRoutes);
 app.use('/api/locationhours', locationHourRoutes);
@@ -69,6 +70,7 @@ app.use('/api/friendships', friendshipRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/menuitems', menuItemRoutes);
+app.use('/api/r2', r2Routes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

@@ -7,6 +7,8 @@ const { checkJwt, optionalJwt } = require('../middleware/authMiddleware');
 // Note: /auth/status uses optionalJwt to validate token if present but allow through if not
 router.get('/auth/status', optionalJwt, userController.checkUserStatus); // Check user status (validates token if present)
 router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration (requires auth)
+router.get('/auth/check-username', userController.checkUsernameAvailability); // Check username availability (public)
+router.get('/auth/username', checkJwt, userController.getUsernameByAuth); // Get username by auth (requires auth)
 
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
