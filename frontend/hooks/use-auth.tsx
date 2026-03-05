@@ -6,21 +6,6 @@ import { config } from "@/auth0.config"
 
 // Define the shape of our auth context
 type AuthContextType = {
-<<<<<<< HEAD
-    signIn: () => Promise<void>
-    signOut: () => Promise<void>
-    isAuthenticated: boolean
-    isLoading: boolean
-    isSwitching: boolean,
-    setIsSwitching: (value: boolean) => void
-    user: any
-    error: Error | null
-    userStatus: UserStatus | null
-    username: string | null
-    refreshUserStatus: () => Promise<void>
-    refreshUsername: () => Promise<void>
-    getAccessToken: () => Promise<string | null>
-=======
   signIn: () => Promise<void>
   signOut: () => Promise<void>
   isAuthenticated: boolean
@@ -32,8 +17,8 @@ type AuthContextType = {
   userStatus: UserStatus | null
   username: string | null
   refreshUserStatus: () => Promise<void>
+  refreshUsername: () => Promise<void>
   getAccessToken: () => Promise<string | null>
->>>>>>> f04a7dbd3cf2a0adea7b76cc2b937da553947ecd
 }
 
 // Create the context with a default value
