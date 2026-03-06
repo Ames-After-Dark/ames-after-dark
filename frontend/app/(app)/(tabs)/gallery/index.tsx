@@ -3,6 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, Image,
   TextInput, ActivityIndicator, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
+import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekendAlbums } from "@/services/galleryService";
 
@@ -28,15 +30,25 @@ export default function GalleryScreen() {
   const router = useRouter();
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
-      const data = await getLatestWeekendAlbums();
-      setAlbums(data);
-      setLoading(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getLatestWeekendAlbums();
+        setAlbums(data);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Failed to load gallery"));
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
+
+  const hasError = !!error || shouldForceErrorPage("gallery");
 
   const filteredAlbums = useMemo(() => {
     let data = albums;
@@ -83,6 +95,14 @@ export default function GalleryScreen() {
         <ActivityIndicator size="large" color={Theme.dark.primary} />
       </View>
     );
+
+  if (hasError) {
+    return (
+      <View style={styles.container}>
+        <ErrorState title="Unable to load gallery" subtitle="Please try again later." />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

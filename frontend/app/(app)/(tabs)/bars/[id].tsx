@@ -13,8 +13,11 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
-import { getNow, isActive } from "@/utils/schedule";
+// import { getNow, isActive, isBarOpen } from "@/config/time";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import { IMG } from "@/assets/assets"; // ✅ placeholder fallbacks  ../../../../assets/assets.ts
+import ErrorState from "@/components/ui/error-state";
+import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 
 import { Theme } from '@/constants/theme';
 
@@ -45,13 +48,32 @@ const barLogoMap: { [key: string]: any } = {
 };
 
 export default function BarProfile() {
-  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: "home" | "bars" | "map" }>();
+  const { id, backTo } = useLocalSearchParams<{
+    id: string;
+    backTo?: "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
+  }>();
   const router = useRouter();
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
   const handleBack = () => {
     if (backTo === "home") {
       router.replace("/(app)/(tabs)/tonight");
+      return;
+    }
+
+    if (backTo === "tonight-open") {
+      router.replace({
+        pathname: "/(app)/(tabs)/tonight",
+        params: { tab: "open" },
+      });
+      return;
+    }
+
+    if (backTo === "tonight-deals") {
+      router.replace({
+        pathname: "/(app)/(tabs)/tonight",
+        params: { tab: "deals" },
+      });
       return;
     }
 
@@ -72,10 +94,10 @@ export default function BarProfile() {
     );
   }
 
-  if (!bar) {
+  if (!bar || shouldForceErrorPage("barDetail")) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: Theme.dark.error, padding: 16 }}>Bar not found.</Text>
+        <ErrorState title="Bar not found" subtitle="Please try again later." />
       </View>
     );
   }

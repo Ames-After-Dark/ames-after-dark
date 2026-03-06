@@ -14,6 +14,7 @@ export type BarsFilters = {
 export function useBars(filters?: BarsFilters) {
   const [bars, setBars] = useState<Bar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
   const now = getNow();                         //compute now here
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function useBars(filters?: BarsFilters) {
 
     async function load() {
       setLoading(true);
+      setError(null);
       try {
         const data = await getBars();
         if (!cancelled) setBars(data);
@@ -39,5 +41,5 @@ export function useBars(filters?: BarsFilters) {
     [bars, now]
   );
 
-  return { bars: withOpenFlag, loading, now }; // 👈 return now
+  return { bars: withOpenFlag, loading, error, now }; // 👈 return now
 }
