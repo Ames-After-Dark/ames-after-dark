@@ -5,7 +5,7 @@
 //  - Friends near you
 // Data comes from backend APIs and schedule utilities.
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { useTonightData } from "@/hooks/useTonightData";
 import { useFriends } from "@/hooks/useFriends";
@@ -42,6 +42,10 @@ const TAB_META = [
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = (typeof TAB_META)[number]["key"];
+type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
+
+const isTabKey = (value: string | undefined): value is TabKey =>
+  value === "open" || value === "deals" || value === "friends";
 
 const HERO_POSTERS = [
   {
@@ -69,10 +73,18 @@ const HERO_POSTERS = [
 const CURRENT_USER_ID = 1;
 
 export default function Tonight() {
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+
   // Which tab the user is on
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (isTabKey(tab)) {
+      setActiveTab(tab);
+    }
+  }, [tab]);
 
   // Fetch data from database using the custom hook
   const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
@@ -229,7 +241,7 @@ export default function Tonight() {
   }, [query, scheduledBars]);
 
   // Navigation helpers
-  const goToBarDetail = (id: string, backTo: "home" | "bars" = "bars") =>
+  const goToBarDetail = (id: string, backTo: BackTarget = "bars") =>
     router.push({
       pathname: "/bars/[id]",
       params: { id, backTo },
@@ -253,15 +265,6 @@ export default function Tonight() {
       {/* Error state */}
       {hasError && !isLoading && (
         <ErrorState title="Unable to load tonight's events" />
-        // <View style={styles.errorContainer}>
-        //   <Ionicons
-        //     name="alert-circle-outline"
-        //     size={48}
-        //     color={Theme.dark.primary}
-        //   />
-        //   <Text style={styles.errorText}>Unable to load tonight&apos;s events</Text>
-        //   <Text style={styles.errorSubtext}>Please try again later</Text>
-        // </View>
       )}
 
       {/* Main content */}
@@ -435,7 +438,7 @@ export default function Tonight() {
                 <Pressable
                   key={item.id}
                   style={styles.card}
-                  onPress={() => goToBarDetail(item.id)}
+                  onPress={() => goToBarDetail(item.id, "tonight-open")}
                 >
                   <Image
                     source={getLogoAssetForLocationName(item.bar)}
@@ -480,7 +483,7 @@ export default function Tonight() {
                 <Pressable
                   key={item.id}
                   style={[styles.card, styles.cardDealsVariant]}
-                  onPress={() => goToBarDetail(item.barId)}
+                  onPress={() => goToBarDetail(item.barId, "tonight-deals")}
                 >
                   <Image
                     source={getLogoAssetForLocationName(item.bar)}
@@ -601,7 +604,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 0,
   },
-  cardsList: { padding: 16, gap: 12, paddingBottom: 92 },
+  cardsList: { 
+    padding: 16, 
+    gap: 12, 
+    paddingBottom: 92 
+  },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -610,7 +617,8 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.container.background, // "#0f172a",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#1f2937",
+    // borderColor: "#1f2937",
+    borderColor: Theme.container.secondaryBorder,
   },
   cardDealsVariant: {
     borderColor: Theme.container.secondaryBorder, // "#164e63",
@@ -621,7 +629,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Theme.container.mainBorder, // "#1f2937",
+    // borderColor: Theme.container.mainBorder, // "#1f2937",
+    borderColor: Theme.container.secondaryBorder,
   },
   cardHeader: {
     flexDirection: "row",
@@ -691,14 +700,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: Theme.container.background, // "#0f172a",
     borderWidth: 1,
-    borderColor: Theme.container.mainBorder, // "#1f2937",
+    // borderColor: Theme.container.mainBorder, // "#1f2937",
+    borderColor: Theme.container.secondaryBorder,
   },
   friendAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 999,
+    borderRadius: 10, // 999,
     borderWidth: 1,
-    borderColor: Theme.container.mainBorder, // "#1f2937",
+    // borderColor: Theme.container.mainBorder, // "#1f2937",
+    borderColor: Theme.container.secondaryBorder,
   },
   friendName: {
     color: Theme.container.titleText, // "#f1f5f9",

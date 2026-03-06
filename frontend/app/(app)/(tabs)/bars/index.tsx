@@ -78,11 +78,6 @@ useEffect(() => {
         const q = search.trim().toLowerCase();
 
         const filteredBars = bars
-            .map(bar => ({
-                ...bar,
-                // __openNow: isBarOpen(bar, now),
-                __openNow: bar.open ?? false,
-            }))
             .filter(b => {
               if (filter === "Bars" && b.location_type_id !== 1) {
                 return false;

@@ -52,6 +52,93 @@ interface MenuItemApiResponse {
   [key: string]: any;
 }
 
+interface LocationHourRow {
+  weekday_id?: number | string;
+  open_time?: string;
+  close_time?: string;
+  open_time_utc?: string;
+  close_time_utc?: string;
+  [key: string]: any;
+}
+
+interface LocationHoursApiResponse {
+  id: number;
+  timezone?: string;
+  location_hours?: LocationHourRow[];
+  [key: string]: any;
+}
+
+function parseTimeToMinutes(value?: string | null): number | null {
+  if (!value) return null;
+  const match = String(value).match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+  return hour * 60 + minute;
+}
+
+function formatMinutesAs12Hour(value: number | null): string | undefined {
+  if (value == null) return undefined;
+  const hour24 = Math.floor(value / 60);
+  const minute = value % 60;
+  const suffix = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function getWeekdayIdInTimezone(now: Date, timezone: string): number {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(now).map((part) => [part.type, part.value])
+  );
+
+  const inTimezoneDate = new Date(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    0
+  );
+
+  return inTimezoneDate.getDay() + 1; // 1=Sun..7=Sat
+}
+
+function deriveDisplayHours(
+  schedule: LocationHourRow[] | undefined,
+  timezone = "America/Chicago"
+): { openingTime?: string; closingTime?: string } {
+  if (!Array.isArray(schedule) || !schedule.length) {
+    return {};
+  }
+
+  const todayId = getWeekdayIdInTimezone(new Date(), timezone);
+  const entry = schedule.find((row) => Number(row.weekday_id) === todayId) ?? schedule[0];
+  if (!entry) {
+    return {};
+  }
+
+  const openingTime = formatMinutesAs12Hour(
+    parseTimeToMinutes(entry.open_time ?? entry.open_time_utc ?? null)
+  );
+  const closingTime = formatMinutesAs12Hour(
+    parseTimeToMinutes(entry.close_time ?? entry.close_time_utc ?? null)
+  );
+
+  return { openingTime, closingTime };
+}
+
 function toIsoOrNull(value?: string | null): string | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -77,10 +164,24 @@ export async function getBars(): Promise<Bar[]> {
   try {
     // Fetch all data in parallel
     const [locations, events, deals] = await Promise.all([
-      apiFetch("/locations/with-hours") as Promise<LocationApiResponse[]>,
+      apiFetch("/locations") as Promise<LocationApiResponse[]>,
       apiFetch("/events") as Promise<EventApiResponse[]>,
       apiFetch("/deals") as Promise<DealApiResponse[]>,
     ]);
+
+    const hoursByLocationId = new Map<number, LocationHoursApiResponse>();
+    await Promise.all(
+      locations.map(async (location) => {
+        try {
+          const hours = await apiFetch(`/locationhours/${location.id}`) as LocationHoursApiResponse;
+          if (hours && Array.isArray(hours.location_hours)) {
+            hoursByLocationId.set(location.id, hours);
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch hours for location ${location.id}:`, error);
+        }
+      })
+    );
 
     // Map locations to bars and attach their associated events/deals
     const bars: Bar[] = locations.map((location: LocationApiResponse) => {
@@ -166,38 +267,19 @@ export async function getBars(): Promise<Bar[]> {
         })
         .filter((deal): deal is ScheduledDeal => Boolean(deal));
 
-      // derive display opening/closing strings from location_hours when present
-      let openingTime: string | undefined = undefined;
-      let closingTime: string | undefined = undefined;
-      const locHours = (location as any).location_hours;
-      if (Array.isArray(locHours) && locHours.length) {
-        // determine current weekday in America/Chicago to pick the relevant entry
-        const now = new Date();
-        const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
-        const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
-        const inTz = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), 0);
-        const weekdayIdNow = inTz.getDay() + 1; // 1=Sun..7=Sat
+      const hoursResponse = hoursByLocationId.get(location.id);
+      const schedule = (
+        Array.isArray(hoursResponse?.location_hours) && hoursResponse.location_hours.length
+          ? hoursResponse.location_hours
+          : Array.isArray((location as any).location_hours)
+            ? ((location as any).location_hours as LocationHourRow[])
+            : []
+      ) as LocationHourRow[];
 
-        const entry = locHours.find((h: any) => Number(h.weekday_id) === Number(weekdayIdNow)) || locHours[0];
-        if (entry) {
-          const openMatch = String(entry.open_time_utc || "").match(/T(\d{2}):(\d{2})/);
-          const closeMatch = String(entry.close_time_utc || "").match(/T(\d{2}):(\d{2})/);
-          if (openMatch) {
-            const hh = Number(openMatch[1]);
-            const mm = Number(openMatch[2]);
-            const hour12 = hh % 12 === 0 ? 12 : hh % 12;
-            const ampm = hh >= 12 ? "PM" : "AM";
-            openingTime = `${hour12}:${String(mm).padStart(2, "0")} ${ampm}`;
-          }
-          if (closeMatch) {
-            const hh = Number(closeMatch[1]);
-            const mm = Number(closeMatch[2]);
-            const hour12 = hh % 12 === 0 ? 12 : hh % 12;
-            const ampm = hh >= 12 ? "PM" : "AM";
-            closingTime = `${hour12}:${String(mm).padStart(2, "0")} ${ampm}`;
-          }
-        }
-      }
+      const { openingTime, closingTime } = deriveDisplayHours(
+        schedule,
+        hoursResponse?.timezone || "America/Chicago"
+      );
 
       return {
         id: String(location.id),

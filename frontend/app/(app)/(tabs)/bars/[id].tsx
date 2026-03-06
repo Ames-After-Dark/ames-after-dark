@@ -48,13 +48,32 @@ const barLogoMap: { [key: string]: any } = {
 };
 
 export default function BarProfile() {
-  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: "home" | "bars" | "map" }>();
+  const { id, backTo } = useLocalSearchParams<{
+    id: string;
+    backTo?: "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
+  }>();
   const router = useRouter();
   const { bar, loading } = useBarDetail(id);
   const now = getNow();
   const handleBack = () => {
     if (backTo === "home") {
       router.replace("/(app)/(tabs)/tonight");
+      return;
+    }
+
+    if (backTo === "tonight-open") {
+      router.replace({
+        pathname: "/(app)/(tabs)/tonight",
+        params: { tab: "open" },
+      });
+      return;
+    }
+
+    if (backTo === "tonight-deals") {
+      router.replace({
+        pathname: "/(app)/(tabs)/tonight",
+        params: { tab: "deals" },
+      });
       return;
     }
 
