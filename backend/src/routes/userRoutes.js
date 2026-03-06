@@ -1,23 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const checkJwt = require('../middleware/authMiddleware');
+const { checkJwt, optionalJwt } = require('../middleware/authMiddleware');
 
-router.get('/:userId/friends', userController.getUserFriends);
+// Auth0 protected routes - MUST come before /:id routes
+// Note: /auth/status uses optionalJwt to validate token if present but allow through if not
+router.get('/auth/status', optionalJwt, userController.checkUserStatus); // Check user status (validates token if present)
+router.post('/auth/register', checkJwt, userController.completeUserRegistration); // Complete registration (requires auth)
+router.get('/auth/check-username', userController.checkUsernameAvailability); // Check username availability (public)
+router.get('/auth/username', checkJwt, userController.getUsernameByAuth); // Get username by auth (requires auth)
 
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
+router.get('/:userId/friends', userController.getUserFriends);
 router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
-// router.get('/auth/status', userController.checkUserStatus); // Check user status
-// router.post('/auth/register', userController.completeUserRegistration); // Create user with signup info
-
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-router.post('/signup', userController.createUser);
-router.post('/login', userController.loginUser);
-// TEMP_AUTH_END
-
-// PUT /api/users/:id - update username, email, bio only
-router.put('/:id', userController.updateUserLimited);
 
 module.exports = router;

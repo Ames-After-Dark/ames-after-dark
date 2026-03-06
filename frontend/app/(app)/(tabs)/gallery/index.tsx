@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { shouldForceErrorPage } from "@/config/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
-import { getLatestWeekendAlbums } from "@/services/photosService";
+import { getLatestWeekendAlbums } from "@/services/galleryService";
 
 // Parse a token like "2-7" or "1/31" into a Date (month-day); Similar to parseFolderDate in photosService
 function parseDateToken(token: string): Date | null {

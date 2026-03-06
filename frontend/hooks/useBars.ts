@@ -1,9 +1,7 @@
 // src/hooks/useBars.ts
 import { useEffect, useMemo, useState } from "react";
 import type { Bar } from "@/types/bars";
-import { USE_MOCK } from "@/config/runtime";
-import { BARS_BASE } from "@/data/mock";
-import { getNow, isBarOpen } from "@/config/time";
+import { getNow, isBarOpen } from "@/utils/schedule";
 import { getBars } from "@/services/barsService";
 
 export type BarsFilters = {
@@ -26,6 +24,7 @@ export function useBars(filters?: BarsFilters) {
       setLoading(true);
       setError(null);
       try {
+<<<<<<< HEAD
         if (USE_MOCK) {
           if (!cancelled) setBars(BARS_BASE as unknown as Bar[]);
         } else {
@@ -37,6 +36,10 @@ export function useBars(filters?: BarsFilters) {
           setBars([]);
           setError(err instanceof Error ? err : new Error("Failed to load bars"));
         }
+=======
+        const data = await getBars();
+        if (!cancelled) setBars(data);
+>>>>>>> e8a5b50516a54f09abf8a029503261e61656ed3b
       } finally {
         if (!cancelled) setLoading(false);
       }

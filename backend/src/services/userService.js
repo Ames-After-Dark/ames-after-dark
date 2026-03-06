@@ -169,18 +169,6 @@ exports.getUserFriends = async (userId) => {
   });
 };
 
-// TEMP_AUTH_START - Remove when re-enabling Auth0
-exports.loginUser = async (username) => {
-  // Simple login: just check if user exists by username
-  const user = await prisma.users.findFirst({
-    where: { username: username },
-    include: {
-      roles: true
-    }
-  });
-  return user;
-};
-// TEMP_AUTH_END
 
 /**
  * Get user by Auth0 UID (subject from JWT)
@@ -207,7 +195,7 @@ exports.getUserByAuth0Id = async (auth0Id) => {
  * @returns {Promise<Object>} Created user object
  */
 exports.createUserWithAuth0 = async (userData) => {
-  const { auth0Id, phoneNumber, birthday, email, name } = userData;
+  const { auth0Id, phoneNumber, birthday, email, name, username } = userData;
   
   return prisma.users.create({
     data: {
@@ -216,11 +204,37 @@ exports.createUserWithAuth0 = async (userData) => {
       birthday: new Date(birthday),
       email: email || null,
       name: name || null,
-      // Set default role_id if needed, or leave as null for regular users
-      role_id: null
+      username: username || null,
+      // Set role_id to 1 for regular users
+      role_id: 1
     },
     include: {
       roles: true
     }
   });
+};
+
+/**
+ * Check if a username is already taken
+ * @param {string} username - The username to check
+ * @returns {Promise<boolean>} True if username is available, false if taken
+ */
+exports.isUsernameAvailable = async (username) => {
+  const user = await prisma.users.findFirst({
+    where: { username: username }
+  });
+  return user === null;
+};
+
+/**
+ * Get username by Auth0 ID
+ * @param {string} auth0Id - The Auth0 user ID (sub claim from JWT)
+ * @returns {Promise<string|null>} Username or null if not found
+ */
+exports.getUsernameByAuth0Id = async (auth0Id) => {
+  const user = await prisma.users.findUnique({
+    where: { uid: auth0Id },
+    select: { username: true }
+  });
+  return user?.username || null;
 };

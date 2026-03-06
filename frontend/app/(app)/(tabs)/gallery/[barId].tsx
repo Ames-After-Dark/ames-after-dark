@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, 
   StyleSheet, Dimensions, Alert, TouchableOpacity, } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import type { Photo } from "@/services/photosService";
-import { getPhotosByAlbumUri } from "@/services/photosService";
+import type { Photo } from "@/services/galleryService.ts";
+import { getPhotosByAlbumUri } from "@/services/galleryService";
 import { Theme } from "@/constants/theme";
 import ImageViewing from "react-native-image-viewing"; //fixing compile error - try installing
 import { FontAwesome } from "@expo/vector-icons";

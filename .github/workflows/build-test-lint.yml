@@ -1,4 +1,4 @@
-name: build-test-lint
+name: Build, Test, Lint
 
 on:
   pull_request:
@@ -6,9 +6,13 @@ on:
 jobs:
   install_frontend:
     runs-on: [self-hosted]
-    # container: node:18
     env:
-      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+      CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+      CLOUDFLARE_R2_S3_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_S3_ENDPOINT }}
+      CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -19,9 +23,8 @@ jobs:
 
   install_backend:
     runs-on: [self-hosted]
-    # container: node:18
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -31,15 +34,18 @@ jobs:
       - run: |
           cd backend
           npm install
-          # generate Prisma client so tests/linters that import @prisma/client work
           npx prisma generate || true
 
   lint_frontend:
     runs-on: [self-hosted]
-    # container: node:18)
     needs: install_frontend
     env:
-      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+      CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+      CLOUDFLARE_R2_S3_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_S3_ENDPOINT }}
+      CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -50,7 +56,6 @@ jobs:
 
   lint_backend:
     runs-on: [self-hosted]
-    # container: node:18
     needs: install_backend
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +67,14 @@ jobs:
 
   test_frontend:
     runs-on: [self-hosted]
-    # container: node:18
     needs: lint_frontend
     env:
-      SMUGMUG_API_KEY: ${{ secrets.SMUGMUG_API_KEY }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+      CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+      CLOUDFLARE_R2_S3_ENDPOINT: ${{ secrets.CLOUDFLARE_R2_S3_ENDPOINT }}
+      CLOUDFLARE_R2_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+      CLOUDFLARE_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -76,10 +85,9 @@ jobs:
 
   test_backend:
     runs-on: [self-hosted]
-    # container: node:18
     needs: lint_backend
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4

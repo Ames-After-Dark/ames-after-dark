@@ -91,7 +91,7 @@ describe('userService', () => {
         birthday: new Date(userData.birthday),
         email: userData.email,
         name: userData.name,
-        role_id: null,
+        role_id: 1,
         roles: null
       };
 
@@ -106,7 +106,8 @@ describe('userService', () => {
           birthday: new Date(userData.birthday),
           email: userData.email,
           name: userData.name,
-          role_id: null
+          username: null,
+          role_id: 1
         },
         include: { roles: true }
       });
@@ -127,7 +128,7 @@ describe('userService', () => {
         birthday: new Date(userData.birthday),
         email: null,
         name: null,
-        role_id: null,
+        role_id: 1,
         roles: null
       };
 
@@ -142,7 +143,8 @@ describe('userService', () => {
           birthday: new Date(userData.birthday),
           email: null,
           name: null,
-          role_id: null
+          username: null,
+          role_id: 1
         },
         include: { roles: true }
       });

@@ -111,3 +111,52 @@ exports.getLocationsWithHours = async () => {
     }
   });
 };
+
+exports.getLocationsByAdminId = async (adminId) => {
+  return prisma.locations.findMany({
+    where: { 
+      location_admins: {
+        some: {
+          user_id: Number(adminId)
+        }
+      }
+    }
+  });
+};
+
+exports.getTotalLocationViews = async (locationId) => {
+  const locId = Number(locationId);
+
+  const [location, eventsAgg, dealsAgg] = await Promise.all([
+    prisma.locations.findUnique({
+      where: { id: locId },
+      select: { views: true }
+    }),
+    prisma.events.aggregate({
+      where: { location_id: locId },
+      _sum: { views: true }
+    }),
+    prisma.deals.aggregate({
+      where: { location_id: locId },
+      _sum: { views: true }
+    })
+  ]);
+
+  if (!location) {
+    throw new Error("Location not found");
+  }
+
+  const baseViews = location.views || 0;
+  const eventViews = eventsAgg._sum.views || 0;
+  const dealViews = dealsAgg._sum.views || 0;
+
+  return {
+    locationId: locId,
+    breakdown: {
+      locationViews: baseViews,
+      eventViews: eventViews,
+      dealViews: dealViews
+    },
+    totalViews: baseViews + eventViews + dealViews
+  };
+};
