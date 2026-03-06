@@ -69,6 +69,7 @@ export default {
     extra: {
       router: {},
       BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3000',
+      SMUGMUG_API_KEY: process.env.SMUGMUG_API_KEY,
       eas: {
         projectId: "3087f40f-3c08-44de-8f1d-b4feaa8bfb6d"
       }

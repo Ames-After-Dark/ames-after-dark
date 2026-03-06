@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { getLatestWeekendAlbums as fetchSmugmugAlbums, Photo, Album } from "@/services/photosService";
 
 const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || "http://localhost:3000";
 
@@ -6,19 +7,8 @@ if (!BACKEND_URL) {
   console.warn("Missing BACKEND_URL in app config — gallery will not load");
 }
 
-export type Photo = {
-  id: string;
-  image: { uri: string };
-};
-
-export type Album = {
-  id: string;
-  name: string;
-  barName: string;
-  date: string;
-  coverUrl: string | null;
-  albumUri: string;
-};
+// Photo and Album types are imported from photosService; re-export for consumers
+export { Photo, Album };
 
 /**
  * Fetches the latest weekend albums from the backend.
@@ -38,11 +28,17 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
     }
 
     const albums: Album[] = await res.json();
-    return albums;
+    if (albums && albums.length > 0) {
+      return albums;
+    }
+    // fall through to SmugMug if empty
   } catch (err) {
-    console.warn("getLatestWeekendAlbums failed:", err);
-    return [];
+    console.warn("getLatestWeekendAlbums backend request failed:", err);
   }
+
+  // FALLBACK: delegate to existing photosService SmugMug logic
+  console.log("Falling back to SmugMug for albums");
+  return await fetchSmugmugAlbums();
 }
 
 /**
