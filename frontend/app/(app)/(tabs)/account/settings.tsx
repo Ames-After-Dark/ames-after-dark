@@ -13,7 +13,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export default function AccountSettingsScreen(): JSX.Element {
-  const { signOut, user } = useAuth()
+  const { signOut, user, username } = useAuth()
 
   const handleSignOut = () => {
     console.log('Signing out.');
@@ -41,8 +41,8 @@ export default function AccountSettingsScreen(): JSX.Element {
           style={styles.profileImage}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>user.{user?.username || 'default'}</Text>
-          <Text style={styles.profileEmail}>your@email.com</Text>
+          <Text style={styles.profileName}>@{username || 'username'}</Text>
+          <Text style={styles.profileEmail}>{user?.email || 'your@email.com'}</Text>
         </View>
       </View>
 
@@ -51,8 +51,6 @@ export default function AccountSettingsScreen(): JSX.Element {
         <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} />
         <SettingsItem icon="edit" text="Edit Bio" onPress={() => router.push('/account/edit-bio')} />
         <SettingsItem icon="camera" text="Change Profile Picture" onPress={() => router.push('/account/change-profile-picture')} />
-        <SettingsItem icon="envelope" text="Change Email" onPress={() => router.push('/account/change-email')} />
-        <SettingsItem icon="lock" text="Change Password" onPress={() => router.push('/account/change-password')} />
       </View>
 
       <View style={styles.sectionContainer}>
