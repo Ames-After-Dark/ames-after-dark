@@ -17,6 +17,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '@/hooks/use-auth';
 
 import { Friend } from '@/types/types';
 import {
@@ -35,6 +36,7 @@ import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
+    const { userStatus } = useAuth();
     const [user, setUser] = useState<any | null>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
@@ -59,9 +61,6 @@ export default function FriendProfileScreen() {
     const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
     const [friendActionLoading, setFriendActionLoading] = useState(false);
-
-    // TODO - update hardcoded auth ID
-    const CURRENT_USER_ID = 1;
 
     const [toastMessage, setToastMessage] = useState('');
     const [toastIcon, setToastIcon] = useState('check'); // Default icon name
@@ -109,12 +108,17 @@ export default function FriendProfileScreen() {
                 return;
             }
 
-            if (friendId === CURRENT_USER_ID) {
+            if (!userStatus?.userId) {
+                Alert.alert("Error", "You must be logged in to add friends.");
+                return;
+            }
+
+            if (friendId === userStatus.userId) {
                 Alert.alert("Error", "You can't add yourself as a friend.");
                 return;
             }
 
-            await sendFriendRequest(CURRENT_USER_ID, friendId);
+            await sendFriendRequest(userStatus.userId, friendId);
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -142,6 +146,11 @@ export default function FriendProfileScreen() {
             return;
         }
 
+        if (!userStatus?.userId) {
+            Alert.alert("Error", "You must be logged in.");
+            return;
+        }
+
         Alert.alert(
             "Remove friend",
             `Remove ${user?.name || 'this user'} from your friends list?`,
@@ -153,7 +162,7 @@ export default function FriendProfileScreen() {
                     onPress: async () => {
                         try {
                             setFriendActionLoading(true);
-                            await removeFriend(CURRENT_USER_ID, friendId);
+                            await removeFriend(userStatus.userId!, friendId);
                             setIsFriend(false);
                             triggerToast("Friend removed", "user-times");
                         } catch (err) {
@@ -175,6 +184,11 @@ export default function FriendProfileScreen() {
             return;
         }
 
+        if (!userStatus?.userId) {
+            Alert.alert("Error", "You must be logged in.");
+            return;
+        }
+
         Alert.alert(
             "Block user",
             `Block ${user?.name || 'this user'}?`,
@@ -186,7 +200,7 @@ export default function FriendProfileScreen() {
                     onPress: async () => {
                         try {
                             setFriendActionLoading(true);
-                            await blockFriend(CURRENT_USER_ID, friendId);
+                            await blockFriend(userStatus.userId!, friendId);
                             setIsFriend(false);
                             setIsBlocked(true);
                             setRequestSent(false);
@@ -210,6 +224,11 @@ export default function FriendProfileScreen() {
             return;
         }
 
+        if (!userStatus?.userId) {
+            Alert.alert("Error", "You must be logged in.");
+            return;
+        }
+
         Alert.alert(
             "Unblock user",
             `Unblock ${user?.name || 'this user'}?`,
@@ -220,7 +239,7 @@ export default function FriendProfileScreen() {
                     onPress: async () => {
                         try {
                             setFriendActionLoading(true);
-                            await removeFriend(CURRENT_USER_ID, friendId);
+                            await removeFriend(userStatus.userId!, friendId);
                             setIsBlocked(false);
                             setRequestSent(false);
                             triggerToast("User unblocked", "unlock");
@@ -237,18 +256,23 @@ export default function FriendProfileScreen() {
     };
 
     const handlePendingDecision = async (friendId: number, action: 'accept' | 'decline' | 'block') => {
+        if (!userStatus?.userId) {
+            Alert.alert("Error", "You must be logged in.");
+            return;
+        }
+
         try {
             setFriendActionLoading(true);
 
             if (action === 'accept') {
-                await acceptFriendRequest(CURRENT_USER_ID, friendId);
+                await acceptFriendRequest(userStatus.userId, friendId);
                 setIsFriend(true);
                 triggerToast('Request accepted', 'check');
             } else if (action === 'decline') {
-                await declineFriendRequest(CURRENT_USER_ID, friendId);
+                await declineFriendRequest(userStatus.userId, friendId);
                 triggerToast('Request declined', 'times');
             } else {
-                await blockFriend(CURRENT_USER_ID, friendId);
+                await blockFriend(userStatus.userId, friendId);
                 setIsBlocked(true);
                 triggerToast('User blocked', 'ban');
             }
@@ -264,11 +288,11 @@ export default function FriendProfileScreen() {
     };
 
     useEffect(() => {
-        if (id) {
+        if (id && userStatus?.userId) {
             const userId = Number(id);
-            
+
             // Redirect to account page if viewing own profile
-            if (userId === CURRENT_USER_ID) {
+            if (userId === userStatus.userId) {
                 router.push('./account');
                 return;
             }
@@ -277,7 +301,7 @@ export default function FriendProfileScreen() {
                 setLoading(true);
                 try {
                     // Check if already friends locally first
-                    const myFriends = await getUserFriends(CURRENT_USER_ID);
+                    const myFriends = await getUserFriends(userStatus.userId!);
                     const isAlreadyFriend = myFriends.some(f => f.id.toString() === id);
                     setIsFriend(isAlreadyFriend);
 
@@ -285,14 +309,14 @@ export default function FriendProfileScreen() {
                     const [userData, friendsData, mutualData] = await Promise.all([
                         getUserById(id),
                         getUserFriends(id),
-                        getMutualFriends(CURRENT_USER_ID, id)
+                        getMutualFriends(userStatus.userId!, id)
                     ]);
 
                     const outgoingRelation = userData?.friendships_friendships_user_id_1Tousers?.find(
-                        (relation: any) => relation.user_id_2 === CURRENT_USER_ID
+                        (relation: any) => relation.user_id_2 === userStatus.userId
                     );
                     const incomingRelation = userData?.friendships_friendships_user_id_2Tousers?.find(
-                        (relation: any) => relation.user_id_1 === CURRENT_USER_ID
+                        (relation: any) => relation.user_id_1 === userStatus.userId
                     );
                     const relation = outgoingRelation || incomingRelation;
                     const isOutgoingPending = outgoingRelation?.friendship_status_id === 1;
@@ -301,6 +325,13 @@ export default function FriendProfileScreen() {
                     setIsBlocked(relation?.friendship_status_id === 4);
                     setRequestSent(Boolean(isOutgoingPending));
                     setHasIncomingRequest(Boolean(isIncomingPending));
+
+                    console.log('User data fetched:', {
+                        id: userData?.id,
+                        username: userData?.username,
+                        bio: userData?.bio,
+                        hasBio: !!userData?.bio
+                    });
 
                     setUser(userData);
                     setFriends(friendsData || []);
@@ -313,9 +344,10 @@ export default function FriendProfileScreen() {
             };
             fetchUserData();
         }
-    }, [id]);
+    }, [id, userStatus?.userId]);
 
-    if (loading) return (
+    // Show loading if userStatus hasn't loaded yet
+    if (loading || !userStatus?.userId) return (
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
             <ActivityIndicator size="large" color={Theme.dark.secondary || 'white'} />
         </View>

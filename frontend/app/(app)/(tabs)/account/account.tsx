@@ -25,21 +25,20 @@ import {
     acceptFriendRequest,
     declineFriendRequest,
     blockFriend,
-    PendingFriendRequest
+    PendingFriendRequest,
+    getUserProfileByAuth
 } from '@/services/userService';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import ErrorState from '@/components/ui/error-state';
 import { Theme } from '@/constants/theme';
-
-// TODO: Replace with actual user ID from auth/context
-const CURRENT_USER_ID = 1;
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AccountScreen() {
-
+    const { username, userStatus, getAccessToken } = useAuth()
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [user, setUser] = useState<any | null>(null);
     const [userLoading, setUserLoading] = useState(true);
-    const { friends, loading, error, refetch } = useFriends(CURRENT_USER_ID);
+    const { friends, loading, error, refetch } = useFriends(userStatus?.userId || 0);
     const [pendingRequests, setPendingRequests] = useState<PendingFriendRequest[]>([]);
     const [pendingLoading, setPendingLoading] = useState(false);
     const [userError, setUserError] = useState<Error | null>(null);
@@ -53,8 +52,22 @@ export default function AccountScreen() {
     useEffect(() => {
         const fetchUser = async () => {
             setUserError(null);
+            if (!userStatus?.userId) return;
             try {
-                const userData = await getUserById(CURRENT_USER_ID);
+                const accessToken = await getAccessToken();
+                if (!accessToken) {
+                    console.error('No access token available');
+                    return;
+                }
+
+                // Use getUserProfileByAuth to get the current user's profile with bio
+                const userData = await getUserProfileByAuth(accessToken);
+                console.log('Fetched current user profile:', {
+                    id: userData.id,
+                    username: userData.username,
+                    bio: userData.bio,
+                    hasBio: !!userData.bio
+                });
                 setUser(userData);
             } catch (err) {
                 setUserError(err instanceof Error ? err : new Error('Failed to fetch user'));
@@ -64,13 +77,15 @@ export default function AccountScreen() {
             }
         };
         fetchUser();
-    }, []);
+    }, [userStatus?.userId]);
 
     const fetchPendingRequests = React.useCallback(async () => {
+        if (!userStatus?.userId) return;
+
         setPendingLoading(true);
         setPendingError(null);
         try {
-            const data = await getPendingFriendRequests(CURRENT_USER_ID);
+            const data = await getPendingFriendRequests(userStatus.userId);
             setPendingRequests(data || []);
         } catch (err) {
             setPendingError(err instanceof Error ? err : new Error('Failed to fetch pending requests'));
@@ -78,7 +93,7 @@ export default function AccountScreen() {
         } finally {
             setPendingLoading(false);
         }
-    }, []);
+    }, [userStatus?.userId]);
 
     useEffect(() => {
         fetchPendingRequests();
@@ -96,11 +111,16 @@ export default function AccountScreen() {
         const right = request.users_friendships_user_id_2Tousers;
 
         if (!left && !right) return null;
-        if (request.user_id_1 === CURRENT_USER_ID) return right ?? null;
+        if (request.user_id_1 === userStatus?.userId) return right ?? null;
         return left ?? null;
     };
 
     const handleRequestAction = async (request: PendingFriendRequest, action: 'accept' | 'decline' | 'block') => {
+        if (!userStatus?.userId) {
+            console.error('User not authenticated');
+            return;
+        }
+
         const otherUser = getOtherUserFromRequest(request);
         const friendId = Number(otherUser?.id);
 
@@ -112,11 +132,11 @@ export default function AccountScreen() {
 
         try {
             if (action === 'accept') {
-                await acceptFriendRequest(CURRENT_USER_ID, friendId);
+                await acceptFriendRequest(userStatus.userId, friendId);
             } else if (action === 'decline') {
-                await declineFriendRequest(CURRENT_USER_ID, friendId);
+                await declineFriendRequest(userStatus.userId, friendId);
             } else {
-                await blockFriend(CURRENT_USER_ID, friendId);
+                await blockFriend(userStatus.userId, friendId);
             }
 
             setPendingRequests(prev => prev.filter(r => {
@@ -147,6 +167,14 @@ export default function AccountScreen() {
             </View>
         );
     }
+    // Show loading if user data hasn't loaded yet
+    if (userLoading || !userStatus?.userId) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+                <ActivityIndicator size="large" color={Theme.dark.secondary} />
+            </View>
+        );
+    }
 
     return (
         <>
@@ -162,8 +190,8 @@ export default function AccountScreen() {
                         style={styles.profileImage}
                     />
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.profileName}>{user?.name || 'Loading!'}</Text>
-                        <Text style={styles.profileUserName}>{user?.username || ''}</Text>
+                        <Text style={styles.profileName}>{user?.name || username || 'Loading!'}</Text>
+                        <Text style={styles.profileUserName}>@{username || 'Loading'}</Text>
                     </View>
                     <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
                         <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
