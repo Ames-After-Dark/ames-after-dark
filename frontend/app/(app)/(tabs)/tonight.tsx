@@ -27,7 +27,7 @@ import { IMG } from "@/assets/assets";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
-import { getNow, isActive } from "@/utils/schedule";
+import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 
 import { Theme } from "@/constants/theme";
 // import type { Friend } from "@/types/types";
