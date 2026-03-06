@@ -254,7 +254,7 @@ export default function MapScreen() {
                     onRegionChangeComplete={handleRegionChange}
                 >
                     {locations.map((location) => {
-                        // 2. Calculate zoom specifically for each render pass
+                        // This is the gatekeeper logic
                         const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
 
                         return (
@@ -264,16 +264,17 @@ export default function MapScreen() {
                                     latitude: location.latitude,
                                     longitude: location.longitude
                                 }}
-                                // 3. Force the marker to redraw its internal view
+                                // Force the marker to update its view when the zoom state flips
                                 tracksViewChanges={true}
+                                // Put selected marker on top
+                                zIndex={selectedLocation?.id === location.id ? 99 : 1}
                                 onPress={(e) => {
-                                    // Stop the map from receiving this touch
                                     e.stopPropagation();
                                     setSelectedLocation(location);
                                 }}
                             >
-                                {/* 4. pointerEvents="none" here ensures the VIEW doesn't steal the MARKER'S click */}
                                 <View style={styles.markerContainer} pointerEvents="none">
+                                    {/* Now this will strictly only show when the map is zoomed in deep */}
                                     {isZoomedIn && (
                                         <View style={styles.nameBubble}>
                                             <Text style={styles.markerText}>{location.name}</Text>
