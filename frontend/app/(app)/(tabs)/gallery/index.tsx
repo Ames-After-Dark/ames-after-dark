@@ -7,8 +7,8 @@ import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekendAlbums } from "@/services/galleryService";
+import GalleryFallback from "./Galleryfallback";
 
-// Parse a token like "2-7" or "1/31" into a Date (month-day); Similar to parseFolderDate in photosService
 function parseDateToken(token: string): Date | null {
   if (!token) return null;
   const parts = token.split(/[-\\/]/).map((p) => p.trim());
@@ -21,7 +21,6 @@ function parseDateToken(token: string): Date | null {
   const now = new Date();
   let year = now.getFullYear();
   let candidate = new Date(year, month, day);
-  // If candidate is in the future, it likely refers to previous year
   if (candidate > now) candidate = new Date(year - 1, month, day);
   return candidate;
 }
@@ -63,7 +62,6 @@ export default function GalleryScreen() {
     return data;
   }, [albums, search]);
 
-  // group by date token and attach a parsed Date for sorting/display (weekday)
   const grouped = useMemo(() => {
     const byDate: Record<string, any[]> = {};
     const dateObjMap: Record<string, Date | null> = {};
@@ -84,8 +82,7 @@ export default function GalleryScreen() {
       dateObj: dateObjMap[date] || new Date(0),
     }));
 
-    entries.sort((a, b) => (b.dateObj.getTime() - a.dateObj.getTime()));
-
+    entries.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
     return entries;
   }, [filteredAlbums]);
 
@@ -96,17 +93,18 @@ export default function GalleryScreen() {
       </View>
     );
 
-  if (hasError) {
+  if (hasError)
     return (
       <View style={styles.container}>
         <ErrorState title="Unable to load gallery" subtitle="Please try again later." />
       </View>
     );
-  }
+
+  if (albums.length === 0)
+    return <GalleryFallback />;
 
   return (
     <View style={styles.container}>
-      {/* Search & Filters */}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} style={styles.searchIcon} />
@@ -119,40 +117,42 @@ export default function GalleryScreen() {
           />
         </View>
       </View>
-      {/* Album list */}
       <FlatList
         data={grouped}
         keyExtractor={(item) => item.date}
         renderItem={({ item }) => {
           const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };
-          const weekday = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString(undefined, { weekday: 'long' }) : '';
+          const weekday = dateObj && !isNaN(dateObj.getTime())
+            ? dateObj.toLocaleDateString(undefined, { weekday: "long" })
+            : "";
           const header = weekday ? `${weekday} ${date}` : date;
           return (
             <View style={{ marginBottom: 24 }}>
               <Text style={styles.dateHeader}>{header}</Text>
               <View style={styles.albumGrid}>
-              {bars.map((album) => (
-                <TouchableOpacity
-                  key={album.id}
-                  style={styles.albumCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(app)/(tabs)/gallery/[barId]",
-                      params: { barId: album.id, barName: album.barName, albumUri: album.albumUri, },
-                    })
-                  }
-                >
-                  {album.coverUrl ? (
-                    <Image source={{ uri: album.coverUrl }} style={styles.albumImage} resizeMode="cover" />
-                  ) : (
-                    <View style={styles.placeholderCover} />
-                  )}
-                  <Text style={styles.albumName}>{album.name}</Text>
-                </TouchableOpacity>
-              ))}
+                {bars.map((album) => (
+                  <TouchableOpacity
+                    key={album.id}
+                    style={styles.albumCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(app)/(tabs)/gallery/[barId]",
+                        params: { barId: album.id, barName: album.barName, albumUri: album.albumUri },
+                      })
+                    }
+                  >
+                    {album.coverUrl ? (
+                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.placeholderCover} />
+                    )}
+                    <Text style={styles.albumName}>{album.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-        )}}
+          );
+        }}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -163,13 +163,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background,
-    paddingHorizontal: 12
+    paddingHorizontal: 12,
   },
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: Theme.dark.background 
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Theme.dark.background,
   },
   searchFilterContainer: {
     backgroundColor: Theme.dark.background,
@@ -184,37 +184,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 14,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
+  searchIcon: { marginRight: 8 },
   searchInput: {
     flex: 1,
     color: Theme.search.input,
-    fontSize: 14
-  },
-  filters: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center"
-  },
-  filterButton: {
-    backgroundColor: Theme.container.background, // "#1A1A1A",
-    borderColor: Theme.dark.primary, // "#33CCFF",
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    marginHorizontal: 6
-  },
-  activeFilter: {
-    backgroundColor: Theme.dark.primary
-  },
-  filterText: {
-    color: Theme.container.activeText, // "white",
-    fontSize: 13
+    fontSize: 14,
   },
   dateHeader: {
-    color: Theme.container.titleText, // Theme.dark.primary,
+    color: Theme.container.titleText,
     fontSize: 16,
     fontWeight: "600",
     marginVertical: 8,
@@ -228,13 +205,13 @@ const styles = StyleSheet.create({
   albumCard: {
     width: "48%",
     margin: "1%",
-    backgroundColor: Theme.container.background, // "#1A1A1A",
+    backgroundColor: Theme.container.background,
     borderRadius: 12,
     overflow: "hidden",
   },
   albumImage: { width: "100%", height: 140 },
   albumName: {
-    color: Theme.container.titleText, // "white",
+    color: Theme.container.titleText,
     fontSize: 14,
     paddingVertical: 8,
     paddingHorizontal: 6,
@@ -242,6 +219,6 @@ const styles = StyleSheet.create({
   placeholderCover: {
     width: "100%",
     height: 140,
-    backgroundColor: Theme.dark.black, // "#333",
+    backgroundColor: Theme.dark.black,
   },
 });
