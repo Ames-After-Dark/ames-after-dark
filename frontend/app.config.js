@@ -22,7 +22,7 @@ export default {
     },
 
     ios: { supportsTablet: true,
-           bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : com.amesafterdark.app,
+           bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
      	   buildNumber: "3", //increment this from last successful upload
       	   infoPlist: {
              ITSAppUsesNonExemptEncryption: false
