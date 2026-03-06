@@ -24,22 +24,8 @@ export function useBars(filters?: BarsFilters) {
       setLoading(true);
       setError(null);
       try {
-<<<<<<< HEAD
-        if (USE_MOCK) {
-          if (!cancelled) setBars(BARS_BASE as unknown as Bar[]);
-        } else {
-          const data = await getBars();
-          if (!cancelled) setBars(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setBars([]);
-          setError(err instanceof Error ? err : new Error("Failed to load bars"));
-        }
-=======
         const data = await getBars();
         if (!cancelled) setBars(data);
->>>>>>> e8a5b50516a54f09abf8a029503261e61656ed3b
       } finally {
         if (!cancelled) setLoading(false);
       }

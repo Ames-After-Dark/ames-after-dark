@@ -25,13 +25,9 @@ import { useFriends } from "@/hooks/useFriends";
 import { useBars } from "@/hooks/useBars";
 import { IMG } from "@/assets/assets";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
-<<<<<<< HEAD
-import { getNow, isActive, isBarOpen } from "@/config/time";
-import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
-=======
 import { getNow, isActive, isBarOpen } from "@/utils/schedule";
->>>>>>> e8a5b50516a54f09abf8a029503261e61656ed3b
 
 import { Theme } from "@/constants/theme";
 import type { Friend } from "@/types/types";
@@ -256,19 +252,16 @@ export default function Tonight() {
 
       {/* Error state */}
       {hasError && !isLoading && (
-<<<<<<< HEAD
         <ErrorState title="Unable to load tonight's events" />
-=======
-        <View style={styles.errorContainer}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={48}
-            color={Theme.dark.primary}
-          />
-          <Text style={styles.errorText}>Unable to load tonight&apos;s events</Text>
-          <Text style={styles.errorSubtext}>Please try again later</Text>
-        </View>
->>>>>>> e8a5b50516a54f09abf8a029503261e61656ed3b
+        // <View style={styles.errorContainer}>
+        //   <Ionicons
+        //     name="alert-circle-outline"
+        //     size={48}
+        //     color={Theme.dark.primary}
+        //   />
+        //   <Text style={styles.errorText}>Unable to load tonight&apos;s events</Text>
+        //   <Text style={styles.errorSubtext}>Please try again later</Text>
+        // </View>
       )}
 
       {/* Main content */}
