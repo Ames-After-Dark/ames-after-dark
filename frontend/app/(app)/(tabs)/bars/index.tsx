@@ -6,7 +6,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useBars } from "@/hooks/useBars";
-import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import type { Bar } from "@/types/bars";
 import { IMG } from "../../../../assets/assets"; 

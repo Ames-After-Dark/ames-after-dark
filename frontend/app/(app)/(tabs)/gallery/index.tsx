@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Image,
   TextInput, ActivityIndicator, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekendAlbums } from "@/services/galleryService";

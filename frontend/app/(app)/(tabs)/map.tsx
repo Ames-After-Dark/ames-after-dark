@@ -6,7 +6,7 @@ import { type Location } from '@/services/locationService';
 import { useRouter } from 'expo-router';
 
 import { Theme } from '@/constants/theme';
-import { shouldForceErrorPage } from '@/config/dev-error-pages';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import ErrorState from '@/components/ui/error-state';
 
 const ZOOM_THRESHOLD = 0.01;

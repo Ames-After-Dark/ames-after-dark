@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useBarDetail } from "@/hooks/useBarDetail";
-import { shouldForceErrorPage } from "@/config/dev-error-pages";
+import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/ui/error-state";
 

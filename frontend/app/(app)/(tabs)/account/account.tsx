@@ -27,7 +27,7 @@ import {
     blockFriend,
     PendingFriendRequest
 } from '@/services/userService';
-import { shouldForceErrorPage } from '@/config/dev-error-pages';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import ErrorState from '@/components/ui/error-state';
 import { Theme } from '@/constants/theme';
 

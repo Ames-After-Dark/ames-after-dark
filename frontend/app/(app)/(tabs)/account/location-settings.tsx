@@ -14,7 +14,7 @@ import { Stack } from "expo-router";
 import { FontAwesome } from '@expo/vector-icons';
 
 import { Friend } from '@/types/types';
-import { shouldForceErrorPage } from '@/config/dev-error-pages';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { getUserFriends } from '@/services/userService';
 import ErrorState from '@/components/ui/error-state';
 
