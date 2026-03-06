@@ -1,4 +1,5 @@
 import 'dotenv/config';
+const IS_DEV = process.env.APP_VARIANT === 'development';
 
 export default {
   expo: {
@@ -21,7 +22,7 @@ export default {
     },
 
     ios: { supportsTablet: true,
-           bundleIdentifier: "com.amesafterdark.app",
+           bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
      	   buildNumber: "3", //increment this from last successful upload
       	   infoPlist: {
              ITSAppUsesNonExemptEncryption: false
