@@ -3,9 +3,18 @@ import { apiFetch } from "./apiClient";
 export interface Event {
   id: string;
   locationId: string;
+  location_id?: string | number;
   name: string;
   description?: string;
   rule?: string; // e.g., "FRI 21:00-23:59"
+  start_time_utc?: string;
+  end_time_utc?: string;
+  events?: {
+    id?: string | number;
+    location_id?: string | number;
+    name?: string;
+    description?: string;
+  };
   // ... other event fields as needed
 }
 
@@ -14,7 +23,7 @@ export async function getEvents(): Promise<Event[]> {
 }
 
 export async function getActiveEvents(): Promise<Event[]> {
-  return apiFetch("/events");
+  return apiFetch("/events/active");
 }
 
 export async function getEventsByLocationId(locationId: string): Promise<Event[]> {
