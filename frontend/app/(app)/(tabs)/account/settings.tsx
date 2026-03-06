@@ -13,7 +13,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export default function AccountSettingsScreen(): JSX.Element {
-  const { signOut, user } = useAuth()
+  const { signOut, user, username } = useAuth()
 
   const handleSignOut = () => {
     console.log('Signing out.');
@@ -41,8 +41,8 @@ export default function AccountSettingsScreen(): JSX.Element {
           style={styles.profileImage}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>user.{user?.username || 'default'}</Text>
-          <Text style={styles.profileEmail}>your@email.com</Text>
+          <Text style={styles.profileName}>@{username || 'username'}</Text>
+          <Text style={styles.profileEmail}>{user?.email || 'your@email.com'}</Text>
         </View>
       </View>
 
