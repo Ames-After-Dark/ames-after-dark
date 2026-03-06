@@ -84,6 +84,11 @@ router.get('/albums', async (req, res) => {
     const photosByBar = {};
     const weekends = new Set();
 
+    console.log(`r2Routes: got ${allObjects.length} objects`);
+    if (allObjects.length > 0) {
+      console.log(`Sample object:`, allObjects[0]);
+    }
+
     for (const obj of allObjects) {
       const key = obj?.key || '';
       const parts = key.split('/');
@@ -95,8 +100,7 @@ router.get('/albums', async (req, res) => {
         continue;
       }
 
-      const uploadedDate = obj?.uploaded ? new Date(obj.uploaded) : null;
-      if (!uploadedDate) continue;
+      const uploadedDate = obj?.uploaded ? new Date(obj.uploaded) : new Date();
 
       const weekend = getWeekendThursday(uploadedDate);
       weekends.add(weekend.getTime());
