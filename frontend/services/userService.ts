@@ -275,3 +275,53 @@ export async function updateUsernameByAuth(accessToken: string, username: string
     throw error;
   }
 }
+
+/**
+ * Get user profile for the authenticated user
+ * Requires Auth0 authentication
+ * Returns full user profile including bio, username, email, etc.
+ */
+export async function getUserProfileByAuth(accessToken: string): Promise<{
+  id: number;
+  username: string | null;
+  email: string | null;
+  name: string | null;
+  bio: string | null;
+  phoneNumber: string | null;
+  birthday: string | null;
+  createdAt: string;
+}> {
+  try {
+    const response = await apiFetch(`/users/auth/profile`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to get user profile:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update bio for the authenticated user
+ * Requires Auth0 authentication
+ */
+export async function updateBioByAuth(accessToken: string, bio: string): Promise<{ message: string; bio: string | null }> {
+  try {
+    const response = await apiFetch(`/users/auth/bio`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ bio })
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to update bio:', error);
+    throw error;
+  }
+}

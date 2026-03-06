@@ -10,6 +10,8 @@ router.post('/auth/register', checkJwt, userController.completeUserRegistration)
 router.get('/auth/check-username', userController.checkUsernameAvailability); // Check username availability (public)
 router.get('/auth/username', checkJwt, userController.getUsernameByAuth); // Get username by auth (requires auth)
 router.put('/auth/username', checkJwt, userController.updateUsernameByAuth); // Update username by auth (requires auth)
+router.get('/auth/profile', checkJwt, userController.getUserProfileByAuth); // Get user profile by auth (requires auth)
+router.put('/auth/bio', checkJwt, userController.updateBioByAuth); // Update bio by auth (requires auth)
 
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all

@@ -381,3 +381,102 @@ exports.updateUsernameByAuth = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/users/auth/profile
+ * Get profile information for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Returns user profile including bio, username, etc.
+ */
+exports.getUserProfileByAuth = async (req, res) => {
+  try {
+    // Get Auth0 user ID from the JWT token
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Get user by Auth0 ID
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    return res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      name: user.name,
+      bio: user.bio,
+      phoneNumber: user.phone_number,
+      birthday: user.birthday,
+      createdAt: user.created_at
+    });
+
+  } catch (err) {
+    console.error('Error getting user profile:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * PUT /api/users/auth/bio
+ * Update bio for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { bio: string }
+ */
+exports.updateBioByAuth = async (req, res) => {
+  try {
+    // Get Auth0 user ID from the JWT token
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { bio } = req.body;
+
+    // Bio can be empty string or null (to clear it)
+    if (bio === undefined) {
+      return res.status(400).json({
+        message: 'Bio field is required'
+      });
+    }
+
+    // Validate bio length (max 150 characters)
+    if (bio && bio.length > 150) {
+      return res.status(400).json({
+        message: 'Bio must be 150 characters or less'
+      });
+    }
+
+    // Get user by Auth0 ID
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    // Update bio
+    const updatedUser = await userService.updateUserLimited(user.id, { bio: bio || null });
+
+    return res.json({
+      message: 'Bio updated successfully',
+      bio: updatedUser.bio
+    });
+
+  } catch (err) {
+    console.error('Error updating bio:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
