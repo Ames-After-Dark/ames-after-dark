@@ -254,3 +254,24 @@ export async function getUsernameByAuth(accessToken: string): Promise<{ hasUsern
   });
   return response;
 }
+
+/**
+ * Update username for the authenticated user
+ * Requires Auth0 authentication
+ */
+export async function updateUsernameByAuth(accessToken: string, username: string): Promise<{ message: string; username: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/username`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username })
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to update username:', error);
+    throw error;
+  }
+}

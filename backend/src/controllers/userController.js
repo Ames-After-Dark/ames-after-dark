@@ -309,3 +309,75 @@ exports.getUsernameByAuth = async (req, res) => {
     });
   }
 };
+
+/**
+ * PUT /api/users/auth/username
+ * Update username for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { username: string }
+ */
+exports.updateUsernameByAuth = async (req, res) => {
+  try {
+    // Get Auth0 user ID from the JWT token
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({
+        message: 'Username is required'
+      });
+    }
+
+    // Validate username format
+    const validation = validationService.validateUsername(username);
+    if (!validation.valid) {
+      return res.status(400).json({
+        message: validation.error
+      });
+    }
+
+    // Check if username is already taken
+    const usernameAvailable = await userService.isUsernameAvailable(username);
+    if (!usernameAvailable) {
+      return res.status(409).json({
+        message: 'Username already taken'
+      });
+    }
+
+    // Get user by Auth0 ID
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    // Update username
+    const updatedUser = await userService.updateUserLimited(user.id, { username });
+
+    return res.json({
+      message: 'Username updated successfully',
+      username: updatedUser.username
+    });
+
+  } catch (err) {
+    console.error('Error updating username:', err);
+
+    // Handle unique constraint violations
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        message: 'Username already taken'
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};

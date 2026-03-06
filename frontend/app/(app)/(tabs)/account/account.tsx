@@ -28,12 +28,12 @@ import {
     PendingFriendRequest
 } from '@/services/userService';
 import { Theme } from '@/constants/theme';
-
+import { useAuth } from "@/hooks/use-auth"
 // TODO: Replace with actual user ID from auth/context
 const CURRENT_USER_ID = 1;
 
 export default function AccountScreen() {
-
+    const { username } = useAuth()
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [user, setUser] = useState<any | null>(null);
     const [userLoading, setUserLoading] = useState(true);
@@ -145,8 +145,8 @@ export default function AccountScreen() {
                         style={styles.profileImage}
                     />
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.profileName}>{user?.name || 'Loading!'}</Text>
-                        <Text style={styles.profileUserName}>{user?.username || ''}</Text>
+                        <Text style={styles.profileName}>{username || 'Loading!'}</Text>
+                        <Text style={styles.profileUserName}>{username || 'Loading'}</Text>
                     </View>
                     <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/account/settings')}>
                         <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
