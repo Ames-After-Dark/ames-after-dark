@@ -3,10 +3,11 @@ import { StyleSheet, View, Text, ActivityIndicator, Image, TouchableOpacity, Mod
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { type Location } from '@/services/locationService';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { Theme } from '@/constants/theme';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+import ErrorState from '@/components/ui/error-state';
 
 const ZOOM_THRESHOLD = 0.01;
 
@@ -48,11 +49,12 @@ export default function MapScreen() {
             );
         }
 
-        if (error) {
+        if (error || shouldForceErrorPage('map')) {
             return (
-                <View style={styles.centered}>
-                    <Text style={styles.errorText}>Error: {error}</Text>
-                </View>
+                <ErrorState
+                    title="Unable to load map locations"
+                    subtitle={error || 'Please try again later.'}
+                />
             );
         }
 
@@ -155,10 +157,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         fontSize: 16,
         color: Theme.search.inactiveInput,
-    },
-    errorText: {
-        color: Theme.dark.error,
-        fontSize: 16,
     },
     markerText: {
         fontWeight: 'bold',

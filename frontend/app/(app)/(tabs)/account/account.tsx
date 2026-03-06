@@ -27,6 +27,8 @@ import {
     blockFriend,
     PendingFriendRequest
 } from '@/services/userService';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+import ErrorState from '@/components/ui/error-state';
 import { Theme } from '@/constants/theme';
 
 // TODO: Replace with actual user ID from auth/context
@@ -40,6 +42,8 @@ export default function AccountScreen() {
     const { friends, loading, error, refetch } = useFriends(CURRENT_USER_ID);
     const [pendingRequests, setPendingRequests] = useState<PendingFriendRequest[]>([]);
     const [pendingLoading, setPendingLoading] = useState(false);
+    const [userError, setUserError] = useState<Error | null>(null);
+    const [pendingError, setPendingError] = useState<Error | null>(null);
     const [actionLoadingFriendId, setActionLoadingFriendId] = useState<number | null>(null);
     const [isModalVisible, setModalVisible] = useState(false);
     const [modalSearchQuery, setModalSearchQuery] = useState('');
@@ -48,10 +52,12 @@ export default function AccountScreen() {
 
     useEffect(() => {
         const fetchUser = async () => {
+            setUserError(null);
             try {
                 const userData = await getUserById(CURRENT_USER_ID);
                 setUser(userData);
             } catch (err) {
+                setUserError(err instanceof Error ? err : new Error('Failed to fetch user'));
                 console.error('Failed to fetch user:', err);
             } finally {
                 setUserLoading(false);
@@ -62,10 +68,12 @@ export default function AccountScreen() {
 
     const fetchPendingRequests = React.useCallback(async () => {
         setPendingLoading(true);
+        setPendingError(null);
         try {
             const data = await getPendingFriendRequests(CURRENT_USER_ID);
             setPendingRequests(data || []);
         } catch (err) {
+            setPendingError(err instanceof Error ? err : new Error('Failed to fetch pending requests'));
             console.error('Failed to fetch pending requests:', err);
         } finally {
             setPendingLoading(false);
@@ -130,6 +138,15 @@ export default function AccountScreen() {
         (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
     const normalizedPendingQuery = pendingSearchQuery.trim().toLowerCase();
+    const hasError = !!error || !!userError || !!pendingError || shouldForceErrorPage('account');
+
+    if (hasError) {
+        return (
+            <View style={styles.container}>
+                <ErrorState title="Unable to load account" subtitle="Please try again later." />
+            </View>
+        );
+    }
 
     return (
         <>

@@ -34,6 +34,13 @@ interface NormalizedActiveDeal {
   subtitle?: string;
 }
 
+interface NormalizedActiveEvent {
+  eventId: string;
+  locationId: string;
+  name: string;
+  description?: string;
+}
+
 interface LocationHourRow {
   weekday_id?: number | string;
   open_time?: string;
@@ -211,6 +218,45 @@ function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
   return normalizedDeal;
 }
 
+function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
+  const rawEvent = event as Event & {
+    id?: string | number;
+    location_id?: string | number;
+    name?: string;
+    description?: string;
+    events?: {
+      id?: string | number;
+      location_id?: string | number;
+      name?: string;
+      description?: string;
+    };
+  };
+
+  const locationId = String(
+    rawEvent.locationId ?? rawEvent.location_id ?? rawEvent.events?.location_id ?? ""
+  );
+  if (!locationId) return null;
+
+  const eventId = String(rawEvent.id ?? rawEvent.events?.id ?? "");
+  const name =
+    rawEvent.name ??
+    rawEvent.events?.name ??
+    rawEvent.description ??
+    rawEvent.events?.description ??
+    "Event";
+  const description = rawEvent.description ?? rawEvent.events?.description;
+
+  const normalizedEvent: NormalizedActiveEvent = {
+    eventId,
+    locationId,
+    name,
+  };
+
+  if (description) normalizedEvent.description = description;
+
+  return normalizedEvent;
+}
+
 export function useTonightData() {
   const { deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { events, loading: eventsLoading, error: eventsError } = useEvents();
@@ -224,6 +270,12 @@ export function useTonightData() {
       .map((deal) => normalizeActiveDeal(deal))
       .filter((deal): deal is NormalizedActiveDeal => Boolean(deal));
   }, [deals]);
+
+  const activeEvents = useMemo(() => {
+    return events
+      .map((event) => normalizeActiveEvent(event))
+      .filter((event): event is NormalizedActiveEvent => Boolean(event));
+  }, [events]);
 
   // Organize deals by locationId for quick lookup
   const dealsByLocation = useMemo(() => {
@@ -245,15 +297,20 @@ export function useTonightData() {
   // Organize events by locationId for quick lookup
   const eventsByLocation = useMemo(() => {
     const map = new Map<string, Event[]>();
-    events.forEach((event) => {
+    activeEvents.forEach((event) => {
       const locationId = String(event.locationId);
       if (!map.has(locationId)) {
         map.set(locationId, []);
       }
-      map.get(locationId)!.push(event);
+      map.get(locationId)!.push({
+        id: event.eventId,
+        locationId: event.locationId,
+        name: event.name,
+        description: event.description,
+      } as Event);
     });
     return map;
-  }, [events]);
+  }, [activeEvents]);
 
   // Combine location data with deals and events
   // Note: 'bars' is already filtered to only open locations via the /locations/open endpoint
