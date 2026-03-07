@@ -39,9 +39,9 @@ export const MapMarkers = ({ locations, currentDelta, zoomThreshold, selectedLoc
                             latitude: location.latitude - 0.001, // Minor offset for the sheet
                             longitude: location.longitude,
                         },
-                        pitch: 45,       
+                        // pitch: 45,       
                         heading: 0,      
-                        altitude: 400,   // "Altitude" in meters (Lower --> Zoomed In)
+                        altitude: 700,   // "Altitude" in meters (Lower --> Zoomed In)
                         zoom: 20,        // standard zoom level (0-20)
                     }, { duration: 600 });
                 }}
