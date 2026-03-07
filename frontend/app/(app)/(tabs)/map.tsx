@@ -176,15 +176,6 @@ export default function MapScreen() {
 
     const renderMapContent = () => {
 
-        // if (isLoading) {
-        //     return (
-        //         <View style={styles.centered}>
-        //             <ActivityIndicator size="large" color={Theme.dark.primary} />
-        //             <Text style={styles.infoText}>Loading Locations!</Text>
-        //         </View>
-        //     );
-        // }
-
         if (isLoading) {
             return <SkeletonPlaceholder />;
         }
@@ -403,7 +394,7 @@ const styles = StyleSheet.create({
     },
     skeletonMap: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#2C2C2C', // Match your dark theme
+        backgroundColor: '#2C2C2C',
     },
     skeletonSheet: {
         position: 'absolute',
