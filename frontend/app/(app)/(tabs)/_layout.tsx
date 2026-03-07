@@ -100,17 +100,17 @@ export default function TabLayout() {
         headerShown: true,
       }}>
       {/* FRIENDS */}
-        <Tabs.Screen
-            name="account"
-            options={{
-                title: "Account",
-                tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-            }}
-        />
+      <Tabs.Screen
+        name="account"
+        options={{
+            title: "Account",
+            tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+        }}
+      />
 
       {/* MAP */}
       <Tabs.Screen
-        name="map"
+        name="map/map"
         options={{
           title: "Map",
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
