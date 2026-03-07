@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { type Location } from '@/services/locationService';
@@ -45,7 +45,7 @@ export default function MapScreen() {
                 }
             },
             onPanResponderRelease: (_, gestureState) => {
-                
+
                 if (gestureState.dy > 100 || gestureState.vy > 0.5) {
                     setSelectedLocation(null);
                 } else {
@@ -97,15 +97,96 @@ export default function MapScreen() {
         setCurrentDelta(region.latitudeDelta);
     };
 
+    const SkeletonPlaceholder = () => {
+        const opacity = useRef(new Animated.Value(0.3)).current;
+
+        useEffect(() => {
+            // Create a shimmering loop
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(opacity, {
+                        toValue: 0.7,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(opacity, {
+                        toValue: 0.3,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        }, []);
+
+        return (
+            <View style={styles.container}>
+                {/* Map Placeholder */}
+                <View style={styles.mapContainer}>
+                    <Animated.View style={[styles.skeletonMap, { opacity }]} />
+                </View>
+
+                {/* Bottom Sheet Placeholder (Simulating the peek) */}
+                <View style={styles.skeletonSheet}>
+                    <View style={styles.dragHandle} />
+                    <View style={styles.sheetHeader}>
+                        <Animated.View style={[styles.skeletonCircle, { opacity }]} />
+                        <View style={{ gap: 8 }}>
+                            <Animated.View style={[styles.skeletonLine, { width: 150, opacity }]} />
+                            <Animated.View style={[styles.skeletonLine, { width: 100, opacity }]} />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        );
+    };
+
+    const memoizedMarkers = useMemo(() => {
+        const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
+
+        return locations.map((location) => (
+            <Marker
+                key={location.id}
+                coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+                tracksViewChanges={false}
+                zIndex={selectedLocation?.id === location.id ? 99 : 1}
+                onPress={(e) => {
+                    e.stopPropagation();
+                    setSelectedLocation(location);
+
+                    // Add this so the map centers on the bar when tapped
+                    mapRef.current?.animateToRegion({
+                        latitude: location.latitude - (currentDelta * 0.1), // Offset so it's not hidden by sheet
+                        longitude: location.longitude,
+                        latitudeDelta: currentDelta,
+                        longitudeDelta: currentDelta,
+                    }, 400);
+                }}
+            >
+                <View style={styles.markerContainer} pointerEvents="none">
+                    {isZoomedIn && (
+                        <View style={styles.nameBubble}>
+                            <Text style={styles.markerText}>{location.name}</Text>
+                        </View>
+                    )}
+                    <Image source={location.logo} style={styles.markerLogo} />
+                </View>
+            </Marker>
+        ));
+    }, [locations, currentDelta < ZOOM_THRESHOLD, selectedLocation?.id, currentDelta]);
+
     const renderMapContent = () => {
 
+        // if (isLoading) {
+        //     return (
+        //         <View style={styles.centered}>
+        //             <ActivityIndicator size="large" color={Theme.dark.primary} />
+        //             <Text style={styles.infoText}>Loading Locations!</Text>
+        //         </View>
+        //     );
+        // }
+
         if (isLoading) {
-            return (
-                <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={Theme.dark.primary} />
-                    <Text style={styles.infoText}>Loading Locations!</Text>
-                </View>
-            );
+            return <SkeletonPlaceholder />;
         }
 
         if (error || shouldForceErrorPage('map')) {
@@ -139,36 +220,7 @@ export default function MapScreen() {
                 onPress={() => setSelectedLocation(null)}
                 onRegionChangeComplete={handleRegionChange}
             >
-                {locations.map((location) => {
-                    const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
-                    return (
-                        <Marker
-                            key={location.id}
-                            coordinate={{
-                                latitude: location.latitude,
-                                longitude: location.longitude
-                            }}
-                            tracksViewChanges={true}
-                            zIndex={selectedLocation?.id === location.id ? 99 : 1}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                setSelectedLocation(location);
-                            }}
-                        >
-                            <View style={styles.markerContainer} pointerEvents="none">
-                                {isZoomedIn && (
-                                    <View style={styles.nameBubble}>
-                                        <Text style={styles.markerText}>{location.name}</Text>
-                                    </View>
-                                )}
-                                <Image
-                                    source={location.logo}
-                                    style={styles.markerLogo}
-                                />
-                            </View>
-                        </Marker>
-                    );
-                })}
+                {memoizedMarkers}
             </MapView>
         );
     };
@@ -348,5 +400,31 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
-    }
+    },
+    skeletonMap: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#2C2C2C', // Match your dark theme
+    },
+    skeletonSheet: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 200,
+        backgroundColor: '#1A1A1A',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+    },
+    skeletonCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#333',
+    },
+    skeletonLine: {
+        height: 15,
+        borderRadius: 4,
+        backgroundColor: '#333',
+    },
 });
