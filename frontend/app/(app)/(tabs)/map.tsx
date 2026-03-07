@@ -5,8 +5,8 @@ import { type Location } from '@/services/locationService';
 import { useRouter } from 'expo-router';
 
 import {
-    StyleSheet, View, Text, ActivityIndicator, Image, Modal,
-    TouchableOpacity, Pressable, Animated, Dimensions, PanResponder
+    StyleSheet, View, Text, ActivityIndicator, Image,
+    TouchableOpacity, Animated, Dimensions, PanResponder
 } from 'react-native';
 
 import { Theme } from '@/constants/theme';
@@ -34,18 +34,22 @@ export default function MapScreen() {
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: () => true,
+
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                return Math.abs(gestureState.dy) > 10;
+            },
+
             onPanResponderMove: (_, gestureState) => {
-                // Only allow dragging downwards (positive dy)
                 if (gestureState.dy > 0) {
                     slideAnim.setValue(gestureState.dy);
                 }
             },
             onPanResponderRelease: (_, gestureState) => {
-                // If dragged down more than 100 pixels, close it
+                
                 if (gestureState.dy > 100 || gestureState.vy > 0.5) {
                     setSelectedLocation(null);
                 } else {
+
                     // Otherwise, snap back to open position
                     Animated.spring(slideAnim, {
                         toValue: 0,
@@ -98,7 +102,7 @@ export default function MapScreen() {
         if (isLoading) {
             return (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" />
+                    <ActivityIndicator size="large" color={Theme.dark.primary} />
                     <Text style={styles.infoText}>Loading Locations!</Text>
                 </View>
             );
@@ -113,76 +117,45 @@ export default function MapScreen() {
             );
         }
 
-        // Locations are already validated in the service layer
         if (locations.length === 0) {
             return (
                 <View style={styles.centered}>
-                    <Text style={styles.infoText}>No locations available to display</Text>
+                    <Text style={styles.infoText}>No locations available</Text>
                 </View>
             );
         }
 
-        const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
-
         return (
             <MapView
+                ref={mapRef}
                 style={styles.map}
                 initialRegion={{
-                    // Centered on Ames, IA
                     latitude: 42.03,
                     longitude: -93.63,
                     latitudeDelta: 0.1,
                     longitudeDelta: 0.05,
                 }}
-                showsPointsOfInterest={
-                    false // This is how to remove the pre-set pins on apple / google maps -- can set to true or false
-                }
-                onPress={() =>
-                    setSelectedLocation(null) // Deselect pin when the map is pressed
-                }
+                showsPointsOfInterest={false}
+                onPress={() => setSelectedLocation(null)}
                 onRegionChangeComplete={handleRegionChange}
             >
-                {/* {locations.map((location) => (
-                <Marker
-                    key={location.id}
-                    coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                    anchor={{ x: 0.5, y: 1 }}
-                >
-                    <TouchableOpacity onPress={() => setSelectedLocation(location)}>
-                        <View style={styles.markerContainer}>
-                            {isZoomedIn && (
-                                <Text style={styles.markerText}>{location.name}</Text>
-                            )}
-                            <Image
-                                source={location.logo}
-                                style={styles.markerLogo}
-                            />
-                        </View>
-                    </TouchableOpacity>
-                </Marker>
-            ))} */}
-
                 {locations.map((location) => {
-                    // Check zoom level inside the map loop
                     const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
-
                     return (
                         <Marker
                             key={location.id}
-                            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                            // Setting this to true ensures the marker re-renders when isZoomedIn changes
+                            coordinate={{
+                                latitude: location.latitude,
+                                longitude: location.longitude
+                            }}
                             tracksViewChanges={true}
-                            onPress={() => {
+                            zIndex={selectedLocation?.id === location.id ? 99 : 1}
+                            onPress={(e) => {
+                                e.stopPropagation();
                                 setSelectedLocation(location);
-                                mapRef.current?.animateToRegion({
-                                    latitude: location.latitude,
-                                    longitude: location.longitude,
-                                    latitudeDelta: currentDelta,
-                                    longitudeDelta: currentDelta / 2,
-                                }, 300);
                             }}
                         >
-                            <View style={styles.markerContainer}>
+                            <View style={styles.markerContainer} pointerEvents="none">
                                 {isZoomedIn && (
                                     <View style={styles.nameBubble}>
                                         <Text style={styles.markerText}>{location.name}</Text>
@@ -200,95 +173,10 @@ export default function MapScreen() {
         );
     };
 
-    // return (
-
-    //     <View style={styles.container}>
-    //         <View style={styles.mapContainer}>
-    //             {renderMapContent()}
-    //         </View>
-
-    //         <Modal
-    //             animationType="fade"
-    //             transparent={true}
-    //             visible={selectedLocation !== null}
-    //             onRequestClose={() => setSelectedLocation(null)}
-    //         >
-    //             <Pressable
-    //                 style={styles.modalBackdrop}
-    //                 onPress={() => setSelectedLocation(null)}
-    //             >
-    //                 <Pressable style={styles.modalContainer} onPress={() => { }}>
-    //                     <Text style={styles.modalTitle}>{selectedLocation?.name}</Text>
-    //                     <Text style={styles.modalBodyText}>{selectedLocation?.hours}</Text>
-
-    //                     <Pressable style={styles.button} onPress={handleGoToBarPage}>
-    //                         <Text style={styles.buttonText}>Go to Bar's Page</Text>
-    //                     </Pressable>
-
-    //                     <Pressable
-    //                         style={[styles.button, styles.closeButton]}
-    //                         onPress={() => setSelectedLocation(null)}
-    //                     >
-    //                         <Text style={styles.buttonText}>Close</Text>
-    //                     </Pressable>
-    //                 </Pressable>
-    //             </Pressable>
-    //         </Modal>
-    //     </View>
-    // );
-
     return (
         <View style={styles.container}>
             <View style={styles.mapContainer}>
-                <MapView
-                    ref={mapRef} // 1. CRITICAL: Ensure the ref is attached
-                    style={styles.map}
-                    initialRegion={{
-                        latitude: 42.03,
-                        longitude: -93.63,
-                        latitudeDelta: 0.1,
-                        longitudeDelta: 0.05,
-                    }}
-                    showsPointsOfInterest={false}
-                    onPress={() => setSelectedLocation(null)}
-                    onRegionChangeComplete={handleRegionChange}
-                >
-                    {locations.map((location) => {
-                        // This is the gatekeeper logic
-                        const isZoomedIn = currentDelta < ZOOM_THRESHOLD;
-
-                        return (
-                            <Marker
-                                key={location.id}
-                                coordinate={{
-                                    latitude: location.latitude,
-                                    longitude: location.longitude
-                                }}
-                                // Force the marker to update its view when the zoom state flips
-                                tracksViewChanges={true}
-                                // Put selected marker on top
-                                zIndex={selectedLocation?.id === location.id ? 99 : 1}
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedLocation(location);
-                                }}
-                            >
-                                <View style={styles.markerContainer} pointerEvents="none">
-                                    {/* Now this will strictly only show when the map is zoomed in deep */}
-                                    {isZoomedIn && (
-                                        <View style={styles.nameBubble}>
-                                            <Text style={styles.markerText}>{location.name}</Text>
-                                        </View>
-                                    )}
-                                    <Image
-                                        source={location.logo}
-                                        style={styles.markerLogo}
-                                    />
-                                </View>
-                            </Marker>
-                        );
-                    })}
-                </MapView>
+                {renderMapContent()}
             </View>
 
             <Animated.View
@@ -306,7 +194,6 @@ export default function MapScreen() {
                 ]}
             >
                 <View style={styles.sheetContent}>
-                    {/* The Draggable Area */}
                     <View {...panResponder.panHandlers} style={styles.dragArea}>
                         <View style={styles.dragHandle} />
                     </View>
@@ -319,10 +206,7 @@ export default function MapScreen() {
                         </View>
                     </View>
 
-                    <TouchableOpacity
-                        style={styles.button}
-                        onPress={handleGoToBarPage}
-                    >
+                    <TouchableOpacity style={styles.button} onPress={handleGoToBarPage}>
                         <Text style={styles.buttonText}>View Full Details</Text>
                     </TouchableOpacity>
 
@@ -341,7 +225,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Theme.container.background,
+        backgroundColor: Theme.dark.background,
     },
     infoText: {
         marginTop: 8,
@@ -367,35 +251,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         marginHorizontal: 16,
     },
-    // modalBackdrop: {
-    //     flex: 1,
-    //     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    //     justifyContent: 'center',
-    //     alignItems: 'center',
-    // },
-    // modalContainer: {
-    //     width: '80%',
-    //     backgroundColor: Theme.dark.background,
-    //     borderRadius: 12,
-    //     padding: 20,
-    //     alignItems: 'center',
-    //     shadowColor: Theme.dark.black,
-    //     shadowOffset: { width: 0, height: 2 },
-    //     shadowOpacity: 0.25,
-    //     shadowRadius: 4,
-    //     elevation: 5,
-    // },
-    // modalTitle: {
-    //     fontSize: 22,
-    //     fontWeight: 'bold',
-    //     color: Theme.container.titleText,
-    //     marginBottom: 20,
-    // },
-    // modalBodyText: {
-    //     fontSize: 16,
-    //     color: Theme.container.inactiveText,
-    //     marginBottom: 20,
-    // },
     button: {
         backgroundColor: Theme.dark.primary,
         borderRadius: 8,
@@ -437,14 +292,12 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingHorizontal: 20,
-        paddingBottom: 10, // Extra padding for bottom notches
+        // paddingBottom: 10,
         paddingTop: 10,
-        // Shadow for iOS
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.3,
         shadowRadius: 5,
-        // Elevation for Android
         elevation: 20,
     },
     dragHandle: {
@@ -471,7 +324,6 @@ const styles = StyleSheet.create({
     sheetContent: {
         width: '100%',
     },
-    // Modify your modalTitle slightly for the sheet
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -482,7 +334,7 @@ const styles = StyleSheet.create({
         color: Theme.container.inactiveText,
     },
     nameBubble: {
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent black
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
@@ -492,15 +344,9 @@ const styles = StyleSheet.create({
     },
     dragArea: {
         width: '100%',
-        height: 30, // Larger touch target
+        height: 30,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'transparent',
-    },
-    // dragHandle: {
-    //     width: 40,
-    //     height: 5,
-    //     backgroundColor: Theme.search.inactiveInput,
-    //     borderRadius: 3,
-    // },
+    }
 });
