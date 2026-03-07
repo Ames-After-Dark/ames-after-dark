@@ -55,14 +55,11 @@ export const MapMarkers = ({ locations, currentDelta, zoomThreshold, selectedLoc
                     <Image
                         source={location.logo}
                         style={styles.markerLogo}
-                        // Ensures the image doesn't re-fade during the map move
                         fadeDuration={0}
                     />
                 </View>
             </Marker>
         ));
-        // 4. REMOVE selectedLocationId from this array!
-        // This stops the "blink" because the markers are NEVER re-rendered when you click.
     }, [locations, isZoomedIn]);
 };
 
