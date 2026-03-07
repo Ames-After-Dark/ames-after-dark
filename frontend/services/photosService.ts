@@ -1,9 +1,6 @@
 import Constants from "expo-constants";
 
-const SMUGMUG_API_KEY = 
-  Constants.expoConfig?.extra?.SMUGMUG_API_KEY ?? 
-  (Constants as any).manifest?.extra?.SMUGMUG_API_KEY ??
-  (Constants as any).manifest2?.extra?.expoClient?.extra?.SMUGMUG_API_KEY;
+const SMUGMUG_API_KEY = Constants.expoConfig?.extra?.SMUGMUG_API_KEY;
 const USER = "chaseanderson";
 const SMUGMUG_API_BASE = "https://api.smugmug.com/api/v2";
 
@@ -32,7 +29,9 @@ export type Album = {
  */
 export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
   try {
-    const url = `https://api.smugmug.com${albumUri}`;
+    const url = `https://api.smugmug.com${albumUri}?APIKey=${SMUGMUG_API_KEY}`;
+    const imagesData = await xhrGet(url);
+    const images = imagesData?.Response?.AlbumImage ?? [];
     const imagesRes = await fetch(url, {
       headers: {
         Accept: "application/json",
@@ -41,9 +40,6 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
     });
 
     if (!imagesRes.ok) throw new Error(`Images fetch failed: ${imagesRes.statusText}`);
-
-    const imagesData = await imagesRes.json();
-    const images = imagesData?.Response?.AlbumImage ?? [];
 
     const photos = images.map((img: any) => ({
       id: img.ImageKey,
@@ -124,7 +120,7 @@ function xhrGet(url: string): Promise<any> {
 export async function getLatestWeekendAlbums(): Promise<Album[]> {
   try {
     const LATEST_FOLDER = "Big-4-2-262-28";
-    const albumsUrl = `${SMUGMUG_API_BASE}/folder/user/${USER}/${LATEST_FOLDER}!albums`;
+    const albumsUrl = `${SMUGMUG_API_BASE}/folder/user/${USER}/${LATEST_FOLDER}!albums?APIKey=${SMUGMUG_API_KEY}`;
     console.log("Fetching:", albumsUrl);
     
     const albumsData = await xhrGet(albumsUrl);
@@ -137,7 +133,7 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
         try {
           if (a.Uris?.HighlightImage?.Uri) {
             const coverRes = await fetch(
-              `https://api.smugmug.com${a.Uris.HighlightImage.Uri}`,
+              `https://api.smugmug.com${a.Uris.HighlightImage.Uri}?APIKey=${SMUGMUG_API_KEY}`,
               {
                 headers: {
                   Accept: "application/json",
