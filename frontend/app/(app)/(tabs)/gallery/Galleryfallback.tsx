@@ -44,7 +44,7 @@ export default function GalleryFallback() {
       <View style={styles.banner}>
         <FontAwesome name="camera" size={14} color={Theme.dark.primary} style={{ marginRight: 8 }} />
         <Text style={styles.bannerText}>
-          Gallery coming soon — photos will appear here after each weekend
+          No photos available yet, but we're working on it!
         </Text>
       </View>
 
