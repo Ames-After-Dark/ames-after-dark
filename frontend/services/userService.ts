@@ -84,6 +84,24 @@ export async function getUserFriends(userId: string | number): Promise<Friend[]>
   }
 }
 
+export interface FriendLocationApi {
+  id: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  updatedAt: string;
+}
+
+export async function getFriendsLocations(userId: string | number): Promise<FriendLocationApi[]> {
+  try {
+    const locations = await apiFetch(`/friendships/${userId}/friends/locations`);
+    return Array.isArray(locations) ? locations : [];
+  } catch (error) {
+    console.error(`Failed to fetch friend locations for user ${userId}:`, error);
+    throw error;
+  }
+}
+
 export async function getUserById(userId: string | number) {
   try {
     const user = await apiFetch(`/users/${userId}`);

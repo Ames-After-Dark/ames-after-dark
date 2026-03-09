@@ -94,3 +94,65 @@ exports.blockFriend = async (userId, friendId) => {
   });
 };
 
+exports.getFriendLocations = async (userId) => {
+  const friendships = await prisma.friendships.findMany({
+    where: {
+      OR: [
+        { user_id_1: userId },
+        { user_id_2: userId }
+      ],
+      friendship_status_id: STATUS_ACCEPTED
+    },
+    include: {
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          user_locations: {
+            select: {
+              latitude: true,
+              longitude: true,
+              updated_at: true
+            }
+          }
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          user_locations: {
+            select: {
+              latitude: true,
+              longitude: true,
+              updated_at: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return friendships
+    .map((friendship) => {
+      const friend = friendship.user_id_1 === userId
+        ? friendship.users_friendships_user_id_2Tousers
+        : friendship.users_friendships_user_id_1Tousers;
+
+      if (!friend?.user_locations) {
+        return null;
+      }
+
+      return {
+        id: friend.id,
+        name: friend.username || friend.name || `User ${friend.id}`,
+        latitude: Number.parseFloat(friend.user_locations.latitude.toString()),
+        longitude: Number.parseFloat(friend.user_locations.longitude.toString()),
+        updatedAt: friend.user_locations.updated_at,
+      };
+    })
+    .filter((friendLocation) => friendLocation !== null);
+};
+

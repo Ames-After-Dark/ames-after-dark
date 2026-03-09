@@ -4,6 +4,8 @@ const friendshipController = require('../controllers/friendshipController');
 
 // Get all friends for a user
 router.get('/:userId/friends', friendshipController.getFriends);
+// Get all current friend locations for a user
+router.get('/:userId/friends/locations', friendshipController.getFriendLocations);
 // Send a friend request
 router.post('/:userId/friends/:friendId', friendshipController.sendFriendRequest);
 // Accept a friend request

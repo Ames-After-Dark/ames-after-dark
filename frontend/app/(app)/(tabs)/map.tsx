@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import MapView from 'react-native-maps';
 import { useRouter } from 'expo-router';
 
 import { useMapLocations } from '@/hooks/useMapLocations';
+import { useAuth } from '@/hooks/use-auth';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
@@ -12,16 +13,32 @@ import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
 
+import { useFriendsLocations } from '@/hooks/useFriendsLocations';
+import { FriendMarkers } from '@/components/map/friend-markers';
+
 const ZOOM_THRESHOLD = 0.005;
 
 export default function MapScreen() {
+
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
-    const { locations, isLoading, error } = useMapLocations();
+    const { userStatus } = useAuth();
+    const currentUserId = userStatus?.userId ?? null;
+    
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
     const [currentDelta, setCurrentDelta] = useState(0.1);
 
+    const { locations, isLoading, error } = useMapLocations();
+    const { friends, error: friendsError } = useFriendsLocations(currentUserId);
+
+    useEffect(() => {
+        if (friendsError) {
+            console.warn('Unable to load friend locations:', friendsError.message);
+        }
+    }, [friendsError]);
+
     if (isLoading) return <MapSkeleton />;
+
     if (error || shouldForceErrorPage('map')) {
         return <ErrorState title="Unable to load map" subtitle={error || 'Try again later.'} />;
     }
@@ -50,6 +67,7 @@ export default function MapScreen() {
                     onPress={() => setSelectedLocation(null)}
                     showsPointsOfInterest={false}
                 >
+                    <FriendMarkers friends={friends} />
                     <MapMarkers
                         locations={locations}
                         currentDelta={currentDelta}
