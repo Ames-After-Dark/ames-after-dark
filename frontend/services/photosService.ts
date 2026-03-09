@@ -32,14 +32,6 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
     const url = `https://api.smugmug.com${albumUri}?APIKey=${SMUGMUG_API_KEY}`;
     const imagesData = await xhrGet(url);
     const images = imagesData?.Response?.AlbumImage ?? [];
-    const imagesRes = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "AmesAfterDark/1.0",
-      },
-    });
-
-    if (!imagesRes.ok) throw new Error(`Images fetch failed: ${imagesRes.statusText}`);
 
     const photos = images.map((img: any) => ({
       id: img.ImageKey,
@@ -119,9 +111,9 @@ function xhrGet(url: string): Promise<any> {
 // Fetches albums from the most recent weekend folder
 export async function getLatestWeekendAlbums(): Promise<Album[]> {
   try {
+    // Temporarily hardcoded as SmugMug folders aren't consistently named (can ignore since moving to Cloudflare)
     const LATEST_FOLDER = "Big-4-2-262-28";
     const albumsUrl = `${SMUGMUG_API_BASE}/folder/user/${USER}/${LATEST_FOLDER}!albums?APIKey=${SMUGMUG_API_KEY}`;
-    console.log("Fetching:", albumsUrl);
     
     const albumsData = await xhrGet(albumsUrl);
     const allAlbums = albumsData?.Response?.Album ?? [];
