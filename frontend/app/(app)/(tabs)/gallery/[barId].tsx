@@ -9,6 +9,7 @@ import ImageViewing from "react-native-image-viewing"; //fixing compile error - 
 import { FontAwesome } from "@expo/vector-icons";
 import { File, Directory, Paths} from 'expo-file-system';
 import * as MediaLibrary from "expo-media-library"; //fixing compile error - try installing
+import { BlurView } from 'expo-blur';
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
@@ -113,8 +114,8 @@ export default function BarPhotosScreen() {
     <View style={styles.container}>
       {/* Bar name header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backArrow}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backArrowTouchable}>
+          <FontAwesome name="chevron-left" size={20} color={Theme.container.titleText} />
         </TouchableOpacity>
         <Text style={styles.barTitle}>{barName}</Text>
       </View>
@@ -140,8 +141,8 @@ export default function BarPhotosScreen() {
         onImageIndexChange={(index) => setViewerIndex(index)}
         HeaderComponent={() => (
           <View style={styles.viewerHeader}>
-            <TouchableOpacity onPress={() => {setViewerVisible(false);}}>
-              <Text style={styles.viewerBackArrow}>←</Text>
+            <TouchableOpacity onPress={() => {setViewerVisible(false);}} style={styles.backArrowTouchable}>
+              <FontAwesome name="chevron-left" size={20} color={Theme.dark.primary} />
             </TouchableOpacity>
             <View style={styles.viewerHeaderRight}>
               <TouchableOpacity onPress={handleDownload}>
@@ -166,10 +167,28 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: Theme.dark.background,
   },
+  backArrowTouchable: {
+    paddingHorizontal: 12,
+  },
+  backArrowCircle: {
+    backgroundColor: 'rgba(30,30,30,0.5)',
+    borderRadius: 999,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  backArrowCircleWhite: {
+    borderColor: Theme.container.titleText,
+  },
+  backArrowCirclePink: {
+    borderColor: Theme.dark.primary,
+  },
   backArrow: {
-    color: Theme.container.titleText,
-    fontSize: 26,
-    marginRight: 10,
+    color: Theme.container.titleText, // white
+    fontSize: 34,
+    fontWeight: "800",
+    textAlign: 'center',
   },
   barTitle: {
     fontSize: 20,
@@ -203,7 +222,9 @@ const styles = StyleSheet.create({
   },
   viewerBackArrow: {
     fontSize: 34,
-    color: Theme.dark.primary,
+    fontWeight: "800",
+    color: Theme.dark.primary, // pink
+    textAlign: 'center',
   },
   downloadIcon: {
     fontSize: 34,
