@@ -13,6 +13,15 @@ export interface Location {
     logo: ImageSourcePropType;
 }
 
+export interface MapLocation {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    hours?: string;
+    logo?: any;
+}
+
 interface LocationApiResponse {
     id: number;
     name: string;
@@ -131,7 +140,7 @@ export const fetchLocations = async (): Promise<Location[]> => {
     try {
         const apiLocations: LocationApiResponse[] = await apiFetch('/locations');
         // console.log("API response received:", apiLocations?.length, "locations");
-        
+
         if (!Array.isArray(apiLocations)) {
             console.error("API response is not an array:", apiLocations);
             throw new Error("Invalid API response format");
@@ -144,14 +153,14 @@ export const fetchLocations = async (): Promise<Location[]> => {
                 const longitude = typeof apiLoc.longitude === 'string' ? parseFloat(apiLoc.longitude) : apiLoc.longitude;
 
                 // Validate location data - return null for invalid locations
-                if (!apiLoc.name || 
-                    typeof latitude !== 'number' || 
-                    typeof longitude !== 'number' || 
-                    isNaN(latitude) || 
+                if (!apiLoc.name ||
+                    typeof latitude !== 'number' ||
+                    typeof longitude !== 'number' ||
+                    isNaN(latitude) ||
                     isNaN(longitude) ||
-                    latitude < -90 || 
+                    latitude < -90 ||
                     latitude > 90 ||
-                    longitude < -180 || 
+                    longitude < -180 ||
                     longitude > 180) {
                     console.warn(`Skipping location with invalid coordinates: ${apiLoc.name || 'unknown'}`, { latitude, longitude });
                     return null;
@@ -194,5 +203,29 @@ export const fetchLocations = async (): Promise<Location[]> => {
     catch (error) {
         console.error("Error in locationService.fetchLocations: ", error);
         throw new Error("Failed to fetch locations. Please try again later.");
+    }
+};
+
+export const fetchLocationById = async (id: string): Promise<Location | null> => {
+    try {
+        const apiLoc: LocationApiResponse = await apiFetch(`/locations/${id}`);
+
+        // Reuse your existing conversion/validation logic
+        const latitude = typeof apiLoc.latitude === 'string' ? parseFloat(apiLoc.latitude) : apiLoc.latitude;
+        const longitude = typeof apiLoc.longitude === 'string' ? parseFloat(apiLoc.longitude) : apiLoc.longitude;
+
+        if (!apiLoc.name || isNaN(latitude) || isNaN(longitude)) return null;
+
+        return {
+            id: String(apiLoc.id),
+            name: apiLoc.name,
+            latitude,
+            longitude,
+            logo: getLogoAssetForLocationName(apiLoc.name),
+            hours: "...", // You can fetch hours here if needed
+        };
+    } catch (error) {
+        console.error("Error fetching single location:", error);
+        return null;
     }
 };

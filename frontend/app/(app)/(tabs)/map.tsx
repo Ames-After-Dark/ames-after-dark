@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView from 'react-native-maps';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { Theme } from '@/constants/theme';
@@ -17,11 +17,35 @@ const ZOOM_THRESHOLD = 0.005;
 export default function MapScreen() {
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
+
     const { locations, isLoading, error } = useMapLocations();
+
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
     const [currentDelta, setCurrentDelta] = useState(0.1);
 
+    const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
+
+    useEffect(() => {
+
+        if (!isLoading && locations.length > 0 && selectedId) {
+            const target = locations.find(loc => String(loc.id) === selectedId);
+            
+            if (target) {
+
+                setSelectedLocation(target);
+
+                mapRef.current?.animateToRegion({
+                    latitude: target.latitude - 0.001,
+                    longitude: target.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                }, 1000); 
+            }
+        }
+    }, [selectedId, isLoading, locations]);
+
     if (isLoading) return <MapSkeleton />;
+
     if (error || shouldForceErrorPage('map')) {
         return <ErrorState title="Unable to load map" subtitle={error || 'Try again later.'} />;
     }
@@ -35,7 +59,6 @@ export default function MapScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.mapContainer}>
-                {/* The MapView stays MOUNTED. It never leaves. */}
                 <MapView
                     ref={mapRef}
                     style={styles.map}
@@ -45,7 +68,6 @@ export default function MapScreen() {
                         latitudeDelta: 0.1,
                         longitudeDelta: 0.05,
                     }}
-                    // This ensures we only update the Delta once movement STOPS
                     onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
                     onPress={() => setSelectedLocation(null)}
                     showsPointsOfInterest={false}
