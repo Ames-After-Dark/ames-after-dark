@@ -19,4 +19,7 @@ router.get('/:userId/friends', userController.getUserFriends);
 router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
 
+router.get('/profile/favorite-drinks', userController.getUserProfileFavoriteDrinkOptions);
+router.get('/profile/photo-options', userController.getUserProfilePhotoOptions);
+
 module.exports = router;

@@ -480,3 +480,25 @@ exports.updateBioByAuth = async (req, res) => {
     });
   }
 };
+
+// GET /api/users/profile/favorite-drinks - get favorite drink options for user profile
+exports.getUserProfileFavoriteDrinkOptions = async (req, res) => {
+  try {
+    const favoriteDrinks = await userService.getUserProfileFavoriteDrinkOptions();
+    res.json(favoriteDrinks);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/profile/photo-options - get photo options for user profile
+exports.getUserProfilePhotoOptions = async (req, res) => {
+  try {
+    const photoOptions = await userService.getUserProfilePhotoOptions();
+    res.json(photoOptions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

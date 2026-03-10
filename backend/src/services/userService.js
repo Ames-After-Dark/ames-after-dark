@@ -238,3 +238,29 @@ exports.getUsernameByAuth0Id = async (auth0Id) => {
   });
   return user?.username || null;
 };
+
+exports.getUserProfileFavoriteDrinkOptions = async () => {
+    return await prisma.drinks.findMany({
+        select: {
+            id: true,
+            name: true,
+            image_url: true,
+        },
+        orderBy: {
+            name: 'asc',
+        },
+    });
+};
+
+exports.getUserProfilePhotoOptions = async () => {
+    return await prisma.user_profile_photos.findMany({
+        select: {
+            id: true,
+            name: true,
+            image_url: true,
+        },
+        orderBy: {
+            name: 'asc',
+        },
+    });
+};
