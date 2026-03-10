@@ -1,0 +1,30 @@
+name: Deploy Development
+
+on:
+  push:
+    branches: [ development ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy_dev:
+    runs-on: [self-hosted]
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+    steps:
+      - name: Prepare SSH key
+        run: |
+          echo "$EC2_KEY" > ec2_key.pem
+          chmod 600 ec2_key.pem
+      
+      - name: Run Development Deploy Script
+        run: |
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST 'bash /home/ubuntu/scripts/deploy_dev.sh'
+      
+      - name: Cleanup
+        if: always()
+        run: rm -f ec2_key.pem
