@@ -88,3 +88,28 @@ exports.getPendingRequests = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getFriendsLocations = async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+  try {
+    const locations = await friendshipService.getFriendsLocations(userId);
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getRecommendedFriends = async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+  try {
+    const recommendations = await friendshipService.getRecommendedFriends(userId);
+    res.json(recommendations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+

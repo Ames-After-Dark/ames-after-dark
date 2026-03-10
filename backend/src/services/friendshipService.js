@@ -94,3 +94,103 @@ exports.blockFriend = async (userId, friendId) => {
   });
 };
 
+exports.getFriendsLocations = async (userId) => {
+  return prisma.users.findUnique({
+    where: { id: userId },
+    select: {
+      // 1. Get friends where current user is user_id_1
+      friendships_friendships_user_id_1Tousers: {
+        where: { friendship_status_id: 2 }, // Assuming 2 = 'Accepted'
+        select: {
+          users_friendships_user_id_2Tousers: {
+            select: {
+              id: true,
+              username: true,
+              user_locations: true, // This contains lat/long
+            },
+          },
+        },
+      },
+      // 2. Get friends where current user is user_id_2
+      friendships_friendships_user_id_2Tousers: {
+        where: { friendship_status_id: 2 },
+        select: {
+          users_friendships_user_id_1Tousers: {
+            select: {
+              id: true,
+              username: true,
+              user_locations: true, // This contains lat/long
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+exports.getRecommendedFriends = async (userId, limit = 10) => { // Added limit here
+    // 1. Get IDs of the user's current accepted friends
+    const userFriendships = await prisma.friendships.findMany({
+        where: {
+            OR: [{ user_id_1: userId }, { user_id_2: userId }],
+            friendship_status_id: 2, 
+        },
+        select: { user_id_1: true, user_id_2: true },
+    });
+
+    const currentFriendIds = userFriendships.map((f) =>
+        f.user_id_1 === userId ? f.user_id_2 : f.user_id_1
+    );
+
+    // 2. Find friendships held by those friends
+    const friendsOfFriends = await prisma.friendships.findMany({
+        where: {
+            OR: [
+                { user_id_1: { in: currentFriendIds } },
+                { user_id_2: { in: currentFriendIds } },
+            ],
+            AND: [
+                { user_id_1: { not: userId, notIn: currentFriendIds } },
+                { user_id_2: { not: userId, notIn: currentFriendIds } },
+            ],
+            friendship_status_id: 2,
+        },
+        include: {
+            users_friendships_user_id_1Tousers: {
+                select: { id: true, username: true, profile_photo: true, bio: true },
+            },
+            users_friendships_user_id_2Tousers: {
+                select: { id: true, username: true, profile_photo: true, bio: true },
+            },
+        },
+    });
+
+    // 3. Aggregate and count mutual friends
+    const recommendationMap = new Map();
+
+    friendsOfFriends.forEach((f) => {
+        // Logic check: Is user_id_1 the 'friend' we already know? 
+        // If yes, user_id_2 is the stranger (the recommendation).
+        const potentialFriend = currentFriendIds.includes(f.user_id_1)
+            ? f.users_friendships_user_id_2Tousers
+            : f.users_friendships_user_id_1Tousers;
+
+        // Safety check to ensure the join returned a user
+        if (potentialFriend && potentialFriend.id !== userId) {
+            const existing = recommendationMap.get(potentialFriend.id);
+            if (existing) {
+                existing.mutualCount += 1;
+            } else {
+                recommendationMap.set(potentialFriend.id, {
+                    user: potentialFriend,
+                    mutualCount: 1,
+                });
+            }
+        }
+    });
+
+    // 4. Sort and return
+    return Array.from(recommendationMap.values())
+        .sort((a, b) => b.mutualCount - a.mutualCount)
+        .slice(0, limit);
+};
