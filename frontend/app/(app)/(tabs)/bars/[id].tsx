@@ -345,7 +345,7 @@ export default function BarProfile() {
                       color="white"
                       style={{ marginRight: 8 }}
                     />
-                    <Text style={styles.openInMapsText}>Open in App Maps</Text>
+                    <Text style={styles.openInMapsText}>Open</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   openInMapsBtn: {
     backgroundColor: Theme.dark.primary,
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: (width / 2) - 100,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
