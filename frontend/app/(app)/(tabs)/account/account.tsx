@@ -13,6 +13,7 @@ import {
     Modal,
     FlatList,
     TouchableWithoutFeedback,
+    RefreshControl,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -26,7 +27,10 @@ import {
     declineFriendRequest,
     blockFriend,
     PendingFriendRequest,
-    getUserProfileByAuth
+    getUserProfileByAuth,
+    getRecommendedFriends,
+    sendFriendRequest,
+    removeFriend
 } from '@/services/userService';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import ErrorState from '@/components/ui/error-state';
@@ -48,34 +52,38 @@ export default function AccountScreen() {
     const [modalSearchQuery, setModalSearchQuery] = useState('');
     const [isPendingModalVisible, setIsPendingModalVisible] = useState(false);
     const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+    const [recommendedFriends, setRecommendedFriends] = useState<Friend[]>([]);
+    const [recommendedLoading, setRecommendedLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchUser = async () => {
+        setUserError(null);
+        if (!userStatus?.userId) return;
+        try {
+            const accessToken = await getAccessToken();
+            if (!accessToken) {
+                console.error('No access token available');
+                return;
+            }
+
+            // Use getUserProfileByAuth to get the current user's profile with bio
+            const userData = await getUserProfileByAuth(accessToken);
+            console.log('Fetched current user profile:', {
+                id: userData.id,
+                username: userData.username,
+                bio: userData.bio,
+                hasBio: !!userData.bio
+            });
+            setUser(userData);
+        } catch (err) {
+            setUserError(err instanceof Error ? err : new Error('Failed to fetch user'));
+            console.error('Failed to fetch user:', err);
+        } finally {
+            setUserLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchUser = async () => {
-            setUserError(null);
-            if (!userStatus?.userId) return;
-            try {
-                const accessToken = await getAccessToken();
-                if (!accessToken) {
-                    console.error('No access token available');
-                    return;
-                }
-
-                // Use getUserProfileByAuth to get the current user's profile with bio
-                const userData = await getUserProfileByAuth(accessToken);
-                console.log('Fetched current user profile:', {
-                    id: userData.id,
-                    username: userData.username,
-                    bio: userData.bio,
-                    hasBio: !!userData.bio
-                });
-                setUser(userData);
-            } catch (err) {
-                setUserError(err instanceof Error ? err : new Error('Failed to fetch user'));
-                console.error('Failed to fetch user:', err);
-            } finally {
-                setUserLoading(false);
-            }
-        };
         fetchUser();
     }, [userStatus?.userId]);
 
@@ -95,9 +103,24 @@ export default function AccountScreen() {
         }
     }, [userStatus?.userId]);
 
+    const fetchRecommendedFriends = React.useCallback(async () => {
+        if (!userStatus?.userId) return;
+
+        setRecommendedLoading(true);
+        try {
+            const data = await getRecommendedFriends(userStatus.userId, 5);
+            setRecommendedFriends(data || []);
+        } catch (err) {
+            console.error('Failed to fetch recommended friends:', err);
+        } finally {
+            setRecommendedLoading(false);
+        }
+    }, [userStatus?.userId]);
+
     useEffect(() => {
         fetchPendingRequests();
-    }, [fetchPendingRequests]);
+        fetchRecommendedFriends();
+    }, [fetchPendingRequests, fetchRecommendedFriends]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -106,6 +129,23 @@ export default function AccountScreen() {
         }, [fetchPendingRequests, refetch])
     );
 
+    // Manual refresh function for pull-to-refresh
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                fetchUser(),
+                refetch(),
+                fetchPendingRequests(),
+                fetchRecommendedFriends()
+            ]);
+        } catch (err) {
+            console.error('Failed to refresh:', err);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     const getOtherUserFromRequest = (request: PendingFriendRequest): Friend | null => {
         const left = request.users_friendships_user_id_1Tousers;
         const right = request.users_friendships_user_id_2Tousers;
@@ -113,6 +153,12 @@ export default function AccountScreen() {
         if (!left && !right) return null;
         if (request.user_id_1 === userStatus?.userId) return right ?? null;
         return left ?? null;
+    };
+
+    const isIncomingRequest = (request: PendingFriendRequest): boolean => {
+        // user_id_1 = sender, user_id_2 = receiver
+        // Incoming request = current user is the receiver (user_id_2)
+        return request.user_id_2 === userStatus?.userId;
     };
 
     const handleRequestAction = async (request: PendingFriendRequest, action: 'accept' | 'decline' | 'block') => {
@@ -154,6 +200,24 @@ export default function AccountScreen() {
         }
     };
 
+    const handleAddRecommendedFriend = async (friendId: number) => {
+        if (!userStatus?.userId) {
+            console.error('User not authenticated');
+            return;
+        }
+
+        setActionLoadingFriendId(friendId);
+        try {
+            await sendFriendRequest(userStatus.userId, friendId);
+            // Remove from recommendations after sending request
+            setRecommendedFriends(prev => prev.filter(f => f.id !== friendId));
+        } catch (err) {
+            console.error('Failed to send friend request:', err);
+        } finally {
+            setActionLoadingFriendId(null);
+        }
+    };
+
     const filteredFriends: Friend[] = friends.filter((f: Friend) =>
         (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -178,10 +242,26 @@ export default function AccountScreen() {
 
     return (
         <>
+            {refreshing && (
+                <View style={styles.refreshOverlay}>
+                    <ActivityIndicator size="large" color={Theme.dark.secondary} />
+                </View>
+            )}
             <ScrollView
                 style={styles.container}
                 contentContainerStyle={{ paddingBottom: 80 }}
                 showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={false}
+                        onRefresh={handleRefresh}
+                        tintColor="#33CCFF"
+                        title="Pull to refresh"
+                        titleColor="#33CCFF"
+                        colors={["#33CCFF"]}
+                        progressBackgroundColor="#1a1a1a"
+                    />
+                }
             >
 
                 <View style={styles.headerRow}>
@@ -282,26 +362,103 @@ export default function AccountScreen() {
                                         friend.username?.toLowerCase().includes(modalSearchQuery.toLowerCase())
                                     )}
                                     keyExtractor={(item, index) => `${item.id}-${index}`}
-                                    renderItem={({ item: friend }) => (
-                                        <TouchableOpacity
-                                            style={styles.modalFriendRow}
-                                            onPress={() => {
-                                                setModalVisible(false);
-                                                router.push(`/account/${friend.id}`);
-                                            }}
-                                        >
-                                            <Image
-                                                source={friend.avatar || require('../../../../assets/images/Logo.png')}
-                                                style={styles.modalFriendAvatar}
-                                            />
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.modalFriendName}>{friend.name || 'Unknown'}</Text>
-                                                <Text style={styles.modalFriendUsername}>@{friend.username || 'unknown'}</Text>
+                                    ListHeaderComponent={
+                                        !modalSearchQuery && recommendedFriends.length > 0 ? (
+                                            <View style={styles.recommendedSection}>
+                                                <Text style={styles.recommendedTitle}>Recommended Friends</Text>
+                                                {recommendedFriends.map((recommended) => (
+                                                    <View key={recommended.id} style={styles.recommendedRow}>
+                                                        <TouchableOpacity
+                                                            style={styles.recommendedInfo}
+                                                            onPress={() => {
+                                                                setModalVisible(false);
+                                                                router.push(`/account/${recommended.id}`);
+                                                            }}
+                                                        >
+                                                            <Image
+                                                                source={recommended.avatar || require('../../../../assets/images/Logo.png')}
+                                                                style={styles.modalFriendAvatar}
+                                                            />
+                                                            <View style={{ flex: 1 }}>
+                                                                <Text style={styles.modalFriendName}>{recommended.name || 'Unknown'}</Text>
+                                                                <Text style={styles.modalFriendUsername}>@{recommended.username || 'unknown'}</Text>
+                                                                {(recommended as any).mutualCount > 0 && (
+                                                                    <Text style={styles.mutualFriendsText}>
+                                                                        {(recommended as any).mutualCount} mutual friend{(recommended as any).mutualCount > 1 ? 's' : ''}
+                                                                    </Text>
+                                                                )}
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                styles.addButton,
+                                                                actionLoadingFriendId === recommended.id && styles.addButtonDisabled
+                                                            ]}
+                                                            onPress={() => handleAddRecommendedFriend(Number(recommended.id))}
+                                                            disabled={actionLoadingFriendId === recommended.id}
+                                                        >
+                                                            {actionLoadingFriendId === recommended.id ? (
+                                                                <ActivityIndicator size="small" color="#fff" />
+                                                            ) : (
+                                                                <Text style={styles.addButtonText}>Add</Text>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                ))}
+                                                <View style={styles.divider} />
+                                                <Text style={styles.friendsSectionTitle}>Friends</Text>
                                             </View>
-                                        </TouchableOpacity>
+                                        ) : (
+                                            !modalSearchQuery ? (
+                                                <Text style={styles.friendsSectionTitle}>Friends</Text>
+                                            ) : null
+                                        )
+                                    }
+                                    renderItem={({ item: friend }) => (
+                                        <View style={styles.modalFriendRow}>
+                                            <TouchableOpacity
+                                                style={styles.friendInfoSection}
+                                                onPress={() => {
+                                                    setModalVisible(false);
+                                                    router.push(`/account/${friend.id}`);
+                                                }}
+                                            >
+                                                <Image
+                                                    source={friend.avatar || require('../../../../assets/images/Logo.png')}
+                                                    style={styles.modalFriendAvatar}
+                                                />
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.modalFriendName}>{friend.name || 'Unknown'}</Text>
+                                                    <Text style={styles.modalFriendUsername}>@{friend.username || 'unknown'}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.removeButton, actionLoadingFriendId === friend.id && styles.addButtonDisabled]}
+                                                onPress={async () => {
+                                                    if (!userStatus?.userId) return;
+                                                    setActionLoadingFriendId(Number(friend.id));
+                                                    try {
+                                                        await removeFriend(userStatus.userId, Number(friend.id));
+                                                        await refetch();
+                                                    } catch (err) {
+                                                        console.error('Failed to remove friend:', err);
+                                                    } finally {
+                                                        setActionLoadingFriendId(null);
+                                                    }
+                                                }}
+                                                disabled={actionLoadingFriendId === friend.id}
+                                            >
+                                                {actionLoadingFriendId === friend.id ? (
+                                                    <ActivityIndicator size="small" color="#fff" />
+                                                ) : (
+                                                    <FontAwesome name="user-times" size={16} color="#FF453A" />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
                                     )}
                                     scrollEnabled
                                     nestedScrollEnabled
+                                    showsVerticalScrollIndicator={true}
                                     ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
                                 />
                             </View>
@@ -343,49 +500,96 @@ export default function AccountScreen() {
                                         <ActivityIndicator size="small" color="#33CCFF" />
                                         <Text style={styles.emptyText}>Loading requests!</Text>
                                     </View>
-                                ) : pendingRequests.length > 0 ? (
+                                ) : (() => {
+                                    // Show all pending requests (incoming and outgoing)
+                                    const filteredRequests = pendingRequests.filter((request) => {
+                                        if (!normalizedPendingQuery) return true;
+                                        const requestUser = getOtherUserFromRequest(request);
+                                        return (
+                                            (requestUser?.name ?? '').toLowerCase().includes(normalizedPendingQuery) ||
+                                            (requestUser?.username ?? '').toLowerCase().includes(normalizedPendingQuery)
+                                        );
+                                    });
+
+                                    return filteredRequests.length > 0 ? (
                                     <FlatList
-                                        data={pendingRequests.filter((request) => {
-                                            if (!normalizedPendingQuery) return true;
-                                            const requestUser = getOtherUserFromRequest(request);
-                                            return (
-                                                (requestUser?.name ?? '').toLowerCase().includes(normalizedPendingQuery) ||
-                                                (requestUser?.username ?? '').toLowerCase().includes(normalizedPendingQuery)
-                                            );
-                                        })}
+                                        data={filteredRequests}
                                         keyExtractor={(item, index) => `${item.user_id_1}-${item.user_id_2}-${index}`}
                                         renderItem={({ item: request }) => {
                                             const requestUser = getOtherUserFromRequest(request);
                                             if (!requestUser) return null;
 
+                                            const incoming = isIncomingRequest(request);
+
                                             return (
-                                                <TouchableOpacity
-                                                    style={styles.modalFriendRow}
-                                                    onPress={() => {
-                                                        setIsPendingModalVisible(false);
-                                                        router.push(`/account/${requestUser.id}`);
-                                                    }}
-                                                >
-                                                    <Image
-                                                        source={requestUser.avatar || require('../../../../assets/images/Logo.png')}
-                                                        style={styles.modalFriendAvatar}
-                                                    />
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={styles.modalFriendUsername}>@{requestUser.username || 'unknown'}</Text>
-                                                        <Text style={styles.modalFriendName}>{requestUser.name || 'Unknown user'}</Text>
-                                                    </View>
-                                                </TouchableOpacity>
+                                                <View style={styles.modalFriendRow}>
+                                                    <TouchableOpacity
+                                                        style={styles.friendInfoSection}
+                                                        onPress={() => {
+                                                            setIsPendingModalVisible(false);
+                                                            router.push(`/account/${requestUser.id}`);
+                                                        }}
+                                                    >
+                                                        <Image
+                                                            source={requestUser.avatar || require('../../../../assets/images/Logo.png')}
+                                                            style={styles.modalFriendAvatar}
+                                                        />
+                                                        <View style={{ flex: 1 }}>
+                                                            <Text style={styles.modalFriendName}>{requestUser.name || 'Unknown user'}</Text>
+                                                            <Text style={styles.modalFriendUsername}>@{requestUser.username || 'unknown'}</Text>
+                                                            <Text style={styles.pendingStatusText}>
+                                                                {incoming ? 'Incoming friend request' : 'Friend request sent'}
+                                                            </Text>
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                    {incoming ? (
+                                                        <View style={styles.requestActions}>
+                                                            <TouchableOpacity
+                                                                style={[styles.pendingAcceptButton, actionLoadingFriendId === requestUser.id && styles.addButtonDisabled]}
+                                                                onPress={() => handleRequestAction(request, 'accept')}
+                                                                disabled={actionLoadingFriendId === requestUser.id}
+                                                            >
+                                                                {actionLoadingFriendId === requestUser.id ? (
+                                                                    <ActivityIndicator size="small" color="#fff" />
+                                                                ) : (
+                                                                    <FontAwesome name="check" size={16} color="#fff" />
+                                                                )}
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity
+                                                                style={[styles.pendingDeclineButton, actionLoadingFriendId === requestUser.id && styles.addButtonDisabled]}
+                                                                onPress={() => handleRequestAction(request, 'decline')}
+                                                                disabled={actionLoadingFriendId === requestUser.id}
+                                                            >
+                                                                <FontAwesome name="times" size={16} color="#FF453A" />
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    ) : (
+                                                        <TouchableOpacity
+                                                            style={[styles.pendingCancelButton, actionLoadingFriendId === requestUser.id && styles.addButtonDisabled]}
+                                                            onPress={() => handleRequestAction(request, 'decline')}
+                                                            disabled={actionLoadingFriendId === requestUser.id}
+                                                        >
+                                                            {actionLoadingFriendId === requestUser.id ? (
+                                                                <ActivityIndicator size="small" color="#FF453A" />
+                                                            ) : (
+                                                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
                                             );
                                         }}
                                         scrollEnabled
                                         nestedScrollEnabled
+                                        showsVerticalScrollIndicator={true}
                                         ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
                                     />
                                 ) : (
                                     <View style={styles.emptyContainer}>
                                         <Text style={styles.emptyText}>no pending requests</Text>
                                     </View>
-                                )}
+                                );
+                                })()}
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
@@ -727,5 +931,134 @@ const styles = StyleSheet.create({
         color: Theme.container.inactiveText,
         fontSize: 13,
         marginTop: 2,
+    },
+    recommendedSection: {
+        paddingBottom: 8,
+    },
+    recommendedTitle: {
+        color: Theme.container.titleText,
+        fontSize: 16,
+        fontWeight: 'bold',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+    },
+    friendsSectionTitle: {
+        color: Theme.container.titleText,
+        fontSize: 16,
+        fontWeight: 'bold',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        paddingTop: 16,
+    },
+    recommendedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        justifyContent: 'space-between',
+    },
+    recommendedInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    mutualFriendsText: {
+        color: Theme.container.inactiveText,
+        fontSize: 11,
+        marginTop: 2,
+    },
+    addButton: {
+        backgroundColor: Theme.dark.secondary,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        minWidth: 60,
+        alignItems: 'center',
+    },
+    addButtonDisabled: {
+        opacity: 0.5,
+    },
+    addButtonText: {
+        color: Theme.dark.white,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: Theme.container.mainBorder,
+        marginTop: 8,
+    },
+    friendInfoSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    removeButton: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    cancelButton: {
+        backgroundColor: Theme.container.inactiveText,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 16,
+        minWidth: 70,
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: '#FF453A',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    requestActions: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    pendingAcceptButton: {
+        backgroundColor: Theme.dark.secondary,
+        padding: 8,
+        borderRadius: 20,
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pendingDeclineButton: {
+        backgroundColor: 'transparent',
+        padding: 8,
+        borderRadius: 20,
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#FF453A',
+    },
+    pendingCancelButton: {
+        backgroundColor: 'transparent',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#FF453A',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    refreshOverlay: {
+        position: 'absolute',
+        top: 60,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pendingStatusText: {
+        color: Theme.container.inactiveText,
+        fontSize: 11,
+        marginTop: 2,
+        fontStyle: 'italic',
     },
 });

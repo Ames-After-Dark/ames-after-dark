@@ -12,7 +12,15 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-export default function AccountSettingsScreen(): JSX.Element {
+interface SettingsItemProps {
+  icon: any;
+  text: string;
+  onPress: () => void;
+  color?: string;
+  showArrow?: boolean;
+}
+
+export default function AccountSettingsScreen() {
   const { signOut, user, username } = useAuth()
 
   const handleSignOut = () => {
@@ -21,7 +29,7 @@ export default function AccountSettingsScreen(): JSX.Element {
   };
 
 
-  const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true }) => (
+  const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true }: SettingsItemProps) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
       <FontAwesome name={icon} size={20} color={color} style={styles.icon} />
       <Text style={[styles.settingText, { color }]}>{text}</Text>
