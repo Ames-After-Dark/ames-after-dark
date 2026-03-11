@@ -14,6 +14,7 @@ import {
     FlatList,
     TouchableWithoutFeedback,
     RefreshControl,
+    Alert,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -434,17 +435,35 @@ export default function AccountScreen() {
                                             </TouchableOpacity>
                                             <TouchableOpacity
                                                 style={[styles.removeButton, actionLoadingFriendId === friend.id && styles.addButtonDisabled]}
-                                                onPress={async () => {
+                                                onPress={() => {
                                                     if (!userStatus?.userId) return;
-                                                    setActionLoadingFriendId(Number(friend.id));
-                                                    try {
-                                                        await removeFriend(userStatus.userId, Number(friend.id));
-                                                        await refetch();
-                                                    } catch (err) {
-                                                        console.error('Failed to remove friend:', err);
-                                                    } finally {
-                                                        setActionLoadingFriendId(null);
-                                                    }
+                                                    
+                                                    Alert.alert(
+                                                        'Remove Friend',
+                                                        `Are you sure you want to remove ${friend.name || friend.username || 'this user'} from your friends?`,
+                                                        [
+                                                            {
+                                                                text: 'Cancel',
+                                                                style: 'cancel'
+                                                            },
+                                                            {
+                                                                text: 'Remove',
+                                                                style: 'destructive',
+                                                                onPress: async () => {
+                                                                    if (!userStatus?.userId) return;
+                                                                    setActionLoadingFriendId(Number(friend.id));
+                                                                    try {
+                                                                        await removeFriend(userStatus.userId, Number(friend.id));
+                                                                        await refetch();
+                                                                    } catch (err) {
+                                                                        console.error('Failed to remove friend:', err);
+                                                                    } finally {
+                                                                        setActionLoadingFriendId(null);
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    );
                                                 }}
                                                 disabled={actionLoadingFriendId === friend.id}
                                             >
