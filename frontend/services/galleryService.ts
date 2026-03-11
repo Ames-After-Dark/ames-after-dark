@@ -15,10 +15,20 @@ export { Photo, Album };
  * Returns albums grouped by bar, filtered to the latest weekend.
  */
 export async function getLatestWeekendAlbums(): Promise<Album[]> {
-  console.log("Fetching albums from SmugMug directly");
-  const result = await fetchSmugmugAlbums();
-  console.log("SmugMug returned:", result.length, "albums");
-  return result;
+  // Code below is used for Cloudflare R2 fetch, but currently disabled until Cloudflare is ready.
+  // try {
+  //   const url = `${BACKEND_URL}/api/r2/albums`;
+  //   const res = await fetch(url, {
+  //     headers: { Accept: "application/json" },
+  //   });
+
+  //   if (!res.ok) throw new Error(`Albums fetch failed: ${res.statusText}`);
+  //   const albums: Album[] = await res.json();
+  //   if (albums && albums.length > 0) return albums;
+  // } catch (err) {
+  //   console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
+  // }
+  return await fetchSmugmugAlbums();
 }
 
 /**

@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "app";
+
 -- CreateTable
 CREATE TABLE "app"."deals" (
     "id" SERIAL NOT NULL,
@@ -103,8 +106,9 @@ CREATE TABLE "app"."users" (
     "name" VARCHAR(255),
     "birthday" DATE,
     "favorite_profile_location_id" INTEGER,
-    "favorite_profile_drink" TEXT,
+    "favorite_drink_id" INTEGER,
     "phone_number" VARCHAR(25),
+    "profile_photo_id" INTEGER,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -229,6 +233,24 @@ CREATE TABLE "app"."location_hours_overrides" (
     CONSTRAINT "location_hours_overrides_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "app"."drinks" (
+    "id" SERIAL NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "image_url" TEXT,
+
+    CONSTRAINT "drinks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."user_profile_photos" (
+    "id" SERIAL NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "image_url" VARCHAR(512) NOT NULL,
+
+    CONSTRAINT "user_profile_photos_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "friendship_statuses_name_key" ON "app"."friendship_statuses"("name");
 
@@ -252,6 +274,12 @@ CREATE INDEX "idx_event_occurrences_time" ON "app"."event_occurrences"("start_ti
 
 -- CreateIndex
 CREATE UNIQUE INDEX "event_occurrences_event_id_start_time_utc_end_time_utc_key" ON "app"."event_occurrences"("event_id", "start_time_utc", "end_time_utc");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "drinks_name_key" ON "app"."drinks"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_profile_photos_name_key" ON "app"."user_profile_photos"("name");
 
 -- AddForeignKey
 ALTER TABLE "app"."deals" ADD CONSTRAINT "fk_locations" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -287,10 +315,16 @@ ALTER TABLE "app"."user_favorites" ADD CONSTRAINT "user_favorites_location_id_fk
 ALTER TABLE "app"."user_favorites" ADD CONSTRAINT "user_favorites_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_profile_photo_id_fkey" FOREIGN KEY ("profile_photo_id") REFERENCES "app"."user_profile_photos"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "app"."users" ADD CONSTRAINT "fk_role_id" FOREIGN KEY ("role_id") REFERENCES "app"."roles"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "app"."users" ADD CONSTRAINT "users_favorite_profile_location_id_fkey" FOREIGN KEY ("favorite_profile_location_id") REFERENCES "app"."locations"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "app"."users" ADD CONSTRAINT "users_favorite_drink_id_fkey" FOREIGN KEY ("favorite_drink_id") REFERENCES "app"."drinks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app"."menu_items" ADD CONSTRAINT "fk_location" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -327,3 +361,4 @@ ALTER TABLE "app"."event_occurrences" ADD CONSTRAINT "event_occurrences_event_id
 
 -- AddForeignKey
 ALTER TABLE "app"."location_hours_overrides" ADD CONSTRAINT "location_hours_overrides_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+

@@ -129,7 +129,7 @@ model users {
   name                                                       String?                @db.VarChar(255)
   birthday                                                   DateTime?              @db.Date
   favorite_profile_location_id                               Int?
-  favorite_profile_drink                                     String?
+  favorite_drink_id            Int?
   phone_number                                               String?                @db.VarChar(25)
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
@@ -139,9 +139,11 @@ model users {
   user_favorites                                             user_favorites[]
   user_locations                                             user_locations?
   user_settings                                              user_settings?
+  profile_photo_id                                           Int?
+  profile_photo                                              user_profile_photos? @relation(fields: [profile_photo_id], references: [id], onDelete: SetNull)
   roles                                                      roles?                 @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_role_id")
   locations                                                  locations?             @relation(fields: [favorite_profile_location_id], references: [id], onUpdate: NoAction)
-
+  favorite_drink                                             drinks?                @relation(fields: [favorite_drink_id], references: [id], onDelete: SetNull)
   @@schema("app")
 }
 
@@ -271,6 +273,24 @@ model location_hours_overrides {
   reason         String?   @db.VarChar(255)
   is_open        Boolean   @default(true)
   locations      locations @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("app")
+}
+
+model drinks {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(255)
+  image_url   String?
+  users       users[]  // Back-relation
+
+  @@schema("app")
+}
+
+model user_profile_photos {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  image_url String   @db.VarChar(512)         // path
+  users     users[]  // Back-relation
 
   @@schema("app")
 }
