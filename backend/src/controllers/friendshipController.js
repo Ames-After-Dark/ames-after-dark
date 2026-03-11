@@ -104,9 +104,19 @@ exports.getFriendsLocations = async (req, res) => {
 exports.getRecommendedFriends = async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
   if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+
+  const limit = parseInt(req.query.limit, 10) || 10;
+
   try {
-    const recommendations = await friendshipService.getRecommendedFriends(userId);
-    res.json(recommendations);
+    const recommendations = await friendshipService.getRecommendedFriends(userId, limit);
+
+    // Flatten the response to return just user objects with mutualCount
+    const flattened = recommendations.map(rec => ({
+      ...rec.user,
+      mutualCount: rec.mutualCount,
+    }));
+
+    res.json(flattened);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });

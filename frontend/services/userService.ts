@@ -30,6 +30,16 @@ export async function getPendingFriendRequests(userId: string | number): Promise
   }
 }
 
+export async function getRecommendedFriends(userId: string | number, limit: number = 5): Promise<Friend[]> {
+  try {
+    const recommendations = await apiFetch(`/friendships/${userId}/recommended-friends?limit=${limit}`);
+    return Array.isArray(recommendations) ? recommendations : [];
+  } catch (error) {
+    console.error(`Failed to fetch recommended friends for user ${userId}:`, error);
+    throw error;
+  }
+}
+
 export async function acceptFriendRequest(userId: string | number, friendId: string | number) {
   try {
     return await apiFetch(`/friendships/${userId}/friends/${friendId}/accept`, {
