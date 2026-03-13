@@ -1,4 +1,3 @@
-// components/tonight/TonightHero.tsx
 import React, { useMemo, useState } from "react";
 import { View, Pressable, Image, StyleSheet, Dimensions } from "react-native";
 import Carousel from 'react-native-reanimated-carousel';
@@ -23,7 +22,7 @@ interface TonightHeroProps {
 }
 
 // Static Poster Data
-const HERO_POSTERS = [
+const HERO_POSTERS: HeroPoster[] = [
   {
     id: "outlaws-tuesday",
     barName: "Outlaws",
@@ -81,7 +80,7 @@ export default function TonightHero({ scheduledBars, onPosterPress }: TonightHer
 
           const nextIndex = Math.round(absoluteProgress);
           const wrappedIndex = ((nextIndex % processedData.length) + processedData.length) % processedData.length;
-          
+
           if (wrappedIndex !== activeIndex) {
             setActiveIndex(wrappedIndex);
           }

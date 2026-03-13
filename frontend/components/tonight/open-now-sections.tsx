@@ -1,4 +1,3 @@
-// components/tonight/OpenNowSection.tsx
 import React from "react";
 import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,12 +34,50 @@ const styles = StyleSheet.create({
         flexDirection: "row", alignItems: "center", gap: 12, padding: 12,
         backgroundColor: Theme.container.background, borderRadius: 14, borderWidth: 1, borderColor: Theme.container.secondaryBorder,
     },
-    cardImg: { width: 48, height: 48, borderRadius: 10, borderWidth: 1, borderColor: Theme.container.secondaryBorder },
-    cardTitle: { color: Theme.container.titleText, fontWeight: "800", fontSize: 14 },
-    cardSubtitle: { color: Theme.container.inactiveText, marginTop: 2, fontSize: 13 },
-    cardDetail: { color: Theme.container.inactiveText, marginTop: 2, fontSize: 12 },
-    rightContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
-    statusPill: { width: 60, alignItems: "center", justifyContent: "center", paddingVertical: 4, borderRadius: 999 },
-    statusPillText: { color: "#0b0c12", fontSize: 10, fontWeight: "800", textAlign: "center" },
-    emptyText: { color: Theme.container.inactiveText, textAlign: "center", marginTop: 24, fontSize: 13 },
+    cardImg: { 
+        width: 48, 
+        height: 48, 
+        borderRadius: 10, 
+        borderWidth: 1, 
+        borderColor: Theme.container.secondaryBorder 
+    },
+    cardTitle: { 
+        color: Theme.container.titleText, 
+        fontWeight: "800", 
+        fontSize: 14 
+    },
+    cardSubtitle: { 
+        color: Theme.container.inactiveText, 
+        marginTop: 2, 
+        fontSize: 13 
+    },
+    cardDetail: { 
+        color: Theme.container.inactiveText, 
+        marginTop: 2, 
+        fontSize: 12 
+    },
+    rightContainer: { 
+        flexDirection: "row", 
+        alignItems: "center", 
+        gap: 8 
+    },
+    statusPill: { 
+        width: 60, 
+        alignItems: "center", 
+        justifyContent: "center", 
+        paddingVertical: 4, 
+        borderRadius: 999 
+    },
+    statusPillText: { 
+        color: "#0b0c12", 
+        fontSize: 10, 
+        fontWeight: "800", 
+        textAlign: "center" 
+    },
+    emptyText: { 
+        color: Theme.container.inactiveText, 
+        textAlign: "center", 
+        marginTop: 24, 
+        fontSize: 13 
+    },
 });

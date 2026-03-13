@@ -1,4 +1,3 @@
-// components/tonight/BarCard.tsx
 import { Pressable, Image, View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
