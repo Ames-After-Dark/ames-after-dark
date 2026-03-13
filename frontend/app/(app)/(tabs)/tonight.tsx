@@ -32,7 +32,6 @@ import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 import { Theme } from "@/constants/theme";
 // import type { Friend } from "@/types/types";
 
-import { BarCard } from "@/components/tonight/bar-card";
 import OpenNowSection from "@/components/tonight/open-now-sections";
 import UpcomingSection from "@/components/tonight/upcomming-section";
 import FriendsSection from "@/components/tonight/friends-section";
@@ -41,7 +40,6 @@ import TonightHero from "@/components/tonight/hero-carousel";
 
 import { useUpcomingSchedule } from "@/hooks/use-upcoming-data";
 
-// Tabs
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
   { key: "open", label: "Open Now" },
@@ -55,31 +53,6 @@ type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
 
 const isTabKey = (value: string | undefined): value is TabKey =>
   value === "open" || value === "deals" || value === "friends";
-
-// const HERO_POSTERS = [
-//   {
-//     id: "outlaws-tuesday",
-//     barName: "Outlaws",
-//     image: IMG.DealOutlawsTuesday,
-//   },
-//   {
-//     id: "blue-owl-pool-tuesday",
-//     barName: "The Blue Owl Bar",
-//     image: IMG.DealBlueOwlPoolTuesday,
-//   },
-//   {
-//     id: "paddys-disney-trivia",
-//     barName: "Paddy's Irish Pub",
-//     image: IMG.DealPaddysDisneyTrivia,
-//   },
-//   {
-//     id: "cys-cherry-bombs",
-//     barName: "Cy's Roost",
-//     image: IMG.DealCysCherryBombs,
-//   },
-// ] as const;
-
-// const CURRENT_USER_ID = 1;
 
 export default function Tonight() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -98,12 +71,7 @@ export default function Tonight() {
   // Fetch data from database using the custom hook
   const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
   const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
-  // Temporary for user testing:
-  // const {
-  //   friends,
-  //   loading: friendsLoading,
-  //   error: friendsError,
-  // } = useFriends(CURRENT_USER_ID);
+
   const friendsLoading = false;
   const friendsError = null;
 
@@ -194,8 +162,6 @@ export default function Tonight() {
       pathname: "/bars/[id]",
       params: { id, backTo },
     });
-
-  // const goToFriendsTab = () => router.navigate("/account/account");
 
   return (
     <SafeAreaView
@@ -400,7 +366,6 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.container.background, // "#0f172a",
     borderRadius: 14,
     borderWidth: 1,
-    // borderColor: "#1f2937",
     borderColor: Theme.container.secondaryBorder,
   },
   carouselWrapper: {

@@ -23,15 +23,31 @@ interface TonightHeroProps {
 }
 
 // Static Poster Data
-const HERO_POSTERS: HeroPoster[] = [
-  { id: "outlaws-tuesday", barName: "Outlaws", image: IMG.DealOutlawsTuesday },
-  { id: "blue-owl-pool-tuesday", barName: "The Blue Owl Bar", image: IMG.DealBlueOwlPoolTuesday },
-  { id: "paddys-disney-trivia", barName: "Paddy's Irish Pub", image: IMG.DealPaddysDisneyTrivia },
-  { id: "cys-cherry-bombs", barName: "Cy's Roost", image: IMG.DealCysCherryBombs },
-];
+const HERO_POSTERS = [
+  {
+    id: "outlaws-tuesday",
+    barName: "Outlaws",
+    image: IMG.DealOutlawsTuesday,
+  },
+  {
+    id: "blue-owl-pool-tuesday",
+    barName: "The Blue Owl Bar",
+    image: IMG.DealBlueOwlPoolTuesday,
+  },
+  {
+    id: "paddys-disney-trivia",
+    barName: "Paddy's Irish Pub",
+    image: IMG.DealPaddysDisneyTrivia,
+  },
+  {
+    id: "cys-cherry-bombs",
+    barName: "Cy's Roost",
+    image: IMG.DealCysCherryBombs,
+  },
+] as const;
 
 export default function TonightHero({ scheduledBars, onPosterPress }: TonightHeroProps) {
-  
+
   // State to track current slide for pagination dots
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -59,7 +75,16 @@ export default function TonightHero({ scheduledBars, onPosterPress }: TonightHer
         width={width}
         height={210}
         data={processedData}
-        onSnapToItem={(index) => setActiveIndex(index)}
+        // onSnapToItem={(index) => setActiveIndex(index)}
+
+        // This listener fires continuously during the scroll
+        onProgressChange={(_, absoluteProgress) => {
+          // Math.round ensures the dot flips at the 50% mark of the swipe
+          const nextIndex = Math.round(absoluteProgress);
+          if (nextIndex !== activeIndex) {
+            setActiveIndex(nextIndex % processedData.length);
+          }
+        }}
 
         // Render the item centered within the full-width slide
         renderItem={({ item }) => (
@@ -112,7 +137,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   heroImage: {
-    width: width - 64, 
+    width: width - 64,
     height: 210,
     borderRadius: 12,
     borderWidth: 1,
@@ -120,7 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.container.background,
   },
   slideWrapper: {
-    width: width, 
+    width: width,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -137,7 +162,7 @@ const styles = StyleSheet.create({
   },
   activeDot: {
     backgroundColor: Theme.dark.primary,
-    width: 20, 
+    width: 20,
   },
   inactiveDot: {
     backgroundColor: Theme.container.inactiveBorder,
