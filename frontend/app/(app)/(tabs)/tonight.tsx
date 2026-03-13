@@ -32,7 +32,14 @@ import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 import { Theme } from "@/constants/theme";
 // import type { Friend } from "@/types/types";
 
-// Tabs
+import OpenNowSection from "@/components/tonight/open-now-sections";
+import UpcomingSection from "@/components/tonight/upcomming-section";
+import FriendsSection from "@/components/tonight/friends-section";
+import DealsSection from "@/components/tonight/deals-section";
+import TonightHero from "@/components/tonight/hero-carousel";
+
+import { useUpcomingSchedule } from "@/hooks/use-upcoming-data";
+
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
   { key: "open", label: "Open Now" },
@@ -46,58 +53,6 @@ type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
 
 const isTabKey = (value: string | undefined): value is TabKey =>
   value === "open" || value === "deals" || value === "friends";
-
-const HERO_POSTERS = [
-  {
-    id: "outlaws-tuesday",
-    barName: "Outlaws",
-    image: IMG.DealOutlawsTuesday,
-  },
-  {
-    id: "blue-owl-pool-tuesday",
-    barName: "The Blue Owl Bar",
-    image: IMG.DealBlueOwlPoolTuesday,
-  },
-  {
-    id: "paddys-disney-trivia",
-    barName: "Paddy's Irish Pub",
-    image: IMG.DealPaddysDisneyTrivia,
-  },
-  {
-    id: "cys-cherry-bombs",
-    barName: "Cy's Roost",
-    image: IMG.DealCysCherryBombs,
-  },
-] as const;
-
-type UpcomingWeekItem = {
-  id: string;
-  barId: string;
-  bar: string;
-  title: string;
-  subtitle: string;
-  kind: "Deal" | "Event";
-  startsAt: Date;
-  whenLabel: string;
-};
-
-type UpcomingWeekGroup = {
-  key: string;
-  label: string;
-  items: UpcomingWeekItem[];
-};
-
-function formatUpcomingDateTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(value);
-}
-
-// const CURRENT_USER_ID = 1;
 
 export default function Tonight() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
@@ -116,12 +71,7 @@ export default function Tonight() {
   // Fetch data from database using the custom hook
   const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
   const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
-  // Temporary for user testing:
-  // const {
-  //   friends,
-  //   loading: friendsLoading,
-  //   error: friendsError,
-  // } = useFriends(CURRENT_USER_ID);
+
   const friendsLoading = false;
   const friendsError = null;
 
@@ -182,200 +132,29 @@ export default function Tonight() {
   //   return data;
   // }, [query, friends]);
 
-  const tonightPosters = useMemo(() => {
-    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // const tonightPosters = useMemo(() => {
+  //   const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-    return HERO_POSTERS.map((poster) => {
-      const posterKey = normalize(poster.barName);
-      const matchedBar = scheduledBars.find((bar) => {
-        const barKey = normalize(bar.name);
-        return (
-          barKey === posterKey ||
-          barKey.includes(posterKey) ||
-          posterKey.includes(barKey)
-        );
-      });
+  //   return HERO_POSTERS.map((poster) => {
+  //     const posterKey = normalize(poster.barName);
+  //     const matchedBar = scheduledBars.find((bar) => {
+  //       const barKey = normalize(bar.name);
+  //       return (
+  //         barKey === posterKey ||
+  //         barKey.includes(posterKey) ||
+  //         posterKey.includes(barKey)
+  //       );
+  //     });
 
-      return {
-        id: poster.id,
-        barId: matchedBar ? String(matchedBar.id) : null,
-        image: poster.image,
-      };
-    });
-  }, [scheduledBars]);
+  //     return {
+  //       id: poster.id,
+  //       barId: matchedBar ? String(matchedBar.id) : null,
+  //       image: poster.image,
+  //     };
+  //   });
+  // }, [scheduledBars]);
 
-  const upcomingWeekData = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const now = getNow();
-    const windowEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const stepMs = 5 * 60 * 1000;
-
-    const items: UpcomingWeekItem[] = [];
-
-    const pushOneTimeItem = (
-      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel">,
-      start: string,
-      end: string
-    ) => {
-      const startsAt = new Date(start);
-      const endsAt = new Date(end);
-      if (Number.isNaN(startsAt.getTime())) return;
-      if (Number.isNaN(endsAt.getTime())) return;
-      if (endsAt < now || startsAt > windowEnd) return;
-
-      const isHappeningNow = startsAt <= now && endsAt >= now;
-      const displayTime = isHappeningNow ? now : startsAt;
-
-      items.push({
-        ...base,
-        id: `${base.id}-${displayTime.getTime()}`,
-        startsAt: displayTime,
-        whenLabel: isHappeningNow ? "Happening now" : formatUpcomingDateTime(startsAt),
-      });
-    };
-
-    const pushWeeklyItems = (
-      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel">,
-      rule: { kind: "weekly"; tz: string; daysOfWeek: number[]; startLocalTime: string; endLocalTime: string }
-    ) => {
-      let wasActive = isActive(rule, now);
-
-      if (wasActive) {
-        items.push({
-          ...base,
-          id: `${base.id}-active-${now.getTime()}`,
-          startsAt: now,
-          whenLabel: "Happening now",
-        });
-      }
-
-      for (let cursorMs = now.getTime() + stepMs; cursorMs <= windowEnd.getTime(); cursorMs += stepMs) {
-        const cursor = new Date(cursorMs);
-        const isCurrentlyActive = isActive(rule, cursor);
-
-        if (!wasActive && isCurrentlyActive) {
-          items.push({
-            ...base,
-            id: `${base.id}-${cursor.getTime()}`,
-            startsAt: cursor,
-            whenLabel: formatUpcomingDateTime(cursor),
-          });
-        }
-
-        wasActive = isCurrentlyActive;
-      }
-    };
-
-    scheduledBars.forEach((bar) => {
-      const barId = String(bar.id);
-
-      (bar.dealsScheduled ?? []).forEach((deal) => {
-        const base = {
-          id: `deal-${barId}-${deal.id}`,
-          barId,
-          bar: bar.name,
-          title: deal.title,
-          subtitle: deal.subtitle ?? "",
-          kind: "Deal" as const,
-        };
-
-        if (deal.rule.kind === "one-time") {
-          pushOneTimeItem(base, deal.rule.start, deal.rule.end);
-          return;
-        }
-
-        pushWeeklyItems(base, deal.rule);
-      });
-
-      (bar.eventsScheduled ?? []).forEach((event) => {
-        const subtitle =
-          event.description && event.description !== event.name
-            ? event.description
-            : "";
-
-        const base = {
-          id: `event-${barId}-${event.id}`,
-          barId,
-          bar: bar.name,
-          title: event.name,
-          subtitle,
-          kind: "Event" as const,
-        };
-
-        if (event.rule.kind === "one-time") {
-          pushOneTimeItem(base, event.rule.start, event.rule.end);
-          return;
-        }
-
-        pushWeeklyItems(base, event.rule);
-      });
-    });
-
-    let upcomingItems = items.sort(
-      (a, b) => a.startsAt.getTime() - b.startsAt.getTime()
-    );
-
-    if (q) {
-      upcomingItems = upcomingItems.filter((item) =>
-        [item.bar, item.title, item.subtitle, item.kind]
-          .join(" ")
-          .toLowerCase()
-          .includes(q)
-      );
-    }
-
-    const labelFormatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-    const groupLabelFormatter = new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const groupsMap = new Map<string, UpcomingWeekItem[]>();
-    upcomingItems.forEach((item) => {
-      const groupDate = new Date(item.startsAt);
-      groupDate.setHours(0, 0, 0, 0);
-      const key = `${groupDate.getFullYear()}-${groupDate.getMonth()}-${groupDate.getDate()}`;
-
-      const existing = groupsMap.get(key) ?? [];
-      existing.push(item);
-      groupsMap.set(key, existing);
-    });
-
-    const groups: UpcomingWeekGroup[] = Array.from(groupsMap.entries()).map(
-      ([key, groupedItems]) => {
-        const groupDate = new Date(groupedItems[0].startsAt);
-        groupDate.setHours(0, 0, 0, 0);
-
-        const dayDiff = Math.round(
-          (groupDate.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000)
-        );
-
-        let groupLabel = groupLabelFormatter.format(groupDate);
-        if (dayDiff === 0) groupLabel = "Today";
-        if (dayDiff === 1) groupLabel = "Tomorrow";
-
-        return {
-          key,
-          label: groupLabel,
-          items: groupedItems,
-        };
-      }
-    );
-
-    return {
-      label: `Upcoming This Week • ${labelFormatter.format(now)} - ${labelFormatter.format(windowEnd)}`,
-      items: upcomingItems,
-      groups,
-    };
-  }, [query, scheduledBars]);
+  const upcomingWeekData = useUpcomingSchedule(scheduledBars, query);
 
   // Navigation helpers
   const goToBarDetail = (id: string, backTo: BackTarget = "bars") =>
@@ -383,8 +162,6 @@ export default function Tonight() {
       pathname: "/bars/[id]",
       params: { id, backTo },
     });
-
-  // const goToFriendsTab = () => router.navigate("/account/account");
 
   return (
     <SafeAreaView
@@ -411,37 +188,23 @@ export default function Tonight() {
           contentContainerStyle={{ paddingBottom: 1 }}
           contentInsetAdjustmentBehavior="never"
         >
-          {/* Deals carousel */}
+          {/* HERO deals carousel */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
             style={{ marginBottom: 12 }}
           >
-            {tonightPosters.map((poster) => {
-              // Guard so TS & runtime both know barId is present
-              const barId = poster.barId;
-              if (!barId) return null;
-
-              return (
-                <Pressable
-                  key={poster.id}
-                  onPress={() => goToBarDetail(barId, "home")}
-                  style={{ borderRadius: 12 }}
-                >
-                  <Image
-                    source={poster.image}
-                    style={styles.heroImage}
-                    resizeMode="cover"
-                  />
-                </Pressable>
-              );
-            })}
+            <View style={styles.carouselWrapper}>
+              <TonightHero
+                scheduledBars={scheduledBars}
+                onPosterPress={goToBarDetail}
+              />
+            </View>
           </ScrollView>
 
           {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
           <View style={styles.stickyTabs}>
-            {/* <Text style={styles.sectionTitle}>Events Tonight</Text> */}
 
             {/* Tab row: renders from TAB_META and toggles activeTab */}
             <View style={styles.tabsRow}>
@@ -493,182 +256,28 @@ export default function Tonight() {
             </View>
           </View>
 
-          {/* Content area switches between "friends list" and "bars list" */}
-          {activeTab === null ? (
-            <View style={styles.cardsList}>
-              <Text style={styles.upcomingTitle}>{upcomingWeekData.label}</Text>
-              {upcomingWeekData.groups.map((group) => (
-                <View key={group.key} style={styles.upcomingGroup}>
-                  <Text style={styles.upcomingDayHeader}>{group.label}</Text>
+          {/* Content area switches between: 
+                "open now" 
+                "deals" 
+                "friends near you"
+                "active deals and events ('null')" 
+          */}
+          {/* Content area logic */}
+          {activeTab === null && (
+            <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+          )}
 
-                  {group.items.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={[styles.card, styles.cardDealsVariant]}
-                      onPress={() => goToBarDetail(item.barId)}
-                    >
-                      <Image
-                        source={getLogoAssetForLocationName(item.bar)}
-                        style={styles.cardImg}
-                        resizeMode="cover"
-                      />
+          {activeTab === "open" && (
+            <OpenNowSection data={filteredBars} onBarPress={(id) => goToBarDetail(id, "tonight-open")} />
+          )}
 
-                      <View style={{ flex: 1, justifyContent: "center" }}>
-                        <Text style={styles.cardTitle}>{item.title}</Text>
-                        <Text style={styles.cardSubtitle}>{item.bar}</Text>
-                        <Text style={styles.cardDetail}>{item.whenLabel}</Text>
-                        {!!item.subtitle && (
-                          <Text style={styles.cardDetail}>{item.subtitle}</Text>
-                        )}
-                      </View>
+          {activeTab === "deals" && (
+            <DealsSection data={filteredDeals} onBarPress={(id) => goToBarDetail(id, "tonight-deals")} />
+          )}
 
-                      <View style={styles.rightContainer}>
-                        <View
-                          style={[
-                            styles.statusPill,
-                            {
-                              backgroundColor:
-                                item.kind === "Deal"
-                                  ? Theme.dark.primary
-                                  : Theme.dark.secondary,
-                            },
-                          ]}
-                        >
-                          <Text style={styles.statusPillText}>{item.kind}</Text>
-                        </View>
-
-                        <Ionicons
-                          name="chevron-forward"
-                          size={18}
-                          color={Theme.search.inactiveInput}
-                        />
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ))}
-
-              {!upcomingWeekData.items.length && (
-                <Text style={styles.emptyText}>No upcoming deals or events found. Check back later!</Text>
-              )}
-            </View>
-          ) : activeTab === "friends" ? (
-            // -------- Friends View --------
-            <View style={styles.friendsList}>
-              {/* Temporarily disabled for user testing until tracking data is implemented.
-              {filteredFriends.map((f) => (
-                <Pressable
-                  key={String(f.id)}
-                  onPress={goToFriendsTab}
-                  style={styles.friendTile}
-                >
-                  <Image
-                    source={f.avatar || require("@/assets/images/Logo.png")}
-                    style={styles.friendAvatar}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.friendName}>
-                      {f.name || f.username || "Friend"}
-                    </Text>
-                    <Text style={styles.friendBar}>{f.status || "Offline"}</Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={Theme.search.inactiveInput}
-                  />
-                </Pressable>
-              ))}
-              {!filteredFriends.length && (
-                <Text style={styles.emptyText}>No nearby friends found.</Text>
-              )}
-              */}
-              <Text style={styles.emptyText}>Friend tracking coming soon!</Text>
-            </View>
-          ) : activeTab === "open" ? (
-            // -------- Open Now View --------
-            <View style={styles.cardsList}>
-              {filteredBars.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={styles.card}
-                  onPress={() => goToBarDetail(item.id, "tonight-open")}
-                >
-                  <Image
-                    source={getLogoAssetForLocationName(item.bar)}
-                    style={styles.cardImg}
-                    resizeMode="cover"
-                  />
-                  <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <Text style={styles.cardTitle}>{item.bar}</Text>
-                    {!!item.event && (
-                      <Text style={styles.cardSubtitle}>{item.event}</Text>
-                    )}
-                    {!!item.openHours && (
-                      <Text style={styles.cardDetail}>Hours: {item.openHours}</Text>
-                    )}
-                    {!!item.specials && (
-                      <Text style={styles.cardDetail}>{item.specials}</Text>
-                    )}
-                  </View>
-                  <View style={styles.rightContainer}>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { backgroundColor: item.isOpen ? Theme.dark.success : "#6b7280" },
-                      ]}
-                    >
-                      <Text style={styles.statusPillText}>
-                        {item.isOpen ? "Open" : "Closed"}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
-                  </View>
-                </Pressable>
-              ))}
-              {!filteredBars.length && (
-                <Text style={styles.emptyText}>No bars currently open.</Text>
-              )}
-            </View>
-          ) : activeTab === "deals" ? (
-            // -------- Deals View --------
-            <View style={styles.cardsList}>
-              {filteredDeals.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={[styles.card, styles.cardDealsVariant]}
-                  onPress={() => goToBarDetail(item.barId, "tonight-deals")}
-                >
-                  <Image
-                    source={getLogoAssetForLocationName(item.bar)}
-                    style={styles.cardImg}
-                    resizeMode="cover"
-                  />
-                  <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardSubtitle}>{item.bar}</Text>
-                    {!!item.subtitle && (
-                      <Text style={styles.cardDetail}>{item.subtitle}</Text>
-                    )}
-                  </View>
-                  <View style={styles.rightContainer}>
-                    <View
-                      style={[
-                        styles.statusPill,
-                        { backgroundColor: Theme.dark.primary },
-                      ]}
-                    >
-                      <Text style={styles.statusPillText}>Deal</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={Theme.search.inactiveInput} />
-                  </View>
-                </Pressable>
-              ))}
-              {!filteredDeals.length && (
-                <Text style={styles.emptyText}>No deals available tonight.</Text>
-              )}
-            </View>
-          ) : null}
+          {activeTab === "friends" && (
+            <FriendsSection />
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -691,15 +300,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
   },
-  heroImage: {
-    width: 300,
-    height: 200,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.container.mainBorder,
-    backgroundColor: Theme.container.background,
-  },
-
   stickyTabs: {
     backgroundColor: Theme.dark.background, // "#0B0C12",
     paddingTop: 6,
@@ -758,11 +358,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 0,
   },
-  cardsList: { 
-    padding: 16, 
-    gap: 12, 
-    paddingBottom: 92 
-  },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -771,117 +366,11 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.container.background, // "#0f172a",
     borderRadius: 14,
     borderWidth: 1,
-    // borderColor: "#1f2937",
     borderColor: Theme.container.secondaryBorder,
   },
-  cardDealsVariant: {
-    borderColor: Theme.container.secondaryBorder, // "#164e63",
-    backgroundColor: Theme.container.background, // "#0b1420"
+  carouselWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardImg: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    borderWidth: 1,
-    // borderColor: Theme.container.mainBorder, // "#1f2937",
-    borderColor: Theme.container.secondaryBorder,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  cardTitle: {
-    color: Theme.container.titleText, // "#f1f5f9",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  cardSubtitle: {
-    color: Theme.container.inactiveText, // "#cbd5e1",
-    marginTop: 2,
-    fontSize: 13,
-  },
-  cardDetail: {
-    color: Theme.container.inactiveText, // "#94a3b8",
-    marginTop: 2,
-    fontSize: 12,
-  },
-  statusPill: {
-    width: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 0,
-    paddingVertical: 4,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-  },
-  statusPillText: {
-    color: "#0b0c12",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-    textAlign: "center",
-  },
-  rightContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  friendsList: { 
-    paddingHorizontal: 16, 
-    paddingTop: 12, 
-    gap: 10 
-  },
-  friendTile: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: Theme.container.background, // "#0f172a",
-    borderWidth: 1,
-    // borderColor: Theme.container.mainBorder, // "#1f2937",
-    borderColor: Theme.container.secondaryBorder,
-  },
-  friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 10, // 999,
-    borderWidth: 1,
-    // borderColor: Theme.container.mainBorder, // "#1f2937",
-    borderColor: Theme.container.secondaryBorder,
-  },
-  friendName: {
-    color: Theme.container.titleText, // "#f1f5f9",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  friendBar: {
-    color: Theme.container.inactiveText, // "#93c5fd",
-    fontWeight: "600",
-    fontSize: 12,
-    marginTop: 2,
-  },
-  emptyText: {
-    color: Theme.container.inactiveText, // "#94a3b8",
-    textAlign: "center",
-    marginTop: 24,
-    fontSize: 13,
-  },
-  upcomingTitle: {
-    color: Theme.container.titleText,
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  upcomingGroup: {
-    gap: 12,
-  },
-  upcomingDayHeader: {
-    color: Theme.container.inactiveText,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
-  },
-  
 });
