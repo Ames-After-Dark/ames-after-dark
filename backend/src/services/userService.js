@@ -252,6 +252,17 @@ exports.getUserProfileFavoriteDrinkOptions = async () => {
     });
 };
 
+exports.getUserProfileFavoriteDrinkOptionsById = async (id) => {
+    return await prisma.drinks.findUnique({
+        where: { id: Number(id) },
+        select: {
+            id: true,
+            name: true,
+            image_url: true,
+        }
+    });
+};
+
 exports.getUserProfilePhotoOptions = async () => {
     return await prisma.user_profile_photos.findMany({
         select: {
@@ -262,5 +273,16 @@ exports.getUserProfilePhotoOptions = async () => {
         orderBy: {
             name: 'asc',
         },
+    });
+};
+
+exports.getUserProfilePhotoOptionsById = async (id) => {
+    return await prisma.user_profile_photos.findUnique({
+        where: { id: Number(id) },
+        select: {
+            id: true,
+            name: true,
+            image_url: true,
+        }
     });
 };
