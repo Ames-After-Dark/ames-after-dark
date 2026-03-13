@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/types/bars';
-import { getBarImageSource } from "@/utils/bar-assets";
+import { getBarImageSource, getBarLogoSource } from "@/utils/bar-assets";
 
 interface BarCardProps {
     item: Bar & { __openNow?: boolean };
@@ -13,14 +13,15 @@ interface BarCardProps {
 }
 
 export const BarCard = ({ item, isFav, onToggleFav, onPress }: BarCardProps) => {
-    const imageSource = getBarImageSource(item);
+    // const imageSource = getBarImageSource(item);
+    const logoSource = getBarLogoSource(item);
     const firstDeal = item.dealsScheduled?.[0]?.title ?? item.eventsScheduled?.[0]?.name ?? "No specials tonight";
     const openNow = !!item.__openNow;
 
     return (
         <TouchableOpacity onPress={() => onPress(String(item.id))}>
             <View style={styles.barCard}>
-                <Image source={imageSource} style={styles.barImage} resizeMode="cover" />
+                <Image source={logoSource} style={styles.barImage} resizeMode="cover" />
                 <View style={styles.barInfo}>
                     <Text style={styles.barName}>{item.name}</Text>
                     <Text style={styles.barStatus}>

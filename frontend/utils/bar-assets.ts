@@ -48,8 +48,16 @@ export const getBarAssets = (bar: Bar) => {
  */
 export const getBarImageSource = (item: any) => {
   return (
-    barCoverMap[item.name] || 
-    (item.logoUrl ? { uri: item.logoUrl } : item.logo) || 
+    barCoverMap[item.name] ||
+    (item.logoUrl ? { uri: item.logoUrl } : item.logo) ||
+    IMG.LOGO
+  );
+};
+
+export const getBarLogoSource = (item: any) => {
+  return (
+    barLogoMap[item.name] ||
+    (item.logoUrl ? { uri: item.logoUrl } : item.logo) ||
     IMG.LOGO
   );
 };
