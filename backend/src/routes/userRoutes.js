@@ -20,6 +20,8 @@ router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
 
 router.get('/profile/favorite-drinks', userController.getUserProfileFavoriteDrinkOptions);
+router.get('/profile/favorite-drinks/:id', userController.getUserProfileFavoriteDrinkOptionsById);
 router.get('/profile/photo-options', userController.getUserProfilePhotoOptions);
+router.get('/profile/photo-options/:id', userController.getUserProfilePhotoOptionsById);
 
 module.exports = router;

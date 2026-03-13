@@ -492,11 +492,41 @@ exports.getUserProfileFavoriteDrinkOptions = async (req, res) => {
   }
 };
 
+// GET /api/users/profile/favorite-drinks/:id - get a specific favorite drink option for user profile
+exports.getUserProfileFavoriteDrinkOptionsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const favoriteDrink = await userService.getUserProfileFavoriteDrinkOptionsById(id);
+    if (!favoriteDrink) {
+      return res.status(404).json({ message: 'Favorite drink not found' });
+    }
+    res.json(favoriteDrink);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // GET /api/users/profile/photo-options - get photo options for user profile
 exports.getUserProfilePhotoOptions = async (req, res) => {
   try {
     const photoOptions = await userService.getUserProfilePhotoOptions();
     res.json(photoOptions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/profile/photo-options/:id - get a specific photo option for user profile
+exports.getUserProfilePhotoOptionsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const photoOption = await userService.getUserProfilePhotoOptionsById(id);
+    if (!photoOption) {
+      return res.status(404).json({ message: 'Photo option not found' });
+    }
+    res.json(photoOption);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
