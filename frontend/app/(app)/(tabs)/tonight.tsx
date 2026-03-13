@@ -37,6 +37,7 @@ import UpcomingSection from "@/components/tonight/upcomming-section";
 import FriendsSection from "@/components/tonight/friends-section";
 import DealsSection from "@/components/tonight/deals-section";
 import TonightHero from "@/components/tonight/hero-carousel";
+import { TonightSkeleton } from "@/components/tonight/tonight-skeleton";
 
 import { useUpcomingSchedule } from "@/hooks/use-upcoming-data";
 
@@ -170,10 +171,11 @@ export default function Tonight() {
     >
       {/* Loading state */}
       {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Theme.dark.primary} />
-          <Text style={styles.loadingText}>Loading tonight&apos;s events...</Text>
-        </View>
+        // <View style={styles.loadingContainer}>
+        //   <ActivityIndicator size="large" color={Theme.dark.primary} />
+        //   <Text style={styles.loadingText}>Loading tonight&apos;s events...</Text>
+        // </View>
+        <TonightSkeleton />
       )}
 
       {/* Error state */}
