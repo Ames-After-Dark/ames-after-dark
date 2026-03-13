@@ -77,12 +77,13 @@ export default function TonightHero({ scheduledBars, onPosterPress }: TonightHer
         data={processedData}
         // onSnapToItem={(index) => setActiveIndex(index)}
 
-        // This listener fires continuously during the scroll
         onProgressChange={(_, absoluteProgress) => {
-          // Math.round ensures the dot flips at the 50% mark of the swipe
+
           const nextIndex = Math.round(absoluteProgress);
-          if (nextIndex !== activeIndex) {
-            setActiveIndex(nextIndex % processedData.length);
+          const wrappedIndex = ((nextIndex % processedData.length) + processedData.length) % processedData.length;
+          
+          if (wrappedIndex !== activeIndex) {
+            setActiveIndex(wrappedIndex);
           }
         }}
 
@@ -105,15 +106,19 @@ export default function TonightHero({ scheduledBars, onPosterPress }: TonightHer
 
       {/* Pagination Indicators (Scroll Dots) */}
       <View style={styles.paginationRow}>
-        {processedData.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              activeIndex === index ? styles.activeDot : styles.inactiveDot
-            ]}
-          />
-        ))}
+        {processedData.map((_, index) => {
+          const isActive = activeIndex === index;
+          return (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                isActive ? styles.activeDot : styles.inactiveDot,
+                { opacity: isActive ? 1 : 0.4 }
+              ]}
+            />
+          );
+        })}
       </View>
     </View>
   );
