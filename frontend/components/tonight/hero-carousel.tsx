@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   posterPressable: {
-    width: width * 0.9,
+    width: width * 0.92,
     borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
