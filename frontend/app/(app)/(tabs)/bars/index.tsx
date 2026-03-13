@@ -11,20 +11,9 @@ import ErrorState from "@/components/ui/error-state";
 import type { Bar } from "@/types/bars";
 import { IMG } from "../../../../assets/assets"; 
 
-import { Theme } from '@/constants/theme';
+import { getBarImageSource } from "@/utils/bar-assets";
 
-// Map bar names to cover images
-const barCoverMap: { [key: string]: any } = {
-  "AJ's Ultralounge": IMG.AJs,
-  "BNC Fieldhouse": IMG.bnc,
-  "Cy's Roost": IMG.CysRoost,
-  "Welch Ave Station": IMG.Welch,
-  "The Blue Owl Bar": IMG.BlueOwl,
-  "Paddy's Irish Pub": IMG.Paddys,
-  "Sips": IMG.Sips,
-  "Mickey's Irish Pub": IMG.Mickey,
-  "Outlaws": IMG.Outlaws,
-};
+import { Theme } from '@/constants/theme';
 
 export default function Bars() {
   const router = useRouter();
@@ -113,8 +102,9 @@ useEffect(() => {
       item.eventsScheduled?.[0]?.name ??
       "No specials tonight";
     const openNow = !!item.__openNow;
-    // Use mock cover images for now since backend doesn't have photos yet
-    const imageSource = barCoverMap[item.name] || (item.logoUrl ? { uri: item.logoUrl } : item.logo);
+    
+    const imageSource = getBarImageSource(item);
+
     const id = String(item.id);
     const favOn = isFav(item);
 
