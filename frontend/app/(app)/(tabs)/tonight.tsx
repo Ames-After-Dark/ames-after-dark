@@ -14,7 +14,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,11 +22,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useTonightData } from "@/hooks/useTonightData";
 // import { useFriends } from "@/hooks/useFriends";
 import { useBars } from "@/hooks/useBars";
-import { IMG } from "@/assets/assets";
-import { getLogoAssetForLocationName } from "@/utils/locationLogos";
+
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
-import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 
 import { Theme } from "@/constants/theme";
 // import type { Friend } from "@/types/types";
