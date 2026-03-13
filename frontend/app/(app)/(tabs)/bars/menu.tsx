@@ -5,11 +5,29 @@ import { useBarDetail } from "@/hooks/useBarDetail";
 import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/ui/error-state";
 import { MenuSection, MenuItemModal } from "@/components/bars/menu-components";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { bar, loading } = useBarDetail(id);
   const [activeItem, setActiveItem] = useState<{ name: string; desc: string } | null>(null);
+
+  const MenuSkeleton = () => (
+    <View style={{ padding: 16, gap: 20 }}>
+      <Skeleton width="50%" height={30} />
+      <View style={{ gap: 10 }}>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Theme.container.mainBorder }}>
+            <View style={{ gap: 6, flex: 1 }}>
+              <Skeleton width="40%" height={18} />
+              <Skeleton width="70%" height={14} />
+            </View>
+            <Skeleton width={40} height={18} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 
   const sections = useMemo(() => {
     if (!bar?.menu?.sections) return [];
@@ -27,11 +45,13 @@ export default function BarMenuScreen() {
       .filter((section) => section.items.length > 0);
   }, [bar]);
 
-  if (loading) return (
-    <View style={[styles.container, styles.center]}>
-      <Text style={styles.loading}>Loading menu!</Text>
-    </View>
-  );
+  // if (loading) return (
+  //   <View style={[styles.container, styles.center]}>
+  //     <Text style={styles.loading}>Loading menu!</Text>
+  //   </View>
+  // );
+
+  if (loading) return <MenuSkeleton />;
 
   if (!bar) return <ErrorState title="Bar not found" subtitle="Please try again later." />;
 

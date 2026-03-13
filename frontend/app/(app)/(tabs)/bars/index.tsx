@@ -9,6 +9,7 @@ import ErrorState from "@/components/ui/error-state";
 import { Theme } from '@/constants/theme';
 
 import { BarCard, FilterTab } from "@/components/bars/bar-list-components";
+import { Skeleton, } from "@/components/ui/skeleton";
 
 export default function Bars() {
   const router = useRouter();
@@ -37,6 +38,21 @@ export default function Bars() {
 
   const toggleFavorite = (id: string) => setFav(prev => ({ ...prev, [id]: !prev[id] }));
   const isFav = (id: string, backendFav: boolean) => fav[id] ?? backendFav;
+
+  const BarsSkeleton = () => (
+    <View style={{ padding: 16 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <View key={i} style={{ flexDirection: 'row', marginBottom: 16, alignItems: 'center' }}>
+          <Skeleton width={70} height={70} borderRadius={12} />
+          <View style={{ marginLeft: 12, flex: 1, gap: 8 }}>
+            <Skeleton width="60%" height={20} />
+            <Skeleton width="40%" height={14} />
+            <Skeleton width="80%" height={14} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
   const visibleBars = useMemo(() => {
     if (!bars) return [];
@@ -88,7 +104,8 @@ export default function Bars() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 24 }} color={Theme.dark.primary} />
+        // <ActivityIndicator style={{ marginTop: 24 }} color={Theme.dark.primary} />
+        <BarsSkeleton />
       ) : visibleBars.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
