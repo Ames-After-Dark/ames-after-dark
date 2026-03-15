@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { Theme } from '@/constants/theme';
@@ -25,11 +26,13 @@ export default function MapScreen() {
 
     const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
 
+    const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+
     useEffect(() => {
 
         if (!isLoading && locations.length > 0 && selectedId) {
             const target = locations.find(loc => String(loc.id) === selectedId);
-            
+
             if (target) {
 
                 setSelectedLocation(target);
@@ -39,10 +42,19 @@ export default function MapScreen() {
                     longitude: target.longitude,
                     latitudeDelta: 0.005,
                     longitudeDelta: 0.005,
-                }, 1000); 
+                }, 1000);
             }
         }
     }, [selectedId, isLoading, locations]);
+
+    useEffect(() => {
+        (async () => {
+
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setLocationPermission(status === 'granted');
+        })();
+    }, []);
+
 
     if (isLoading) return <MapSkeleton />;
 
@@ -62,6 +74,12 @@ export default function MapScreen() {
                 <MapView
                     ref={mapRef}
                     style={styles.map}
+
+                    // 3. Enable these two props
+                    showsUserLocation={locationPermission === true}
+                    followsUserLocation={false} // Usually false, so the map doesn't "snap" back while browsing
+                    showsMyLocationButton={true} // Adds the native button to center on user
+
                     initialRegion={{
                         latitude: 42.03,
                         longitude: -93.63,
@@ -93,18 +111,18 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { 
-        flex: 1, 
-        backgroundColor: Theme.dark.background 
+    container: {
+        flex: 1,
+        backgroundColor: Theme.dark.background
     },
-    mapContainer: { 
-        flex: 1, 
-        borderRadius: 8, 
-        overflow: 'hidden', 
-        marginTop: 16, 
-        marginHorizontal: 16 
+    mapContainer: {
+        flex: 1,
+        borderRadius: 8,
+        overflow: 'hidden',
+        marginTop: 16,
+        marginHorizontal: 16
     },
-    map: { 
-        ...StyleSheet.absoluteFillObject 
+    map: {
+        ...StyleSheet.absoluteFillObject
     },
 });
