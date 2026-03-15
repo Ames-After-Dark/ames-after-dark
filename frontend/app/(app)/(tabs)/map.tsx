@@ -4,6 +4,8 @@ import MapView from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 
+import { useLocationTracker } from '@/hooks/useLocationTracker';
+
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
@@ -18,25 +20,87 @@ const ZOOM_THRESHOLD = 0.005;
 export default function MapScreen() {
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
-
     const { locations, isLoading, error } = useMapLocations();
 
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
     const [currentDelta, setCurrentDelta] = useState(0.1);
+    const [hasPermission, setHasPermission] = useState(false);
 
     const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
+    const [mapReady, setMapReady] = useState(false);
 
-    const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+    // TODO - this is currently hardcoded for testing purposes, but should be replaced with actual user ID from auth context
+    const currentUserId = 21;
 
+    useLocationTracker(currentUserId);
+
+    // Effect 1: Just handle permissions
     useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            setHasPermission(status === 'granted');
+        })();
+    }, []);
 
+    // Effect 2: Handle Camera Animation
+    useEffect(() => {
+        // Only fly to user if: Map is ready, we have permission, and NO bar is selected
+        if (!mapReady || !hasPermission || selectedId) return;
+
+        (async () => {
+            try {
+                const location = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced
+                });
+
+                mapRef.current?.animateToRegion({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                }, 1000);
+            } catch (err) {
+                console.error("Could not get initial location", err);
+            }
+        })();
+    }, [mapReady, hasPermission, selectedId]); // Now this triggers correctly
+
+    // useEffect(() => {
+
+    //     (async () => {
+
+    //         const { status } = await Location.requestForegroundPermissionsAsync();
+    //         if (status !== 'granted') return;
+    //         setHasPermission(true);
+
+    //         const location = await Location.getCurrentPositionAsync({
+    //             accuracy: Location.Accuracy.Balanced
+    //         });
+
+    //         const { latitude, longitude } = location.coords;
+
+    //         console.log(`Initial location for ${currentUserId}: ${latitude}, ${longitude}`);
+    //         console.log(`Current selected location ID is: ${selectedId}`)
+
+    //         // animate camera
+    //         if (!selectedId) {
+    //             mapRef.current?.animateToRegion({
+    //                 latitude,
+    //                 longitude,
+    //                 latitudeDelta: 0.01,
+    //                 longitudeDelta: 0.01,
+    //             }, 1000);
+    //         }
+
+    //     })();
+    // }, [mapReady, hasPermission, selectedId]);
+
+    // handle navigation to a specific bar from deep link/params
+    useEffect(() => {
         if (!isLoading && locations.length > 0 && selectedId) {
             const target = locations.find(loc => String(loc.id) === selectedId);
-
             if (target) {
-
                 setSelectedLocation(target);
-
                 mapRef.current?.animateToRegion({
                     latitude: target.latitude - 0.001,
                     longitude: target.longitude,
@@ -47,15 +111,6 @@ export default function MapScreen() {
         }
     }, [selectedId, isLoading, locations]);
 
-    useEffect(() => {
-        (async () => {
-
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            setLocationPermission(status === 'granted');
-        })();
-    }, []);
-
-
     if (isLoading) return <MapSkeleton />;
 
     if (error || shouldForceErrorPage('map')) {
@@ -63,7 +118,9 @@ export default function MapScreen() {
     }
 
     const handleGoToBarPage = () => {
+
         if (!selectedLocation) return;
+
         router.push({ pathname: "/bars/[id]", params: { id: String(selectedLocation.id), backTo: "map" } });
         setSelectedLocation(null);
     };
@@ -74,12 +131,12 @@ export default function MapScreen() {
                 <MapView
                     ref={mapRef}
                     style={styles.map}
+                    onMapReady={() => setMapReady(true)}
+                    showsUserLocation={hasPermission}
+                    showsMyLocationButton={true}
+                    showsPointsOfInterest={false}
 
-                    // 3. Enable these two props
-                    showsUserLocation={locationPermission === true}
-                    followsUserLocation={false} // Usually false, so the map doesn't "snap" back while browsing
-                    showsMyLocationButton={true} // Adds the native button to center on user
-
+                    // Ames, IA
                     initialRegion={{
                         latitude: 42.03,
                         longitude: -93.63,
@@ -88,7 +145,6 @@ export default function MapScreen() {
                     }}
                     onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
                     onPress={() => setSelectedLocation(null)}
-                    showsPointsOfInterest={false}
                 >
                     <MapMarkers
                         locations={locations}
