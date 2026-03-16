@@ -1,72 +1,123 @@
 import React from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
+import { calculateDistance } from '@/utils/location-utils';
 import { Theme } from '@/constants/theme';
 
-interface FriendMarkersProps {
-    friends: any[];
-    onSelectFriend: (friend: any) => void;
+interface FriendLocation {
+    id: number;
+    username: string;
+    name: string;
+    profile_pic_url?: string;
+    user_locations: {
+        latitude: number;
+        longitude: number;
+        updated_at: string;
+    };
 }
 
-export const FriendMarkers = ({ friends, onSelectFriend }: FriendMarkersProps) => {
+interface BarLocation {
+    id: string | number;
+    name: string;
+    latitude: number;
+    longitude: number;
+    logo?: any;
+}
+
+// Define the Props for this component
+interface FriendMarkersProps {
+    friends: FriendLocation[];
+    locations: BarLocation[];
+    onSelectFriend: (item: FriendLocation | { bar: BarLocation, friends: FriendLocation[] }) => void;
+}
+
+const GEOFENCE_RADIUS_METERS = 50; // TODO - define the radius for geofencing; no clue what it should be
+
+export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
+
+    const barGroups = friends.reduce((acc, friend) => {
+        const atBar = locations.find(bar =>
+            calculateDistance(
+                friend.user_locations.latitude,
+                friend.user_locations.longitude,
+                bar.latitude,
+                bar.longitude
+            ) <= GEOFENCE_RADIUS_METERS
+        );
+
+        if (atBar) {
+            // Use the bar's ID as the key for the group
+            const barId = String(atBar.id);
+
+            if (!acc[barId]) {
+                acc[barId] = { bar: atBar, friends: [] };
+            }
+            acc[barId].friends.push(friend);
+        }
+        return acc;
+    }, {} as Record<string, { bar: BarLocation; friends: FriendLocation[] }>);
+    // ^ That 'as Record...' part tells TypeScript exactly what the {} will become
+
     return (
         <>
-            {friends.map((friend) => {
-                const loc = friend.user_locations;
-                if (!loc) return null;
+            {Object.values(barGroups).map((group: any) => (
+                <Marker
+                    key={`group-${group.bar.id}`}
+                    coordinate={{ latitude: group.bar.latitude, longitude: group.bar.longitude }}
+                    // If 1 person, selecting shows the Friend. If >1, it shows the Group object.
+                    onPress={() => onSelectFriend(group.friends.length === 1 ? group.friends[0] : group)}
+                    zIndex={100}
+                >
+                    <View style={styles.groupMarkerContainer}>
+                        <Image
+                            source={{ uri: group.friends[0].profile_pic_url || `https://ui-avatars.com/api/?name=${group.friends[0].name}&background=7b61ff&color=fff` }}
+                            style={styles.friendAvatar}
+                        />
 
-                const fallbackAvatar = `https://ui-avatars.com/api/?name=${friend.username}&background=7b61ff&color=fff`;
-
-                return (
-                    <Marker
-                        key={`friend-${friend.id}`}
-                        coordinate={{
-                            latitude: loc.latitude,
-                            longitude: loc.longitude,
-                        }}
-                        onPress={(e) => {
-                            e.stopPropagation();
-                            onSelectFriend(friend);
-                        }}
-                        tappable={true}
-                    >
-                        <View style={styles.friendMarkerContainer} pointerEvents="none">
-                            <Image
-                                source={{ uri: friend.profile_pic_url || fallbackAvatar }}
-                                style={styles.friendAvatar}
-                            />
-                            <View style={styles.friendMarkerPulse} />
-                        </View>
-                    </Marker>
-                );
-            })}
+                        {/* THE BADGE: Only shows if more than 1 person is there */}
+                        {group.friends.length > 1 && (
+                            <View style={styles.badgeContainer}>
+                                <Text style={styles.badgeText}>+{group.friends.length - 1}</Text>
+                            </View>
+                        )}
+                    </View>
+                </Marker>
+            ))}
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    friendMarkerContainer: {
+    groupMarkerContainer: {
+        width: 48,
+        height: 48,
         alignItems: 'center',
         justifyContent: 'center',
-        width: 44,
-        height: 44,
     },
     friendAvatar: {
         width: 38,
         height: 38,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: Theme.dark.primary,
+        borderColor: '#7b61ff',
         backgroundColor: '#CCC',
     },
-    friendMarkerPulse: {
+    badgeContainer: {
         position: 'absolute',
-        bottom: 0,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Theme.dark.primary,
-        opacity: 0.6,
-        transform: [{ translateY: 5 }],
+        top: 0,
+        right: 0,
+        backgroundColor: '#7b61ff',
+        borderRadius: 10,
+        width: 22,
+        height: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    badgeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

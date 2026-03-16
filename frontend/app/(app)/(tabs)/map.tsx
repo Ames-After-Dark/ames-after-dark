@@ -13,6 +13,7 @@ import { useMapLocations } from '@/hooks/useMapLocations';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+import { calculateDistance } from '@/utils/location-utils';
 
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
@@ -20,6 +21,9 @@ import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
 import { FriendMarkers } from '@/components/map/friend-markers';
 
 const ZOOM_THRESHOLD = 0.005;
+
+// TODO - adjust based on Ames bar sizes; no clue what this should really be
+const GEOFENCE_RADIUS_METERS = 50;
 
 export default function MapScreen() {
 
@@ -36,10 +40,11 @@ export default function MapScreen() {
 
     const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
     const [mapReady, setMapReady] = useState(false);
+    const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
     const currentUserId = user?.id;
 
-    console.log("Current user ID in MapScreen:", currentUserId);
+    // console.log("Current user ID in MapScreen:", currentUserId);
 
     useLocationTracker(currentUserId);
     const { friends } = useFriendsLocations(currentUserId);
@@ -55,7 +60,7 @@ export default function MapScreen() {
     // handle camera animation
     useEffect(() => {
 
-        // Only fly to user if: Map is ready, we have permission, and NO bar is selected
+        // only fly to user if: map is ready, we have permission, no bar is selected
         if (!mapReady || !hasPermission || selectedId) return;
 
         (async () => {
@@ -63,6 +68,8 @@ export default function MapScreen() {
                 const location = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
+
+                setUserLocation(location.coords);
 
                 mapRef.current?.animateToRegion({
                     latitude: location.coords.latitude,
@@ -74,7 +81,7 @@ export default function MapScreen() {
                 console.error("Could not get initial location", err);
             }
         })();
-    }, [mapReady, hasPermission, selectedId]); // Now this triggers correctly
+    }, [mapReady, hasPermission, selectedId]);
 
     // handle navigation to a specific bar from deep link/params
     useEffect(() => {
@@ -106,6 +113,35 @@ export default function MapScreen() {
         setSelectedLocation(null);
     };
 
+    const activeFriends = friends.filter(friend => {
+        const friendLoc = friend.user_locations;
+        if (!friendLoc) return false;
+
+        // check if the friend is within the radius of ANY bar
+        return locations.some(bar => {
+            const distance = calculateDistance(
+                friendLoc.latitude,
+                friendLoc.longitude,
+                bar.latitude,
+                bar.longitude
+            );
+            return distance <= GEOFENCE_RADIUS_METERS;
+        });
+    });
+
+    const groupedByBar = activeFriends.reduce((acc, friend) => {
+        // Find which bar this friend is at
+        const atBar = locations.find(bar =>
+            calculateDistance(friend.user_locations.latitude, friend.user_locations.longitude, bar.latitude, bar.longitude) <= 50
+        );
+
+        if (atBar) {
+            if (!acc[atBar.id]) acc[atBar.id] = { bar: atBar, friends: [] };
+            acc[atBar.id].friends.push(friend);
+        }
+        return acc;
+    }, {} as Record<string, { bar: any, friends: any[] }>);
+
     return (
         <View style={styles.container}>
             <View style={styles.mapContainer}>
@@ -124,6 +160,7 @@ export default function MapScreen() {
                         latitudeDelta: 0.1,
                         longitudeDelta: 0.05,
                     }}
+
                     onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
                     onPress={() => setSelectedLocation(null)}
                 >
@@ -136,10 +173,36 @@ export default function MapScreen() {
                         mapRef={mapRef}
                     />
 
-                    <FriendMarkers
+                    {/* <FriendMarkers
                         friends={friends}
                         onSelectFriend={setSelectedLocation}
+                    /> */}
+                    {/* Only show friends who passed the geofence check */}
+                    <FriendMarkers
+                        friends={activeFriends}
+                        locations={locations}
+                        onSelectFriend={setSelectedLocation}
                     />
+
+                    {/* The Self Marker */}
+                    {userLocation && (
+                        <Marker
+                            key="me"
+                            coordinate={{
+                                latitude: userLocation.latitude,
+                                longitude: userLocation.longitude,
+                            }}
+                            zIndex={999}
+                        >
+                            <View style={[styles.friendMarkerContainer, { borderColor: '#00EAFF' }]}>
+                                <Image
+                                    source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
+                                    style={styles.friendAvatar}
+                                />
+                                <View style={[styles.friendMarkerPulse, { backgroundColor: '#00EAFF' }]} />
+                            </View>
+                        </Marker>
+                    )}
                 </MapView>
             </View>
 
@@ -147,6 +210,7 @@ export default function MapScreen() {
                 location={selectedLocation}
                 onClose={() => setSelectedLocation(null)}
                 onViewDetails={handleGoToBarPage}
+                onSelectLocation={setSelectedLocation}
             />
         </View>
     );
@@ -166,5 +230,29 @@ const styles = StyleSheet.create({
     },
     map: {
         ...StyleSheet.absoluteFillObject
-    }
+    },
+    friendMarkerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 44,
+        height: 44,
+    },
+    friendAvatar: {
+        width: 38,
+        height: 38,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: Theme.dark.primary,
+        backgroundColor: '#CCC',
+    },
+    friendMarkerPulse: {
+        position: 'absolute',
+        bottom: 0,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: Theme.dark.primary,
+        opacity: 0.6,
+        transform: [{ translateY: 5 }],
+    },
 });
