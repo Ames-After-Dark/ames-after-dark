@@ -13,7 +13,7 @@ async function updateUserLocationByUserId(userId, data) {
   return prisma.user_locations.upsert({
     where: { user_id: userId },
     update: {
-      data,
+      ...data,
       updated_at: new Date(),
     },
     create: { user_id: userId, ...data },
