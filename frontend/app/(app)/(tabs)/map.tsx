@@ -17,6 +17,7 @@ import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
+import { FriendMarkers } from '@/components/map/friend-markers';
 
 const ZOOM_THRESHOLD = 0.005;
 
@@ -53,6 +54,7 @@ export default function MapScreen() {
 
     // handle camera animation
     useEffect(() => {
+
         // Only fly to user if: Map is ready, we have permission, and NO bar is selected
         if (!mapReady || !hasPermission || selectedId) return;
 
@@ -133,36 +135,11 @@ export default function MapScreen() {
                         onSelect={setSelectedLocation}
                         mapRef={mapRef}
                     />
-                    {/* Friend Locations */}
-                    {friends.map((friend) => {
-                        const loc = friend.user_locations;
-                        if (!loc) return null;
 
-                        return (
-                            <Marker
-                                key={`friend-${friend.id}`}
-                                coordinate={{
-                                    latitude: loc.latitude,
-                                    longitude: loc.longitude,
-                                }}
-                                // CRITICAL: This ensures the marker is actually tappable on Android
-                                onPress={(e) => {
-                                    e.stopPropagation(); // Prevents the map from also being "pressed"
-                                    setSelectedLocation(friend);
-                                }}
-                                tappable={true}
-                            >
-                                {/* pointerEvents="none" makes the touch go "through" the avatar to the marker */}
-                                <View style={styles.friendMarkerContainer} pointerEvents="none">
-                                    <Image
-                                        source={{ uri: friend.profile_pic_url || `https://ui-avatars.com/api/?name=${friend.username}&background=7b61ff&color=fff` }}
-                                        style={styles.friendAvatar}
-                                    />
-                                    <View style={styles.friendMarkerPulse} />
-                                </View>
-                            </Marker>
-                        );
-                    })}
+                    <FriendMarkers
+                        friends={friends}
+                        onSelectFriend={setSelectedLocation}
+                    />
                 </MapView>
             </View>
 
@@ -189,30 +166,5 @@ const styles = StyleSheet.create({
     },
     map: {
         ...StyleSheet.absoluteFillObject
-    },
-    friendMarkerContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 44, // Avatar size + border
-        height: 44,
-    },
-    friendAvatar: {
-        width: 38,
-        height: 38,
-        borderRadius: 19, // Perfect circle
-        borderWidth: 2,
-        borderColor: Theme.dark.primary, // A color from your theme (e.g., light purple)
-        backgroundColor: '#CCC', // Placeholder while loading
-    },
-    // Optional: a small shadow/pulse under the avatar to make it look "live"
-    friendMarkerPulse: {
-        position: 'absolute',
-        bottom: 0,
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: Theme.dark.primary,
-        opacity: 0.6,
-        transform: [{ translateY: 5 }], // Shift it down slightly
-    },
+    }
 });
