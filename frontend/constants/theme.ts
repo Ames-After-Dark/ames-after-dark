@@ -4,13 +4,15 @@ const themePink = '#ff3399';
 const themeBlue = '#33ccff';
 const themeYellow = '#ffcc33';
 const themeMidnight = '#0f172a';
+const themePurple = '#7b61ff';
 
 export const Theme = {
   dark: {
     background: '#0B0C12',
-    primary: themePink,
-    secondary: themeBlue,
-    tertiary: themeYellow,
+    primary: themePink,     // main color
+    secondary: themeBlue,   // large accents
+    tertiary: themeYellow,  // small accents, like the "favorites" badge on the bar cards
+    accent: themePurple,    // mostly friend related things 
     muted: '#374151',
     white: '#ffffff',
     black: '#000000',

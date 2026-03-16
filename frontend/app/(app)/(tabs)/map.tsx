@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
         height: 38,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: '#7b61ff',
+        borderColor: Theme.dark.accent,
         backgroundColor: '#CCC',
     },
     friendMarkerPulse: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#7b61ff',
+        backgroundColor: Theme.dark.accent,
         opacity: 0.6,
         transform: [{ translateY: 5 }],
     },

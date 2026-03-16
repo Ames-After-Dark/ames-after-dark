@@ -112,7 +112,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </View>
                 ) : isFriend(location) ? (
                     <TouchableOpacity
-                        style={[styles.button, { backgroundColor: '#7b61ff' }]}
+                        style={[styles.button, { backgroundColor: Theme.dark.accent }]}
                         onPress={() => {
                             router.push({ pathname: "/account/[id]", params: { id: String(location.id) } } as any);
                             onClose();
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     },
     friendAvatar: {
         borderRadius: 16,
-        borderColor: '#7b61ff',
+        borderColor: Theme.dark.accent,
     },
     textContainer: {
         flex: 1,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#7b61ff',
+        borderColor: Theme.dark.accent,
     },
     listTextContainer: {
         flex: 1,
