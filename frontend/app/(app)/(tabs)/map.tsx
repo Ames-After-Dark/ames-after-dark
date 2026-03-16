@@ -44,8 +44,6 @@ export default function MapScreen() {
 
     const currentUserId = user?.id;
 
-    // console.log("Current user ID in MapScreen:", currentUserId);
-
     useLocationTracker(currentUserId);
     const { friends } = useFriendsLocations(currentUserId);
 
@@ -117,7 +115,7 @@ export default function MapScreen() {
         const friendLoc = friend.user_locations;
         if (!friendLoc) return false;
 
-        // check if the friend is within the radius of ANY bar
+        // check if the friend is within the radius of any bar
         return locations.some(bar => {
             const distance = calculateDistance(
                 friendLoc.latitude,
@@ -128,19 +126,6 @@ export default function MapScreen() {
             return distance <= GEOFENCE_RADIUS_METERS;
         });
     });
-
-    // const groupedByBar = activeFriends.reduce((acc, friend) => {
-    //     // Find which bar this friend is at
-    //     const atBar = locations.find(bar =>
-    //         calculateDistance(friend.user_locations.latitude, friend.user_locations.longitude, bar.latitude, bar.longitude) <= 50
-    //     );
-
-    //     if (atBar) {
-    //         if (!acc[atBar.id]) acc[atBar.id] = { bar: atBar, friends: [] };
-    //         acc[atBar.id].friends.push(friend);
-    //     }
-    //     return acc;
-    // }, {} as Record<string, { bar: any, friends: any[] }>);
 
     return (
         <View style={styles.container}>
@@ -173,18 +158,12 @@ export default function MapScreen() {
                         mapRef={mapRef}
                     />
 
-                    {/* <FriendMarkers
-                        friends={friends}
-                        onSelectFriend={setSelectedLocation}
-                    /> */}
-                    {/* Only show friends who passed the geofence check */}
                     <FriendMarkers
                         friends={activeFriends}
                         locations={locations}
                         onSelectFriend={setSelectedLocation}
                     />
 
-                    {/* The Self Marker */}
                     {userLocation && (
                         <Marker
                             key="me"
@@ -242,7 +221,7 @@ const styles = StyleSheet.create({
         height: 38,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: Theme.dark.primary,
+        borderColor: '#7b61ff',
         backgroundColor: '#CCC',
     },
     friendMarkerPulse: {
@@ -251,7 +230,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: Theme.dark.primary,
+        backgroundColor: '#7b61ff',
         opacity: 0.6,
         transform: [{ translateY: 5 }],
     },

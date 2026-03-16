@@ -3,26 +3,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { calculateDistance } from '@/utils/location-utils';
 import { Theme } from '@/constants/theme';
-
-interface FriendLocation {
-    id: number;
-    username: string;
-    name: string;
-    profile_pic_url?: string;
-    user_locations: {
-        latitude: number;
-        longitude: number;
-        updated_at: string;
-    };
-}
-
-interface BarLocation {
-    id: string | number;
-    name: string;
-    latitude: number;
-    longitude: number;
-    logo?: any;
-}
+import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 
 // Define the Props for this component
 interface FriendMarkersProps {
@@ -56,18 +37,22 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
         }
         return acc;
     }, {} as Record<string, { bar: BarLocation; friends: FriendLocation[] }>);
-    // ^ That 'as Record...' part tells TypeScript exactly what the {} will become
 
     return (
         <>
             {Object.values(barGroups).map((group: any) => (
                 <Marker
                     key={`group-${group.bar.id}`}
-                    coordinate={{ latitude: group.bar.latitude, longitude: group.bar.longitude }}
+                    coordinate={{
+                        latitude: group.bar.latitude,
+                        longitude: group.bar.longitude
+                    }}
+
                     // If 1 person, selecting shows the Friend. If >1, it shows the Group object.
                     onPress={(e) => {
-                        e.stopPropagation(); // CRITICAL: Prevents map from closing the sheet
+                        e.stopPropagation();
                         onSelectFriend(group.friends.length === 1 ? group.friends[0] : group);
+                        console.log(group.friends[0].name)
                     }}
                     zIndex={100}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
