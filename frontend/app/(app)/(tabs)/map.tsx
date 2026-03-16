@@ -44,6 +44,7 @@ export default function MapScreen() {
 
     const currentUserId = user?.id;
 
+    console.log(`current user id: ${currentUserId}`);
     useLocationTracker(currentUserId);
     const { friends } = useFriendsLocations(currentUserId);
 
