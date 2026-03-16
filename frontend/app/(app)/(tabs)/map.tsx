@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Marker } from 'react-native-maps';
 
-import { formatLastActive } from '@/utils/location-utils';
+import { useUser } from '@/context/user-context';
 
 import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
 
@@ -21,6 +21,10 @@ import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
 const ZOOM_THRESHOLD = 0.005;
 
 export default function MapScreen() {
+
+    // get global user data from context (for user ID and auth token)
+    const { user, isLoading: isUserLoading } = useUser();
+
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
     const { locations, isLoading, error } = useMapLocations();
@@ -32,13 +36,14 @@ export default function MapScreen() {
     const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
     const [mapReady, setMapReady] = useState(false);
 
-    // TODO - this is currently hardcoded for testing purposes, but should be replaced with actual user ID from auth context
-    const currentUserId = 21;
+    const currentUserId = user?.id;
+
+    console.log("Current user ID in MapScreen:", currentUserId);
 
     useLocationTracker(currentUserId);
     const { friends } = useFriendsLocations(currentUserId);
 
-    // Effect 1: Just handle permissions
+    // handle permissions
     useEffect(() => {
         (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -46,7 +51,7 @@ export default function MapScreen() {
         })();
     }, []);
 
-    // Effect 2: Handle Camera Animation
+    // handle camera animation
     useEffect(() => {
         // Only fly to user if: Map is ready, we have permission, and NO bar is selected
         if (!mapReady || !hasPermission || selectedId) return;

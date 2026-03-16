@@ -11,5 +11,5 @@ export function formatLastActive(updatedAt: string | Date): string {
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
 
-    return "Over a day ago";
+    return "over a day ago";
 }
