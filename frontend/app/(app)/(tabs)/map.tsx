@@ -74,36 +74,6 @@ export default function MapScreen() {
         })();
     }, [mapReady, hasPermission, selectedId]); // Now this triggers correctly
 
-    // useEffect(() => {
-
-    //     (async () => {
-
-    //         const { status } = await Location.requestForegroundPermissionsAsync();
-    //         if (status !== 'granted') return;
-    //         setHasPermission(true);
-
-    //         const location = await Location.getCurrentPositionAsync({
-    //             accuracy: Location.Accuracy.Balanced
-    //         });
-
-    //         const { latitude, longitude } = location.coords;
-
-    //         console.log(`Initial location for ${currentUserId}: ${latitude}, ${longitude}`);
-    //         console.log(`Current selected location ID is: ${selectedId}`)
-
-    //         // animate camera
-    //         if (!selectedId) {
-    //             mapRef.current?.animateToRegion({
-    //                 latitude,
-    //                 longitude,
-    //                 latitudeDelta: 0.01,
-    //                 longitudeDelta: 0.01,
-    //             }, 1000);
-    //         }
-
-    //     })();
-    // }, [mapReady, hasPermission, selectedId]);
-
     // handle navigation to a specific bar from deep link/params
     useEffect(() => {
         if (!isLoading && locations.length > 0 && selectedId) {

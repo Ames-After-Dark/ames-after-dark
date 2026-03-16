@@ -14,14 +14,7 @@ export const UserLocationService = {
             method: "PUT",
             body: JSON.stringify(data),
         });
-    },
-
-    /**
-     * Optional: Fetches other users' locations for the map
-     */
-    // getAllLocations: async () => {
-    //     return await apiFetch(`/userlocations`);
-    // }
+    }
 };
 
 export const FriendLocationService = {
