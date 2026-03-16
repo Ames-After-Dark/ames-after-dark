@@ -6,7 +6,8 @@ export function useLocationTracker(userId: number | undefined) {
     useEffect(() => {
         if (!userId) return;
 
-        let isMounted = true; // Track if the component is still alive
+        // track if the component is still alive
+        let isMounted = true;
         let subscription: Location.LocationSubscription | null = null;
 
         const startTracking = async () => {
@@ -14,7 +15,7 @@ export function useLocationTracker(userId: number | undefined) {
             if (status !== 'granted' || !isMounted) return;
 
             try {
-                // 1. Get and sync initial position
+
                 const initial = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
@@ -26,15 +27,16 @@ export function useLocationTracker(userId: number | undefined) {
                     });
                 }
 
-                // 2. Start the watcher
                 subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.Balanced,
-                        // distanceInterval: 10, // move 10 meters to trigger
-                        timeInterval: 60000,  // update every 1 minute (60,000ms) to keep data accurate
+
+                        // move 5 meters to trigger
+                        distanceInterval: 5,
+                        // update every 1 minute (60,000ms) to keep data accurate
+                        timeInterval: 60000,
                     },
                     async (location) => {
-                        console.log("Watcher heartbeat triggered!");
                         try {
                             await UserLocationService.updateLocation(userId, {
                                 latitude: location.coords.latitude,
@@ -53,7 +55,9 @@ export function useLocationTracker(userId: number | undefined) {
         startTracking();
 
         return () => {
-            isMounted = false; // Stop initial sync if unmounting
+
+            // stop initial sync if unmounting
+            isMounted = false;
             subscription?.remove();
         };
     }, [userId]);
@@ -75,7 +79,7 @@ export function useFriendsLocations(userId: number) {
     };
 
     useEffect(() => {
-        fetchFriends(); // Initial fetch
+        fetchFriends();
 
         // Polling: Update friend positions every 60 seconds (1 minute)
         const interval = setInterval(fetchFriends, 60000);
