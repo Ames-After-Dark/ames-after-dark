@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
-import { UserLocationService } from '@/services/user-location-service';
+import { UserLocationService, FriendLocationService } from '@/services/user-location-service';
 
 export function useLocationTracker(userId: number | undefined) {
     useEffect(() => {
@@ -12,7 +12,6 @@ export function useLocationTracker(userId: number | undefined) {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') return;
 
-            // --- CHANGE 1: DO AN INITIAL SYNC IMMEDIATELY ---
             const initial = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced
             });
@@ -22,12 +21,11 @@ export function useLocationTracker(userId: number | undefined) {
                 longitude: initial.coords.longitude,
             }).catch(e => console.error("Initial sync failed", e));
 
-            // --- CHANGE 2: START THE WATCHER WITH A TIME HEARTBEAT ---
             subscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.Balanced,
-                    distanceInterval: 15, // Update if they move 15m
-                    timeInterval: 60000,  // OR update every 1 minute regardless of movement
+                    distanceInterval: 10, // update if they move 10 m
+                    timeInterval: 6000,   // or update every 1 minute regardless of movement
                 },
                 async (location) => {
                     try {
@@ -48,4 +46,30 @@ export function useLocationTracker(userId: number | undefined) {
             subscription?.remove();
         };
     }, [userId]);
+}
+
+export function useFriendsLocations(userId: number) {
+    const [friends, setFriends] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchFriends = async () => {
+        try {
+            const data = await FriendLocationService.getFriendsLocations(userId);
+            setFriends(data);
+        } catch (err) {
+            console.error("Error fetching friend locations:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchFriends(); // Initial fetch
+
+        // Polling: Update friend positions every 60 seconds (1 minutes)
+        const interval = setInterval(fetchFriends, 60000);
+        return () => clearInterval(interval);
+    }, [userId]);
+
+    return { friends, loading, refetch: fetchFriends };
 }

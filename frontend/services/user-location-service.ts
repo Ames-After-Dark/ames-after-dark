@@ -23,3 +23,15 @@ export const UserLocationService = {
     //     return await apiFetch(`/userlocations`);
     // }
 };
+
+export const FriendLocationService = {
+    getFriendsLocations: async (userId: number) => {
+        const data = await apiFetch(`/friendships/${userId}/friends/locations`);
+
+        // Flatten the two Prisma lists into one array of friend objects
+        const list1 = data.friendships_friendships_user_id_1Tousers.map((f: any) => f.users_friendships_user_id_2Tousers);
+        const list2 = data.friendships_friendships_user_id_2Tousers.map((f: any) => f.users_friendships_user_id_1Tousers);
+
+        return [...list1, ...list2];
+    }
+};

@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Image } from 'react-native';
 import MapView from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { Marker } from 'react-native-maps';
 
-import { useLocationTracker } from '@/hooks/useLocationTracker';
+import { formatLastActive } from '@/utils/location-utils';
+
+import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
 
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { Theme } from '@/constants/theme';
@@ -33,6 +36,7 @@ export default function MapScreen() {
     const currentUserId = 21;
 
     useLocationTracker(currentUserId);
+    const { friends } = useFriendsLocations(currentUserId);
 
     // Effect 1: Just handle permissions
     useEffect(() => {
@@ -154,6 +158,36 @@ export default function MapScreen() {
                         onSelect={setSelectedLocation}
                         mapRef={mapRef}
                     />
+                    {/* Friend Locations */}
+                    {friends.map((friend) => {
+                        const loc = friend.user_locations;
+                        if (!loc) return null;
+
+                        return (
+                            <Marker
+                                key={`friend-${friend.id}`}
+                                coordinate={{
+                                    latitude: loc.latitude,
+                                    longitude: loc.longitude,
+                                }}
+                                // CRITICAL: This ensures the marker is actually tappable on Android
+                                onPress={(e) => {
+                                    e.stopPropagation(); // Prevents the map from also being "pressed"
+                                    setSelectedLocation(friend);
+                                }}
+                                tappable={true}
+                            >
+                                {/* pointerEvents="none" makes the touch go "through" the avatar to the marker */}
+                                <View style={styles.friendMarkerContainer} pointerEvents="none">
+                                    <Image
+                                        source={{ uri: friend.profile_pic_url || `https://ui-avatars.com/api/?name=${friend.username}&background=7b61ff&color=fff` }}
+                                        style={styles.friendAvatar}
+                                    />
+                                    <View style={styles.friendMarkerPulse} />
+                                </View>
+                            </Marker>
+                        );
+                    })}
                 </MapView>
             </View>
 
@@ -180,5 +214,30 @@ const styles = StyleSheet.create({
     },
     map: {
         ...StyleSheet.absoluteFillObject
+    },
+    friendMarkerContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 44, // Avatar size + border
+        height: 44,
+    },
+    friendAvatar: {
+        width: 38,
+        height: 38,
+        borderRadius: 19, // Perfect circle
+        borderWidth: 2,
+        borderColor: Theme.dark.primary, // A color from your theme (e.g., light purple)
+        backgroundColor: '#CCC', // Placeholder while loading
+    },
+    // Optional: a small shadow/pulse under the avatar to make it look "live"
+    friendMarkerPulse: {
+        position: 'absolute',
+        bottom: 0,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: Theme.dark.primary,
+        opacity: 0.6,
+        transform: [{ translateY: 5 }], // Shift it down slightly
     },
 });
