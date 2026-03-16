@@ -37,7 +37,7 @@ exports.sendFriendRequest = async (userId, friendId) => {
     where: { user_id_1_user_id_2: { user_id_1: id1, user_id_2: id2 } }
   });
   if (existing) throw new Error('Friendship already exists or pending');
-  
+
   // Store with userId as user_id_1 and friendId as user_id_2 to track who sent the request
   // This means user_id_1 = sender, user_id_2 = receiver (NOT ordered by ID)
   return prisma.friendships.create({
@@ -60,15 +60,15 @@ exports.acceptFriendRequest = async (userId, friendId) => {
       friendship_status_id: STATUS_PENDING
     }
   });
-  
+
   if (!friendship) throw new Error('Friendship request not found');
-  
+
   return prisma.friendships.update({
-    where: { 
-      user_id_1_user_id_2: { 
-        user_id_1: friendship.user_id_1, 
-        user_id_2: friendship.user_id_2 
-      } 
+    where: {
+      user_id_1_user_id_2: {
+        user_id_1: friendship.user_id_1,
+        user_id_2: friendship.user_id_2
+      }
     },
     data: { friendship_status_id: STATUS_ACCEPTED }
   });
@@ -85,15 +85,15 @@ exports.declineFriendRequest = async (userId, friendId) => {
       friendship_status_id: STATUS_PENDING
     }
   });
-  
+
   if (!friendship) throw new Error('Friendship request not found');
-  
+
   return prisma.friendships.update({
-    where: { 
-      user_id_1_user_id_2: { 
-        user_id_1: friendship.user_id_1, 
-        user_id_2: friendship.user_id_2 
-      } 
+    where: {
+      user_id_1_user_id_2: {
+        user_id_1: friendship.user_id_1,
+        user_id_2: friendship.user_id_2
+      }
     },
     data: { friendship_status_id: STATUS_DECLINED }
   });
@@ -109,15 +109,15 @@ exports.removeFriend = async (userId, friendId) => {
       ]
     }
   });
-  
+
   if (!friendship) throw new Error('Friendship not found');
-  
+
   return prisma.friendships.delete({
-    where: { 
-      user_id_1_user_id_2: { 
-        user_id_1: friendship.user_id_1, 
-        user_id_2: friendship.user_id_2 
-      } 
+    where: {
+      user_id_1_user_id_2: {
+        user_id_1: friendship.user_id_1,
+        user_id_2: friendship.user_id_2
+      }
     }
   });
 };
@@ -149,7 +149,7 @@ exports.blockFriend = async (userId, friendId) => {
       ]
     }
   });
-  
+
   if (!friendship) {
     // If no friendship exists, create one with blocked status
     return prisma.friendships.create({
@@ -160,13 +160,13 @@ exports.blockFriend = async (userId, friendId) => {
       }
     });
   }
-  
+
   return prisma.friendships.update({
-    where: { 
-      user_id_1_user_id_2: { 
-        user_id_1: friendship.user_id_1, 
-        user_id_2: friendship.user_id_2 
-      } 
+    where: {
+      user_id_1_user_id_2: {
+        user_id_1: friendship.user_id_1,
+        user_id_2: friendship.user_id_2
+      }
     },
     data: { friendship_status_id: STATUS_BLOCKED }
   });
@@ -184,6 +184,7 @@ exports.getFriendsLocations = async (userId) => {
             select: {
               id: true,
               username: true,
+              name: true,
               user_locations: true, // This contains lat/long
             },
           },
@@ -197,6 +198,7 @@ exports.getFriendsLocations = async (userId) => {
             select: {
               id: true,
               username: true,
+              name: true,
               user_locations: true, // This contains lat/long
             },
           },
