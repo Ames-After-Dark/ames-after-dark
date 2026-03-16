@@ -129,18 +129,18 @@ export default function MapScreen() {
         });
     });
 
-    const groupedByBar = activeFriends.reduce((acc, friend) => {
-        // Find which bar this friend is at
-        const atBar = locations.find(bar =>
-            calculateDistance(friend.user_locations.latitude, friend.user_locations.longitude, bar.latitude, bar.longitude) <= 50
-        );
+    // const groupedByBar = activeFriends.reduce((acc, friend) => {
+    //     // Find which bar this friend is at
+    //     const atBar = locations.find(bar =>
+    //         calculateDistance(friend.user_locations.latitude, friend.user_locations.longitude, bar.latitude, bar.longitude) <= 50
+    //     );
 
-        if (atBar) {
-            if (!acc[atBar.id]) acc[atBar.id] = { bar: atBar, friends: [] };
-            acc[atBar.id].friends.push(friend);
-        }
-        return acc;
-    }, {} as Record<string, { bar: any, friends: any[] }>);
+    //     if (atBar) {
+    //         if (!acc[atBar.id]) acc[atBar.id] = { bar: atBar, friends: [] };
+    //         acc[atBar.id].friends.push(friend);
+    //     }
+    //     return acc;
+    // }, {} as Record<string, { bar: any, friends: any[] }>);
 
     return (
         <View style={styles.container}>

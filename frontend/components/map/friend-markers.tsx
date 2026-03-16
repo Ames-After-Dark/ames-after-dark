@@ -65,8 +65,12 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
                     key={`group-${group.bar.id}`}
                     coordinate={{ latitude: group.bar.latitude, longitude: group.bar.longitude }}
                     // If 1 person, selecting shows the Friend. If >1, it shows the Group object.
-                    onPress={() => onSelectFriend(group.friends.length === 1 ? group.friends[0] : group)}
+                    onPress={(e) => {
+                        e.stopPropagation(); // CRITICAL: Prevents map from closing the sheet
+                        onSelectFriend(group.friends.length === 1 ? group.friends[0] : group);
+                    }}
                     zIndex={100}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                     <View style={styles.groupMarkerContainer}>
                         <Image
@@ -74,7 +78,7 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
                             style={styles.friendAvatar}
                         />
 
-                        {/* THE BADGE: Only shows if more than 1 person is there */}
+                        {/* only shows if more than 1 person is there */}
                         {group.friends.length > 1 && (
                             <View style={styles.badgeContainer}>
                                 <Text style={styles.badgeText}>+{group.friends.length - 1}</Text>

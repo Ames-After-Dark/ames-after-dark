@@ -50,25 +50,22 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
     const isGroup = (loc: any): loc is GroupLocation => !!loc && 'friends' in loc;
     const isBar = (loc: any): loc is BarLocation => !!loc && 'name' in loc && !('username' in loc) && !('friends' in loc);
 
-    // Dynamic extraction logic
-    // const title = isFriend(location) ? location.name : isGroup(location) ? `${location.friends.length} Friends` : location?.name;
-    // Inside MapBottomSheet
-    const title = isFriend(location)
-        ? location.name
-        : isGroup(location)
-            ? `${location.friends.length} Friends`
-            : location?.name;
-
+    // Extraction logic
+    const title = isFriend(location) ? location.name : isGroup(location) ? `${location.friends.length} Friends` : location?.name;
     const subtitle = isFriend(location) ? `Active ${formatLastActive(location.user_locations?.updated_at)}` : isGroup(location) ? `at ${location.bar.name}` : location?.hours;
-
     const displayImage = isFriend(location)
         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=7b61ff&color=fff` }
         : isGroup(location) ? location.bar.logo : location?.logo;
 
     const panResponder = useRef(
         PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
+            // Change this to false! 
+            // We only want the responder to take over when the user starts DRAGGING.
+            onStartShouldSetPanResponder: () => false,
+
+            // This ensures touches pass through to buttons UNLESS the user moves their finger
             onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 10,
+
             onPanResponderMove: (_, gesture) => { if (gesture.dy > 0) slideAnim.setValue(gesture.dy); },
             onPanResponderRelease: (_, gesture) => {
                 if (gesture.dy > 100 || gesture.vy > 0.5) onClose();
@@ -94,6 +91,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
             style={[styles.bottomSheet, { transform: [{ translateY: slideAnim }] }]}
         >
             <View style={styles.sheetContent}>
+                {/* Drag Area stays at the very top */}
                 <View {...panResponder.panHandlers} style={styles.dragArea}>
                     <View style={styles.dragHandle} />
                 </View>
@@ -110,10 +108,15 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </View>
                 </View>
 
-                {/* Conditional Content Section */}
+                {/* Middle Content Section */}
                 {isGroup(location) ? (
                     <View style={styles.friendListContainer}>
-                        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 200 }}>
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            style={{ maxHeight: 200 }}
+                            // This ensures the ScrollView doesn't fight with the PanResponder
+                            nestedScrollEnabled={true}
+                        >
                             {location.friends.map((f) => (
                                 <TouchableOpacity
                                     key={f.id}
@@ -128,7 +131,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                                         <Text style={styles.listName}>{f.name}</Text>
                                         <Text style={styles.listUsername}>@{f.username}</Text>
                                     </View>
-                                    <FontAwesome name="chevron-right" size={14} color="#AAA" />
+                                    <FontAwesome name="chevron-right" size={14} color="#666" />
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
@@ -149,7 +152,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </TouchableOpacity>
                 )}
 
-                {/* Always show Dismiss at the bottom */}
+                {/* Single Dismiss Button at the bottom */}
                 <TouchableOpacity style={[styles.button, styles.closeButton]} onPress={onClose}>
                     <Text style={styles.buttonText}>Dismiss</Text>
                 </TouchableOpacity>
@@ -175,6 +178,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
+        zIndex: 9999,
     },
     dragArea: {
         width: '100%',
@@ -232,7 +236,7 @@ const styles = StyleSheet.create({
     friendListRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.05)',
         gap: 12,
@@ -272,7 +276,7 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         backgroundColor: '#222', // Subtle dark color for dismiss
-    },
+    }
 });
 
 
