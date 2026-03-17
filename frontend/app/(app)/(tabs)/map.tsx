@@ -164,7 +164,7 @@ export default function MapScreen() {
                     ref={mapRef}
                     style={styles.map}
                     onMapReady={() => setMapReady(true)}
-                    showsUserLocation={hasPermission}
+                    // showsUserLocation={hasPermission}
                     showsMyLocationButton={true}
                     showsPointsOfInterest={false}
 
@@ -203,12 +203,12 @@ export default function MapScreen() {
                             }}
                             zIndex={999}
                         >
-                            <View style={[styles.friendMarkerContainer, { borderColor: '#00EAFF' }]}>
+                            <View style={[styles.userMarkerContainer]}>
                                 <Image
                                     source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
-                                    style={styles.friendAvatar}
+                                    style={styles.userAvatar}
                                 />
-                                <View style={[styles.friendMarkerPulse, { backgroundColor: '#00EAFF' }]} />
+                                <View style={[styles.userMarkerPulse]} />
                             </View>
                         </Marker>
                     )}
@@ -240,27 +240,28 @@ const styles = StyleSheet.create({
     map: {
         ...StyleSheet.absoluteFillObject
     },
-    friendMarkerContainer: {
+    userMarkerContainer: {
         alignItems: 'center',
         justifyContent: 'center',
         width: 44,
         height: 44,
+        borderColor: '#00EAFF',
     },
-    friendAvatar: {
+    userAvatar: {
         width: 38,
         height: 38,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: Theme.dark.accent,
+        borderColor: '#00EAFF',
         backgroundColor: '#CCC',
     },
-    friendMarkerPulse: {
+    userMarkerPulse: {
         position: 'absolute',
         bottom: 0,
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: Theme.dark.accent,
+        backgroundColor: '#00EAFF',
         opacity: 0.6,
         transform: [{ translateY: 5 }],
     },

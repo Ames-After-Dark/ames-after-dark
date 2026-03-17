@@ -13,7 +13,7 @@ interface FriendMarkersProps {
 }
 
 // TODO - define the radius for geofencing; no clue what it should be
-const GEOFENCE_RADIUS_METERS = 50;
+export const GEOFENCE_RADIUS_METERS = 50;
 
 export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
     const barGroups = friends.reduce((acc, friend) => {
