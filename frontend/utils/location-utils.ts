@@ -5,7 +5,19 @@
 export function formatLastActive(updatedAt: string | Date): string {
     const now = new Date();
     const updated = new Date(updatedAt);
-    const diffInSeconds = Math.floor((now.getTime() - updated.getTime()) / 1000);
+
+    // Guard against invalid timestamps
+    if (Number.isNaN(updated.getTime())) {
+        return "unknown";
+    }
+
+    // Compute difference and guard against future timestamps
+    let diffMs = now.getTime() - updated.getTime();
+    if (diffMs < 0) {
+        diffMs = 0;
+    }
+
+    const diffInSeconds = Math.floor(diffMs / 1000);
 
     if (diffInSeconds < 60) return "just now";
 

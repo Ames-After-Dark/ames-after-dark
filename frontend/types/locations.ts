@@ -14,8 +14,8 @@ export interface FriendLocation {
     name: string;
     profile_pic_url?: string;
     user_locations?: {
-        latitude: number;
-        longitude: number;
+        latitude: number | string;
+        longitude: number | string;
         updated_at: string;
     } | null;
 }

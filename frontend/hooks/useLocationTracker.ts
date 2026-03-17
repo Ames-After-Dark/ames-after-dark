@@ -19,12 +19,14 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                     accuracy: Location.Accuracy.Balanced
                 });
 
-                if (isMounted) {
-                    await UserLocationService.updateLocation(userId, {
-                        latitude: initial.coords.latitude,
-                        longitude: initial.coords.longitude,
-                    });
+                if (!isMounted) {
+                    return;
                 }
+
+                await UserLocationService.updateLocation(userId, {
+                    latitude: initial.coords.latitude,
+                    longitude: initial.coords.longitude,
+                });
 
                 subscription = await Location.watchPositionAsync(
                     {

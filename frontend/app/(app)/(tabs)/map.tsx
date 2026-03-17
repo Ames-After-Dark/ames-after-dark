@@ -78,6 +78,33 @@ export default function MapScreen() {
         })();
     }, [mapReady, hasPermission, selectedId]);
 
+    // keep userLocation in sync with the device position so any user marker stays accurate
+    useEffect(() => {
+        if (!hasPermission) return;
+
+        let subscription: Location.LocationSubscription | null = null;
+
+        (async () => {
+            try {
+                subscription = await Location.watchPositionAsync(
+                    {
+                        accuracy: Location.Accuracy.Balanced,
+                        distanceInterval: 5,
+                    },
+                    (location) => {
+                        setUserLocation(location.coords);
+                    }
+                );
+            } catch (err) {
+                console.error("Error watching user location", err);
+            }
+        })();
+
+        return () => {
+            subscription?.remove();
+        };
+    }, [hasPermission]);
+
     // handle navigation to a specific bar from deep link/params
     useEffect(() => {
         if (!isLoading && locations.length > 0 && selectedId) {
@@ -112,11 +139,17 @@ export default function MapScreen() {
         const friendLoc = friend.user_locations;
         if (!friendLoc) return false;
 
+        const friendLat = Number(friendLoc.latitude);
+        const friendLng = Number(friendLoc.longitude);
+        if (Number.isNaN(friendLat) || Number.isNaN(friendLng)) {
+            return false;
+        }
+
         // check if the friend is within the radius of any bar
         return locations.some(bar => {
             const distance = calculateDistance(
-                friendLoc.latitude,
-                friendLoc.longitude,
+                friendLat,
+                friendLng,
                 bar.latitude,
                 bar.longitude
             );

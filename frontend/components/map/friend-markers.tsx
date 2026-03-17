@@ -2,14 +2,14 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { calculateDistance } from '@/utils/location-utils';
 import { Theme } from '@/constants/theme';
-import { BarLocation, FriendLocation } from '@/types/locations';
+import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 
 import { Marker, MarkerPressEvent } from 'react-native-maps';
 
 interface FriendMarkersProps {
     friends: FriendLocation[];
     locations: BarLocation[];
-    onSelectFriend: (item: FriendLocation | { bar: BarLocation, friends: FriendLocation[] }) => void;
+    onSelectFriend: (item: FriendLocation | GroupLocation) => void;
 }
 
 // TODO - define the radius for geofencing; no clue what it should be
@@ -21,11 +21,17 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
         if (!friend.user_locations) return acc;
 
         const { latitude, longitude } = friend.user_locations;
+        const lat = Number(latitude);
+        const lon = Number(longitude);
+
+        if (Number.isNaN(lat) || Number.isNaN(lon)) {
+            return acc;
+        }
 
         const atBar = locations.find(bar =>
             calculateDistance(
-                latitude,
-                longitude,
+                lat,
+                lon,
                 bar.latitude,
                 bar.longitude
             ) <= GEOFENCE_RADIUS_METERS
@@ -39,7 +45,7 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
             acc[barId].friends.push(friend);
         }
         return acc;
-    }, {} as Record<string, { bar: BarLocation; friends: FriendLocation[] }>);
+    }, {} as Record<string, GroupLocation>);
 
     return (
         <>
