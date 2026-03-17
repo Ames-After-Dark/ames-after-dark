@@ -18,12 +18,9 @@ import { calculateDistance } from '@/utils/location-utils';
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
-import { FriendMarkers } from '@/components/map/friend-markers';
+import { FriendMarkers, GEOFENCE_RADIUS_METERS } from '@/components/map/friend-markers';
 
 const ZOOM_THRESHOLD = 0.005;
-
-// TODO - adjust based on Ames bar sizes; no clue what this should really be
-const GEOFENCE_RADIUS_METERS = 50;
 
 export default function MapScreen() {
 
