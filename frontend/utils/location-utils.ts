@@ -1,6 +1,6 @@
 
 /**
- * this function formats the last time that the user's friend(s) were active
+ * Formats the last time that the user's friend(s) were active.
  */
 export function formatLastActive(updatedAt: string | Date): string {
     const now = new Date();
@@ -19,7 +19,7 @@ export function formatLastActive(updatedAt: string | Date): string {
 }
 
 /**
- * 
+ * Calculates the distance between two lat/lon points in meters using the Haversine formula
  */
 export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371000; // Earth's radius in meters

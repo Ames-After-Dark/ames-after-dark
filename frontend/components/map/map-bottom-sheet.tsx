@@ -22,22 +22,22 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
     // Type Guards
     const isFriend = (loc: any): loc is FriendLocation => !!loc && 'username' in loc && !('friends' in loc);
     const isGroup = (loc: any): loc is GroupLocation => !!loc && 'friends' in loc;
-    const isBar = (loc: any): loc is BarLocation => !!loc && 'name' in loc && !('username' in loc) && !('friends' in loc);
+    // const isBar = (loc: any): loc is BarLocation => !!loc && 'name' in loc && !('username' in loc) && !('friends' in loc);
 
     // Extraction logic
+    const friendUpdatedAt = isFriend(location) ? location.user_locations?.updated_at : undefined;
+    const friendSubtitle = friendUpdatedAt ? `Active ${formatLastActive(friendUpdatedAt)}` : 'Last active unknown';
     const title = isFriend(location) ? location.name : isGroup(location) ? `${location.friends.length} Friends` : location?.name;
-    const subtitle = isFriend(location) ? `Active ${formatLastActive(location.user_locations?.updated_at)}` : isGroup(location) ? `at ${location.bar.name}` : location?.hours;
+    const subtitle = isFriend(location) ? friendSubtitle : isGroup(location) ? `at ${location.bar.name}` : location?.hours;
     const displayImage = isFriend(location)
         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=7b61ff&color=fff` }
         : isGroup(location) ? location.bar.logo : location?.logo;
 
     const panResponder = useRef(
         PanResponder.create({
-            // Change this to false! 
-            // We only want the responder to take over when the user starts DRAGGING.
+
             onStartShouldSetPanResponder: () => false,
 
-            // This ensures touches pass through to buttons UNLESS the user moves their finger
             onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 10,
 
             onPanResponderMove: (_, gesture) => { if (gesture.dy > 0) slideAnim.setValue(gesture.dy); },
@@ -114,7 +114,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     <TouchableOpacity
                         style={[styles.button, { backgroundColor: Theme.dark.accent }]}
                         onPress={() => {
-                            router.push({ pathname: "/account/[id]", params: { id: String(location.id) } } as any);
+                            router.push(`/account/${location.id}`);
                             onClose();
                         }}
                     >

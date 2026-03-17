@@ -2,17 +2,16 @@ import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/user-location-service';
 
-export function useLocationTracker(userId: number | undefined) {
+export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     useEffect(() => {
-        if (!userId) return;
+        if (userId === undefined || !hasPermission) return;
 
         // track if the component is still alive
         let isMounted = true;
         let subscription: Location.LocationSubscription | null = null;
 
         const startTracking = async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted' || !isMounted) return;
+            if (!isMounted) return;
 
             try {
 
@@ -60,14 +59,20 @@ export function useLocationTracker(userId: number | undefined) {
             isMounted = false;
             subscription?.remove();
         };
-    }, [userId]);
+    }, [userId, hasPermission]);
 }
 
-export function useFriendsLocations(userId: number) {
+export function useFriendsLocations(userId: number | undefined) {
     const [friends, setFriends] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchFriends = async () => {
+        if (userId === undefined) {
+            setFriends([]);
+            setLoading(false);
+            return;
+        }
+
         try {
             const data = await FriendLocationService.getFriendsLocations(userId);
             setFriends(data);
@@ -79,6 +84,13 @@ export function useFriendsLocations(userId: number) {
     };
 
     useEffect(() => {
+        if (userId === undefined) {
+            setFriends([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
         fetchFriends();
 
         // Polling: Update friend positions every 60 seconds (1 minute)

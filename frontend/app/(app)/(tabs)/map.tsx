@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, Image } from 'react-native';
+import { StyleSheet, View, Image } from 'react-native';
 import MapView from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -44,7 +44,7 @@ export default function MapScreen() {
 
     const currentUserId = user?.id;
 
-    useLocationTracker(currentUserId);
+    useLocationTracker(currentUserId, hasPermission);
     const { friends } = useFriendsLocations(currentUserId);
 
     // handle permissions

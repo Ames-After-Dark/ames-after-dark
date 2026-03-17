@@ -16,7 +16,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchUser = async () => {
-        if (!userStatus?.userId) return;
+        if (!userStatus?.userId) {
+            setUser(null);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+
         try {
             const token = await getAccessToken();
             if (token) {

@@ -13,11 +13,11 @@ export interface FriendLocation {
     username: string;
     name: string;
     profile_pic_url?: string;
-    user_locations: {
+    user_locations?: {
         latitude: number;
         longitude: number;
         updated_at: string;
-    };
+    } | null;
 }
 
 export interface GroupLocation {
