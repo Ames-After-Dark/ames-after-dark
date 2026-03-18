@@ -91,11 +91,37 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                             // This ensures the ScrollView doesn't fight with the PanResponder
                             nestedScrollEnabled={true}
                         >
-                            {location.friends.map((f) => (
+                            {/* {location.friends.map((f) => (
                                 <TouchableOpacity
                                     key={f.id}
                                     style={styles.friendListRow}
                                     onPress={() => onSelectLocation(f)}
+                                >
+                                    <Image
+                                        source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}
+                                        style={styles.listAvatar}
+                                    />
+                                    <View style={styles.listTextContainer}>
+                                        <Text style={styles.listName}>{f.name}</Text>
+                                        <Text style={styles.listUsername}>@{f.username}</Text>
+                                    </View>
+                                    <FontAwesome name="chevron-right" size={14} color="#666" />
+                                </TouchableOpacity>
+                            ))} */}
+
+                            {/* Inside the ScrollView map for groups */}
+                            {location.friends.map((f) => (
+                                <TouchableOpacity
+                                    key={f.id}
+                                    style={styles.friendListRow}
+                                    onPress={() => {
+                                        // Navigate to the friend's specific profile
+                                        router.push({
+                                            pathname: "/(app)/(tabs)/account/[id]",
+                                            params: { id: f.id.toString() }
+                                        });
+                                        onClose(); // Close the sheet after navigating
+                                    }}
                                 >
                                     <Image
                                         source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}
@@ -114,7 +140,11 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     <TouchableOpacity
                         style={[styles.button, { backgroundColor: Theme.dark.accent }]}
                         onPress={() => {
-                            router.push(`/account/${location.id}`);
+                            // router.push(`/account/${location.id}`);
+                            router.push({
+                                pathname: "/(app)/(tabs)/account/[id]",
+                                params: { id: location.id.toString() }
+                            });
                             onClose();
                         }}
                     >

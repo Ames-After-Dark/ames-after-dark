@@ -24,6 +24,7 @@ export interface UserProfile {
     avatar: ImageSourcePropType;
     bio: string;
     friends: FriendReference[];
+    streak?: number;
 }
 
 export type UserDatabase = {
@@ -32,16 +33,16 @@ export type UserDatabase = {
 
 // added here from bars
 export type TimeRule =
-    |   {
-            kind: "one-time";
-            start: string;
-            end: string;
-            tz: string;
-        }
-    |   {
-            kind: "weekly";
-            tz: string;
-            daysOfWeek: number[];
-            startLocalTime: string;
-            endLocalTime: string;
-        };
+    | {
+        kind: "one-time";
+        start: string;
+        end: string;
+        tz: string;
+    }
+    | {
+        kind: "weekly";
+        tz: string;
+        daysOfWeek: number[];
+        startLocalTime: string;
+        endLocalTime: string;
+    };
