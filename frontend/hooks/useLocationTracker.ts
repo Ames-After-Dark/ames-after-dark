@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
-import { UserLocationService, FriendLocationService } from '@/services/user-location-service';
+import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     useEffect(() => {
