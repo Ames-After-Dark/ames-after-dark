@@ -73,7 +73,14 @@ export default function FriendProfileScreen() {
     };
 
     // --- Initialize the Hook ---
-    const { handlePoke, handleAdd, handleConfirmBlock, handlePendingDecision, loading: actionLoading } = useProfileActions(triggerToast);
+    const {
+        handlePoke,
+        handleAdd,
+        handleConfirmBlock,
+        handleUnblock,
+        handlePendingDecision,
+        loading: actionLoading
+    } = useProfileActions(triggerToast);
 
     const fetchProfile = async () => {
         if (!id || !userStatus?.userId) return;
@@ -127,6 +134,9 @@ export default function FriendProfileScreen() {
         } else if (type === 'primary') {
             if (status === 'STRANGER') await handleAdd(myId, friendId);
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
+            if (status === 'BLOCKED') {
+                await handleUnblock(myId, friendId, fetchProfile);
+            }
             // Add unblock logic here if needed
         } else if (type === 'respond') {
             setIsRespondModalVisible(true);
