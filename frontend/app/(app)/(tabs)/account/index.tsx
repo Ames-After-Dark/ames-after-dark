@@ -21,6 +21,7 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileListModal } from '@/components/profile/ProfileListModal';
+// import TopHeader from '@/components/TopHeader'
 
 export default function AccountScreen() {
     const { username, userStatus, getAccessToken } = useAuth();
@@ -125,21 +126,23 @@ export default function AccountScreen() {
     return (
         <View style={styles.container}>
             {/* Settings Gear - Positioned absolutely or in a header row */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
                 style={styles.settingsButton}
                 onPress={() => router.push('/(app)/(tabs)/account/settings')}
             >
                 <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+            {/* <TopHeader showSettings={true} /> */}
 
             <ScrollView
-                contentContainerStyle={styles.content}
+                contentContainerStyle={styles.scrollContent}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Theme.dark.secondary} />
                 }
             >
                 {/* 1. Header (Avatar, Name, Bio) */}
-                <ProfileHeader user={user} />
+                <ProfileHeader user={user} showBio={false} />
 
                 {/* 2. Stats (Friends & Pending) */}
                 <ProfileStats
@@ -149,6 +152,8 @@ export default function AccountScreen() {
                     onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
                     onPressMutuals={() => setModalConfig({ visible: true, title: 'Pending Requests', data: pendingRequests })}
                 />
+
+                <ProfileHeader user={user} showBio={true} onlyBio={true} />
 
                 {/* 3. Grid (Drinks, Streaks, Fav Bar) */}
                 <ProfileGrid user={user} />
@@ -172,16 +177,27 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Theme.dark.background },
-    content: { padding: 20, paddingTop: 60, paddingBottom: 80 },
+    scrollContent: {
+        paddingHorizontal: 20, // This is your "Safe Zone"
+        paddingBottom: 40,
+        gap: 15, // This automatically adds even vertical spacing between every component!
+    },
+    container: { 
+        flex: 1, 
+        backgroundColor: Theme.dark.background 
+    },
+    content: { 
+        paddingHorizontal: 20,
+        paddingBottom: 80 
+    },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.dark.background },
-    settingsButton: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
-        zIndex: 10,
-        padding: 10,
-    }
+    // settingsButton: {
+    //     position: 'absolute',
+    //     top: 50,
+    //     right: 20,
+    //     zIndex: 10,
+    //     padding: 10,
+    // },
 });
 
 // import React, { useState, useEffect } from 'react';

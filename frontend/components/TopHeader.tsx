@@ -1,23 +1,31 @@
-// components/TopHeader.tsx
-import { View, Image, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FontAwesome } from '@expo/vector-icons';
+import { router, usePathname } from 'expo-router'; // Add usePathname
+import { Theme } from "@/constants/theme";
 
 export default function TopHeader() {
+  const pathname = usePathname();
+
+  const isAccountPage = pathname === '/account' || pathname === '/(app)/(tabs)/account';
+
   return (
     <SafeAreaView edges={["top"]} style={{ backgroundColor: "#0B0C12" }}>
       <View style={styles.wrap}>
-        {/* Logo */}
         <Image
           source={require("../assets/images/LogoTopBar.png")}
           style={{ width: 170, height: 32 }}
           resizeMode="contain"
         />
-      </View>
 
-      {/* Testing-only time display */}
-      {/* <Text style={styles.testTimeText}>
-        Simulated Time: {formatted} (Testing), Mock Data: True
-      </Text> */}
+        {isAccountPage ? (
+          <TouchableOpacity onPress={() => router.push('/account/settings')}>
+            <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} /> // Keeps the logo centered/pushed left correctly
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -30,14 +38,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B0C12",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  testTimeText: {
-    color: "#38bdf8",
-    textAlign: "center",
-    fontSize: 12,
-    opacity: 0.85,
-    paddingBottom: 6,
-    backgroundColor: "#0B0C12",
+    justifyContent: "space-between", // This pushes logo left and gear right
   },
 });

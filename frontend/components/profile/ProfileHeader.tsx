@@ -5,9 +5,29 @@ import { Theme } from '@/constants/theme';
 interface ProfileHeaderProps {
     user: any;
     showBio?: boolean;
+    onlyBio?: boolean;
 }
 
-export const ProfileHeader = ({ user, showBio }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, showBio, onlyBio }: ProfileHeaderProps): React.JSX.Element => {
+
+    if (onlyBio) {
+        // If they chose not to show bio (e.g., if you aren't friends), render nothing
+        if (!showBio) return <View />; // Using empty View instead of null to maintain gap spacing in newer React Native versions
+
+        return (
+            <View style={styles.sidePadding}>
+                <View style={styles.bioContainer}>
+                    <Text style={styles.bioText}>
+                        {/* THE FIX: Check if bio exists, otherwise show placeholder */}
+                        {user?.bio
+                            ? user.bio
+                            : `${user?.name || 'This user'} hasn't added a bio yet. They're a mystery! 🕵️‍♂️`}
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
@@ -33,19 +53,50 @@ export const ProfileHeader = ({ user, showBio }: ProfileHeaderProps): React.JSX.
 };
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 4, marginBottom: 10 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
-    profileImage: { width: 75, height: 75, borderRadius: 15, marginRight: 15 },
-    infoContainer: { flex: 1 },
-    profileName: { color: Theme.dark.white, fontSize: 22, fontWeight: '700' },
-    usernameText: { color: Theme.container.inactiveText, fontSize: 14 },
+    container: {
+        paddingHorizontal: 4,
+        marginBottom: 10
+    },
+    sidePadding: {
+        paddingHorizontal: 0, // Set to 0 because the ScrollView now handles it
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 16,
+        // marginBottom: 15,
+    },
+    profileImage: {
+        width: 75,
+        height: 75,
+        borderRadius: 15,
+        marginRight: 15
+    },
+    infoContainer: {
+        flex: 1
+    },
+    profileName: {
+        color: Theme.dark.white,
+        fontSize: 22,
+        fontWeight: '700'
+    },
+    usernameText: {
+        color: Theme.container.inactiveText,
+        fontSize: 14
+    },
     bioContainer: {
         backgroundColor: Theme.container.background,
         padding: 14,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
-        marginTop: 10,
+        marginTop: 4,
+        // marginBottom: 15,
     },
-    bioText: { color: Theme.container.titleText, fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+    bioText: {
+        color: Theme.container.titleText,
+        fontSize: 14,
+        fontStyle: 'italic',
+        lineHeight: 20
+    },
 });

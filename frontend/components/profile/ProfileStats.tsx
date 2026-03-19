@@ -29,16 +29,29 @@ export const ProfileStats = ({ friendCount, mutualCount, onPressFriends, onPress
 };
 
 const styles = StyleSheet.create({
-    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 15 },
+    statsRow: {
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'space-between',
+    },
     statButton: {
-        flex: 1,
+        width: '48%',
         backgroundColor: Theme.container.background,
-        paddingVertical: 12,
-        borderRadius: 12,
+        borderRadius: 16,
+        paddingVertical: 15,
+        // marginBottom: 15,
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
     },
-    statNumber: { color: Theme.dark.white, fontSize: 20, fontWeight: '700' },
-    statLabel: { color: Theme.container.inactiveText, fontSize: 12, marginTop: 2 },
+    statNumber: {
+        color: Theme.dark.white,
+        fontSize: 20,
+        fontWeight: '700'
+    },
+    statLabel: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        marginTop: 2
+    },
 });

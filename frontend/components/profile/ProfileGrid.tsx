@@ -34,18 +34,29 @@ export const ProfileGrid = ({ user }: { user: any }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { width: '100%' },
-    gridRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, gap: 15 },
+    container: {
+        width: '100%'
+    },
+    gridRow: {
+        marginBottom: 15, // gap between the double row and the large single row
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'space-between',
+    },
     featureCard: {
-        flex: 1,
+        width: '48%', // 4% gap in the middle
         backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        minHeight: 130,
+        borderRadius: 16,
+        paddingVertical: 15,
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
     },
-    featureTitle: { color: Theme.dark.white, fontSize: 14, fontWeight: '600', marginBottom: 10 },
+    featureTitle: {
+        color: Theme.dark.white,
+        fontSize: 14, fontWeight: '600',
+        marginBottom: 10
+    },
     placeholderPhoto: {
         flex: 1,
         backgroundColor: Theme.search.background,
@@ -53,15 +64,28 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    streakContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    streakNumber: { color: Theme.dark.tertiary, fontSize: 32, fontWeight: 'bold' },
-    statLabel: { color: Theme.container.inactiveText, fontSize: 12, textAlign: 'center' },
+    streakContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    streakNumber: {
+        color: Theme.dark.tertiary,
+        fontSize: 32,
+        fontWeight: 'bold'
+    },
+    statLabel: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        textAlign: 'center'
+    },
     largeCard: {
+        width: '100%',
         backgroundColor: Theme.container.background,
         borderRadius: 12,
         padding: 15,
         height: 140,
-        marginBottom: 15,
+        // marginBottom: 15,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
     },

@@ -170,40 +170,42 @@ export default function FriendProfileScreen() {
     if (!user) return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.scrollContent} // Updated this!
+        >
+            {/* 1. ProfileHeader - Top part only */}
             <ProfileHeader
                 user={user}
-                showBio={relationship.isFriend} // Logic: Only show bio if friends
+                showBio={false}
             />
 
+            {/* 2. Stats - Mutuals/Friends */}
             <ProfileStats
                 friendCount={friends.length}
                 mutualCount={mutualFriends.length}
                 secondLabel="mutual"
-                onPressFriends={() => {
-                    setModalConfig({
-                        visible: true,
-                        title: 'Friends',
-                        data: friends // No more red underline!
-                    });
-                }}
-                onPressMutuals={() => {
-                    setModalConfig({
-                        visible: true,
-                        title: 'Mutual Friends',
-                        data: mutualFriends
-                    });
-                }}
+                onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
+                onPressMutuals={() => setModalConfig({ visible: true, title: 'Mutual Friends', data: mutualFriends })}
             />
 
+            {/* 3. Bio - Shows if they are a friend OR if you want it public */}
+            <ProfileHeader
+                user={user}
+                showBio={true}
+                onlyBio={true}
+            />
+
+            {/* 4. Relationship Dependent Content */}
             {relationship.isFriend ? (
                 <ProfileGrid user={user} />
             ) : (
                 <View style={styles.lockedContainer}>
-                    {/* You could add a 'Locked' UI component here */}
+                    {/* Optional: Add a 'Private Profile' lock icon here */}
                 </View>
             )}
 
+            {/* 5. Action Buttons (Poke, Add, Respond) */}
             <ProfileActions
                 status={status as any}
                 loading={actionLoading}
@@ -211,6 +213,7 @@ export default function FriendProfileScreen() {
                 onAction={handleAction}
             />
 
+            {/* Modals */}
             <ProfileListModal
                 visible={modalConfig.visible}
                 title={modalConfig.title}
@@ -273,6 +276,12 @@ const styles = StyleSheet.create({
     content: { padding: 20, paddingBottom: 40 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.dark.background },
     lockedContainer: { marginTop: 10 },
+    scrollContent: {
+        paddingHorizontal: 20, // This is your "Safe Zone"
+        paddingTop: 20,
+        paddingBottom: 40,
+        gap: 15, // This automatically adds even vertical spacing between every component!
+    },
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.8)',
