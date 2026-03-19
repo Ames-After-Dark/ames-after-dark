@@ -49,6 +49,9 @@ interface ProfileListModalProps {
     onAddRecommended?: (id: number) => void;
     actionLoadingId?: number | null;
     emptyMessage?: string;
+    onAcceptRequest?: (id: number) => void;
+    onDeclineRequest?: (id: number) => void;
+    onCancelRequest?: (id: number) => void;
 }
 
 export const ProfileListModal = ({
@@ -60,7 +63,10 @@ export const ProfileListModal = ({
     recommendedData = [],
     onAddRecommended,
     actionLoadingId,
-    emptyMessage
+    emptyMessage,
+    onCancelRequest,
+    onAcceptRequest,
+    onDeclineRequest,
 }: ProfileListModalProps) => {
     const [search, setSearch] = useState('');
     const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -134,6 +140,7 @@ export const ProfileListModal = ({
     });
 
     const renderHeader = () => {
+
         if (title !== 'Friends' || search.length > 0 || recommendedData.length === 0) return null;
 
         return (
@@ -210,21 +217,26 @@ export const ProfileListModal = ({
                     <FlatList
                         data={filteredData}
                         keyExtractor={(item, index) => `${getDisplayUser(item)?.id || index}-${index}`}
+
                         ListHeaderComponent={renderHeader}
-                        showsVerticalScrollIndicator={false}
-                        renderItem={({ item }) => {
+
+                        renderItem={({ item }: { item: FriendshipItem }) => {
                             const displayUser = getDisplayUser(item);
                             if (!displayUser) return null;
 
+                            // Logic to determine direction
+                            const isOutgoing = item.user_id_1 === currentUserId;
+                            const isIncoming = item.user_id_2 === currentUserId;
+
                             return (
-                                <TouchableOpacity
-                                    style={styles.itemRow}
-                                    onPress={() => {
-                                        closeModal();
-                                        router.push(displayUser.id === currentUserId ? '/account' : `/account/${displayUser.id}`);
-                                    }}
-                                >
-                                    <View style={styles.userInfo}>
+                                <View style={styles.itemRow}>
+                                    <TouchableOpacity
+                                        style={styles.userInfo}
+                                        onPress={() => {
+                                            closeModal();
+                                            router.push(displayUser.id === currentUserId ? '/account' : `/account/${displayUser.id}`);
+                                        }}
+                                    >
                                         <Image
                                             source={displayUser.avatar ? { uri: displayUser.avatar } : require('@/assets/images/Logo.png')}
                                             style={styles.avatar}
@@ -232,12 +244,45 @@ export const ProfileListModal = ({
                                         <View>
                                             <Text style={styles.name}>{displayUser.name}</Text>
                                             <Text style={styles.username}>@{displayUser.username}</Text>
+                                            {title === 'Pending Requests' && (
+                                                <Text style={[styles.pendingStatus, { color: isOutgoing ? Theme.container.inactiveText : Theme.dark.secondary }]}>
+                                                    {isOutgoing ? 'Request Sent' : 'Incoming Request'}
+                                                </Text>
+                                            )}
                                         </View>
-                                    </View>
-                                </TouchableOpacity>
+                                    </TouchableOpacity>
+
+                                    {/* ACTION BUTTONS */}
+                                    {title === 'Pending Requests' && (
+                                        <View style={styles.actionGroup}>
+                                            {isOutgoing ? (
+                                                <TouchableOpacity
+                                                    style={styles.cancelBtnSmall}
+                                                    onPress={() => onCancelRequest?.(displayUser.id)}
+                                                >
+                                                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                                                </TouchableOpacity>
+                                            ) : (
+                                                <>
+                                                    <TouchableOpacity
+                                                        style={styles.acceptCircle}
+                                                        onPress={() => onAcceptRequest?.(displayUser.id)}
+                                                    >
+                                                        <FontAwesome name="check" size={14} color="white" />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.declineCircle}
+                                                        onPress={() => onDeclineRequest?.(displayUser.id)}
+                                                    >
+                                                        <FontAwesome name="times" size={14} color="#FF453A" />
+                                                    </TouchableOpacity>
+                                                </>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
                             );
                         }}
-                        ListEmptyComponent={<Text style={styles.emptyText}>{emptyMessage || `No users found`}</Text>}
                     />
                 </Animated.View>
             </View>
@@ -284,4 +329,44 @@ const styles = StyleSheet.create({
     disabledButton: { opacity: 0.5 },
     divider: { height: 1, backgroundColor: Theme.container.mainBorder, marginVertical: 15 },
     emptyText: { color: Theme.container.inactiveText, textAlign: 'center', marginTop: 60, fontSize: 16 },
+    actionGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    acceptCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: Theme.dark.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    declineCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        borderWidth: 1,
+        borderColor: '#FF453A',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cancelBtnSmall: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: Theme.container.mainBorder,
+    },
+    cancelBtnText: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    pendingStatus: {
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 2,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
 });

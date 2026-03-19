@@ -11,14 +11,13 @@ interface ProfileHeaderProps {
 export const ProfileHeader = ({ user, showBio, onlyBio }: ProfileHeaderProps): React.JSX.Element => {
 
     if (onlyBio) {
-        // If they chose not to show bio (e.g., if you aren't friends), render nothing
+
         if (!showBio) return <View />; // Using empty View instead of null to maintain gap spacing in newer React Native versions
 
         return (
             <View style={styles.sidePadding}>
                 <View style={styles.bioContainer}>
                     <Text style={styles.bioText}>
-                        {/* THE FIX: Check if bio exists, otherwise show placeholder */}
                         {user?.bio
                             ? user.bio
                             : `${user?.name || 'This user'} hasn't added a bio yet. They're a mystery! 🕵️‍♂️`}
