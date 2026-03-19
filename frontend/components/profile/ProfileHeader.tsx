@@ -1,0 +1,51 @@
+import React from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { Theme } from '@/constants/theme';
+
+interface ProfileHeaderProps {
+    user: any;
+    showBio?: boolean;
+}
+
+export const ProfileHeader = ({ user, showBio }: ProfileHeaderProps): React.JSX.Element => {
+    return (
+        <View style={styles.container}>
+            <View style={styles.headerRow}>
+                <Image
+                    source={user?.avatar || require('@/assets/images/Logo.png')}
+                    style={styles.profileImage}
+                />
+                <View style={styles.infoContainer}>
+                    <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+                    <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
+                </View>
+            </View>
+
+            {showBio && (
+                <View style={styles.bioContainer}>
+                    <Text style={styles.bioText}>
+                        {user?.bio || "No bio yet. Add one to tell others about yourself!"}
+                    </Text>
+                </View>
+            )}
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: { paddingHorizontal: 4, marginBottom: 10 },
+    headerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+    profileImage: { width: 75, height: 75, borderRadius: 15, marginRight: 15 },
+    infoContainer: { flex: 1 },
+    profileName: { color: Theme.dark.white, fontSize: 22, fontWeight: '700' },
+    usernameText: { color: Theme.container.inactiveText, fontSize: 14 },
+    bioContainer: {
+        backgroundColor: Theme.container.background,
+        padding: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        marginTop: 10,
+    },
+    bioText: { color: Theme.container.titleText, fontSize: 14, fontStyle: 'italic', lineHeight: 20 },
+});

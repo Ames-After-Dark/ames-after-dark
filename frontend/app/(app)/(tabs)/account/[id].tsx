@@ -1,1048 +1,1360 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    Image,
-    TouchableOpacity,
-    ScrollView,
-    StyleSheet,
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    TextInput,
-    TouchableWithoutFeedback,
-    Animated,
-    Alert
-} from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useAuth } from '@/hooks/use-auth';
 
-import { Friend } from '@/types/types';
+import { useAuth } from '@/hooks/use-auth';
+import { Theme } from '@/constants/theme';
+import ErrorState from '@/components/ui/error-state';
+import { Friend, PendingFriendRequest } from '@/types/types';
+
+// Import our new Modular Components
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { ProfileStats } from '@/components/profile/ProfileStats';
+import { ProfileGrid } from '@/components/profile/ProfileGrid';
+import { ProfileActions } from '@/components/profile/ProfileActions';
+import { ProfileListModal } from '@/components/profile/ProfileListModal';
+
 import {
-    acceptFriendRequest,
-    blockFriend,
-    declineFriendRequest,
     getUserById,
     getUserFriends,
     getMutualFriends,
+    sendFriendRequest,
+    acceptFriendRequest,
+    declineFriendRequest,
     removeFriend,
-    sendFriendRequest
+    blockFriend
 } from '@/services/userService';
-import { shouldForceErrorPage } from '@/utils/dev-error-pages';
-import ErrorState from '@/components/ui/error-state';
-import { Theme } from '@/constants/theme';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const { userStatus } = useAuth();
-    const [user, setUser] = useState<any | null>(null);
+
+    // Data State
+    const [user, setUser] = useState<any>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
-
-    // Modal State
-    const [isModalVisible, setModalVisible] = useState(false);
-    const [modalTitle, setModalTitle] = useState('');
-    const [friendsToShow, setFriendsToShow] = useState<Friend[]>([]);
     const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
-    const [modalSearchQuery, setModalSearchQuery] = useState('');
 
-    // Animations
-    const scaleAnim = useState(new Animated.Value(1))[0];
-    const [showToast, setShowToast] = useState(false);
-    const toastOpacity = useState(new Animated.Value(0))[0];
-    const toastTranslateY = useState(new Animated.Value(-20))[0];
+    // UI State
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [relationship, setRelationship] = useState({
+        isFriend: false,
+        isBlocked: false,
+        sentRequest: false,
+        receivedRequest: false,
+    });
 
-    const [isFriend, setIsFriend] = useState(false);
-    const [requestSent, setRequestSent] = useState(false);
-    const [hasIncomingRequest, setHasIncomingRequest] = useState(false);
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [modalData, setModalData] = useState({ title: '', list: [] });
+
     const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
-    const [isBlocked, setIsBlocked] = useState(false);
-    const [friendActionLoading, setFriendActionLoading] = useState(false);
 
-    const [toastMessage, setToastMessage] = useState('');
-    const [toastIcon, setToastIcon] = useState('check'); // Default icon name
+    // Define a Union type to handle both friends and requests
+    type ModalData = Friend | PendingFriendRequest | any;
 
-    const triggerToast = (message: string, icon: string = 'check') => {
+    const [modalConfig, setModalConfig] = useState<{
+        visible: boolean;
+        title: string;
+        data: ModalData[]
+    }>({
+        visible: false,
+        title: '',
+        data: [] // TypeScript now knows this is a ModalData[]
+    });
 
-        setToastMessage(message);
-        setToastIcon(icon);
-        setShowToast(true);
+    const fetchProfile = async () => {
+        if (!id || !userStatus?.userId) return;
+        setLoading(true);
+        try {
+            const [userData, friendsData, mutualData, myFriends] = await Promise.all([
+                getUserById(id),
+                getUserFriends(id),
+                getMutualFriends(userStatus.userId, id),
+                getUserFriends(userStatus.userId)
+            ]);
 
-        // Reset position just in case
-        toastTranslateY.setValue(-20);
+            setUser(userData);
+            setFriends(friendsData || []);
+            setMutualFriends(mutualData || []);
 
-        // Animate In
-        Animated.parallel([
-            Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-            Animated.spring(toastTranslateY, { toValue: 50, friction: 5, useNativeDriver: true }),
-        ]).start();
+            // Determine Relationship Status
+            const isFriend = myFriends.some(f => f.id.toString() === id);
+            const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
+            const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
 
-        // Animate Out after delay
-        setTimeout(() => {
-            Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-                setShowToast(false);
+            setRelationship({
+                isFriend,
+                isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
+                sentRequest: Boolean(incoming?.friendship_status_id === 1),
+                receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
             });
-        }, 2500);
-    };
-
-    const handlePoke = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-        Animated.sequence([
-            Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-            Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-        ]).start();
-
-        // Trigger the dynamic toast
-        triggerToast(`You poked ${user?.name?.split(' ')[0]}!`, 'hand-o-right');
-    };
-
-    const handleAddFriend = async () => {
-        try {
-            const friendId = Number(id);
-            if (!friendId || Number.isNaN(friendId)) {
-                Alert.alert("Error", "Invalid friend ID.");
-                return;
-            }
-
-            if (!userStatus?.userId) {
-                Alert.alert("Error", "You must be logged in to add friends.");
-                return;
-            }
-
-            if (friendId === userStatus.userId) {
-                Alert.alert("Error", "You can't add yourself as a friend.");
-                return;
-            }
-
-            await sendFriendRequest(userStatus.userId, friendId);
-
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            Animated.sequence([
-                Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-                Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-            ]).start();
-
-            setRequestSent(true);
-
-            // Use the toast instead of Alert
-            triggerToast("Friend Request Sent!", 'check');
-
         } catch (err) {
-            console.error("Failed to add friend:", err);
-            // Keep Alert for errors only
-            Alert.alert("Error", "Could not send friend request.");
-        }
-    };
-
-    const handleRemoveFriend = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid friend ID.");
-            return;
-        }
-
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Remove friend",
-            `Remove ${user?.name || 'this user'} from your friends list?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Remove",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await removeFriend(userStatus.userId!, friendId);
-                            setIsFriend(false);
-                            triggerToast("Friend removed", "user-times");
-                        } catch (err) {
-                            console.error("Failed to remove friend:", err);
-                            Alert.alert("Error", "Could not remove friend.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleBlockFriend = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid friend ID.");
-            return;
-        }
-
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Block user",
-            `Block ${user?.name || 'this user'}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Block",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await blockFriend(userStatus.userId!, friendId);
-                            setIsFriend(false);
-                            setIsBlocked(true);
-                            setRequestSent(false);
-                            triggerToast("User blocked", "ban");
-                        } catch (err) {
-                            console.error("Failed to block user:", err);
-                            Alert.alert("Error", "Could not block user.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleUnblockUser = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid user ID.");
-            return;
-        }
-
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Unblock user",
-            `Unblock ${user?.name || 'this user'}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Unblock",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await removeFriend(userStatus.userId!, friendId);
-                            setIsBlocked(false);
-                            setRequestSent(false);
-                            triggerToast("User unblocked", "unlock");
-                        } catch (err) {
-                            console.error("Failed to unblock user:", err);
-                            Alert.alert("Error", "Could not unblock user.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handlePendingDecision = async (friendId: number, action: 'accept' | 'decline' | 'block') => {
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        try {
-            setFriendActionLoading(true);
-
-            if (action === 'accept') {
-                await acceptFriendRequest(userStatus.userId, friendId);
-                setIsFriend(true);
-                triggerToast('Request accepted', 'check');
-            } else if (action === 'decline') {
-                await declineFriendRequest(userStatus.userId, friendId);
-                triggerToast('Request declined', 'times');
-            } else {
-                await blockFriend(userStatus.userId, friendId);
-                setIsBlocked(true);
-                triggerToast('User blocked', 'ban');
-            }
-
-            setHasIncomingRequest(false);
-            setRequestSent(false);
-        } catch (err) {
-            console.error(`Failed to ${action} friend request:`, err);
-            Alert.alert('Error', `Could not ${action} request.`);
+            console.error(err);
         } finally {
-            setFriendActionLoading(false);
+            setLoading(false);
         }
     };
 
-    useEffect(() => {
-        if (id && userStatus?.userId) {
-            const userId = Number(id);
+    useEffect(() => { fetchProfile(); }, [id]);
 
-            // Redirect to account page if viewing own profile
-            if (userId === userStatus.userId) {
-                router.push('./account');
-                return;
-            }
+    // Computed Status for ProfileActions
+    const status = useMemo(() => {
+        if (relationship.isBlocked) return 'BLOCKED';
+        if (relationship.isFriend) return 'FRIEND';
+        if (relationship.sentRequest) return 'PENDING_SENT';
+        if (relationship.receivedRequest) return 'PENDING_RECEIVED';
+        return 'STRANGER';
+    }, [relationship]);
 
-            const fetchUserData = async () => {
-                setLoading(true);
-                try {
-                    // Check if already friends locally first
-                    const myFriends = await getUserFriends(userStatus.userId!);
-                    const isAlreadyFriend = myFriends.some(f => f.id.toString() === id);
-                    setIsFriend(isAlreadyFriend);
+    const handleAction = async (type: string) => {
 
-                    // Fetch profile data
-                    const [userData, friendsData, mutualData] = await Promise.all([
-                        getUserById(id),
-                        getUserFriends(id),
-                        getMutualFriends(userStatus.userId!, id)
-                    ]);
+        const friendId = Number(id);
 
-                    const outgoingRelation = userData?.friendships_friendships_user_id_1Tousers?.find(
-                        (relation: any) => relation.user_id_2 === userStatus.userId
-                    );
-                    const incomingRelation = userData?.friendships_friendships_user_id_2Tousers?.find(
-                        (relation: any) => relation.user_id_1 === userStatus.userId
-                    );
-                    const relation = outgoingRelation || incomingRelation;
-                    const isOutgoingPending = outgoingRelation?.friendship_status_id === 1;
-                    const isIncomingPending = incomingRelation?.friendship_status_id === 1;
-
-                    setIsBlocked(relation?.friendship_status_id === 4);
-                    setRequestSent(Boolean(isOutgoingPending));
-                    setHasIncomingRequest(Boolean(isIncomingPending));
-
-                    console.log('User data fetched:', {
-                        id: userData?.id,
-                        username: userData?.username,
-                        bio: userData?.bio,
-                        hasBio: !!userData?.bio
-                    });
-
-                    setUser(userData);
-                    setFriends(friendsData || []);
-                    setMutualFriends(mutualData || []);
-                } catch (err) {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch user data'));
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchUserData();
+        // If they click the main button and have a pending request, show the popup
+        if (type === 'respond') {
+            setIsRespondModalVisible(true);
+            return;
         }
-    }, [id, userStatus?.userId]);
 
-    // Show loading if userStatus hasn't loaded yet
-    if (loading || !userStatus?.userId) return (
-        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={Theme.dark.secondary || 'white'} />
-        </View>
-    );
+        setActionLoading(true);
 
-    if (error || shouldForceErrorPage('friendProfile')) {
-        return (
-            <View style={styles.container}>
-                <ErrorState title="Unable to load friend profile" subtitle="Please try again later." />
-            </View>
-        );
-    }
+        try {
+            if (type === 'accept') {
+                await acceptFriendRequest(userStatus!.userId!, friendId);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else if (type === 'decline') {
+                await declineFriendRequest(userStatus!.userId!, friendId);
+            } else if (type === 'block') {
+                if (type === 'block') {
+                    Alert.alert(
+                        "Block User?",
+                        `Are you sure you want to block ${user?.name}? You won't see each other's profiles anymore.`,
+                        [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                                text: "Block",
+                                style: "destructive",
+                                onPress: async () => {
+                                    await blockFriend(userStatus!.userId!, friendId);
+                                    setIsRespondModalVisible(false);
+                                    fetchProfile();
+                                }
+                            }
+                        ]
+                    );
+                    return; // Stop the function here so the onPress handles the rest
+                }
+            }
+            else if (type === 'primary') {
+                if (status === 'STRANGER') await sendFriendRequest(userStatus!.userId!, friendId);
+                if (status === 'PENDING_RECEIVED') await acceptFriendRequest(userStatus!.userId!, friendId);
+                if (status === 'BLOCKED') await removeFriend(userStatus!.userId!, friendId); // Unblock
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else if (type === 'poke') {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                // Trigger your Poke Toast logic here
+            } else if (type === 'remove' || type === 'block') {
+                const actionFunc = type === 'remove' ? removeFriend : blockFriend;
+                await actionFunc(userStatus!.userId!, friendId);
+            }
+            await fetchProfile(); // Refresh UI
+        } catch (err) {
+            Alert.alert("Error", "Action failed. Try again.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.dark.secondary} /></View>;
+    if (!user) return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
 
     return (
-        <View style={styles.container}>
-            {/* Custom Toast Notification */}
-            {showToast && (
-                <Animated.View style={[
-                    styles.toastContainer,
-                    { opacity: toastOpacity, transform: [{ translateY: toastTranslateY }] }
-                ]}>
-                    {/* Dynamic Icon */}
-                    <FontAwesome name={toastIcon as any} size={16} color={Theme.dark.white} />
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <ProfileHeader
+                user={user}
+                showBio={relationship.isFriend} // Logic: Only show bio if friends
+            />
 
-                    {/* Dynamic Message */}
-                    <Text style={styles.toastText}>{toastMessage}</Text>
-                </Animated.View>
+            <ProfileStats
+                friendCount={friends.length}
+                mutualCount={mutualFriends.length}
+                secondLabel="mutual"
+                onPressFriends={() => {
+                    setModalConfig({
+                        visible: true,
+                        title: 'Friends',
+                        data: friends // No more red underline!
+                    });
+                }}
+                onPressMutuals={() => {
+                    setModalConfig({
+                        visible: true,
+                        title: 'Mutual Friends',
+                        data: mutualFriends
+                    });
+                }}
+            />
+
+            {relationship.isFriend ? (
+                <ProfileGrid user={user} />
+            ) : (
+                <View style={styles.lockedContainer}>
+                    {/* You could add a 'Locked' UI component here */}
+                </View>
             )}
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ProfileActions
+                status={status as any}
+                loading={actionLoading}
+                userName={user.name}
+                onAction={handleAction}
+            />
 
-                {/* --- SHARED HEADER (Used for both Friend & Stranger) --- */}
-                {/* 1. HEADER ROW (Just Profile Pic & Name now) */}
-                <View style={styles.headerRow}>
-                    <Image
-                        source={user?.avatar || require('../../../../assets/images/Logo.png')}
-                        style={styles.profileImage}
-                    />
-                    <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>{user?.name}</Text>
-                        <Text style={styles.usernameText}>@{user?.username}</Text>
-                    </View>
-                </View>
-
-                {/* 2. NEW STATS ROW (Moved here, below header) */}
-                <View style={styles.statsRow}>
-                    <TouchableOpacity
-                        style={styles.statButton}
-                        onPress={() => {
-                            setModalTitle("Mutual Friends");
-                            setFriendsToShow(mutualFriends);
-                            setModalVisible(true);
-                        }}
-                    >
-                        <Text style={styles.statNumber}>{mutualFriends.length}</Text>
-                        <Text style={styles.statLabelSmall}>mutual</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.statButton}
-                        onPress={() => {
-                            setModalTitle("Total Friends");
-                            setFriendsToShow(friends);
-                            setModalVisible(true);
-                        }}
-                    >
-                        <Text style={styles.statNumber}>{friends.length}</Text>
-                        <Text style={styles.statLabelSmall}>total</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* --- CONDITIONAL BODY CONTENT --- */}
-                {isFriend ? (
-                    /* FRIEND VIEW */
-                    <View>
-                        {/* Bio Section */}
-                        <View style={styles.bioContainer}>
-                            <Text style={styles.bioText}>
-                                {user?.bio || "This user hasn't added a bio yet. They're a mystery! 🕵️‍♂️"}
-                            </Text>
-                        </View>
-
-                        {/* Middle Grid (Drink / Streak) */}
-                        <View style={styles.gridRow}>
-                            <View style={styles.featureCard}>
-                                <Text style={styles.featureTitle}>fav. drink</Text>
-                                <View style={styles.placeholderPhoto}>
-                                    <FontAwesome name="glass" size={24} color={Theme.dark.secondary} />
-                                </View>
-                            </View>
-
-                            <View style={styles.featureCard}>
-                                <Text style={styles.featureTitle}>streak</Text>
-                                <View style={styles.streakContent}>
-                                    <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
-                                    <Text style={styles.statLabel}>weekends out in a row</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Favorite Bar Card */}
-                        <View style={styles.largeCard}>
-                            <Text style={styles.featureTitle}>fav. bar w/ official photo</Text>
-                            <View style={styles.largePlaceholder}>
-                                <FontAwesome name="map-marker" size={40} color={Theme.dark.muted} />
-                            </View>
-                        </View>
-
-                        {/* Poke Button */}
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={handlePoke}
-                            style={{ marginTop: 10 }}
-                        >
-                            <Animated.View style={[
-                                styles.pokeButton,
-                                { transform: [{ scale: scaleAnim }] }
-                            ]}>
-                                <Text style={styles.pokeText}>
-                                    poke {user?.name?.split(' ')[0] || '??'}
-                                </Text>
-                            </Animated.View>
-                        </TouchableOpacity>
-
-                        <View style={styles.friendActionRow}>
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleRemoveFriend}
-                                disabled={friendActionLoading}
-                                style={styles.friendActionButton}
-                            >
-                                <Text style={styles.friendActionText}>remove friend</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleBlockFriend}
-                                disabled={friendActionLoading}
-                                style={[styles.friendActionButton, styles.blockActionButton]}
-                            >
-                                <Text style={styles.friendActionText}>block</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                ) : (
-                    /* STRANGER VIEW */
-                    <View style={styles.verticalListContainer}>
-                        {/* Locked Content */}
-                        <View style={styles.wideFeatureCard}>
-                            <View>
-                                <Text style={styles.featureTitle}>fav drink</Text>
-                                <Text style={styles.lockSubtext}>Add friend to view details!</Text>
-                            </View>
-                            <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
-                        </View>
-
-                        <View style={styles.wideFeatureCard}>
-                            <View>
-                                <Text style={styles.featureTitle}>fav bar</Text>
-                                <Text style={styles.lockSubtext}>Add friend to view details!</Text>
-                            </View>
-                            <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
-                        </View>
-
-                        {hasIncomingRequest && !isBlocked && (
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={() => setIsRespondModalVisible(true)}
-                                disabled={friendActionLoading}
-                            >
-                                <Animated.View style={[
-                                    styles.addFriendButton,
-                                    { transform: [{ scale: scaleAnim }] }
-                                ]}>
-                                    <Text style={styles.addFriendText}>Respond to Request</Text>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        )}
-
-                        {/* Add Friend / Unblock Button */}
-                        {!hasIncomingRequest && (
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={() => {
-                                    if (isBlocked) {
-                                        handleUnblockUser();
-                                    } else {
-                                        handleAddFriend();
-                                        console.log("attempt to add friend with ID:", id);
-                                    }
-                                }}
-                                disabled={(requestSent && !isBlocked) || friendActionLoading}
-                            >
-                                <Animated.View style={[
-                                    styles.addFriendButton,
-                                    {
-                                        transform: [{ scale: scaleAnim }],
-                                        backgroundColor: requestSent
-                                            ? Theme.container.inactiveText
-                                            : isBlocked
-                                                ? Theme.dark.secondary
-                                                : Theme.dark.primary
-                                    }
-                                ]}>
-                                    <Text style={styles.addFriendText}>
-                                        {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
-                                    </Text>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* --- MODAL (Kept outside ScrollView) --- */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPressOut={() => setModalVisible(false)}
-                >
-                    <TouchableWithoutFeedback>
-                        <View style={styles.floatingModalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{modalTitle}</Text>
-                                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                    <FontAwesome
-                                        name="times-circle"
-                                        size={26}
-                                        color={Theme.container.inactiveText}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.modalSearchContainer}>
-                                <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
-                                <TextInput
-                                    style={styles.modalSearchBar}
-                                    placeholder="Search..."
-                                    placeholderTextColor={Theme.search.inactiveInput}
-                                    value={modalSearchQuery}
-                                    onChangeText={setModalSearchQuery}
-                                />
-                            </View>
-
-                            <FlatList
-                                data={friendsToShow.filter(f =>
-                                    (f.name ?? '').toLowerCase().includes(modalSearchQuery.toLowerCase())
-                                )}
-                                keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={styles.modalFriendRow}
-                                        onPress={() => {
-                                            setModalVisible(false);
-                                            router.push(`/account/${item.id}`);
-                                        }}
-                                    >
-                                        <Image
-                                            source={item.avatar || require('../../../../assets/images/Logo.png')}
-                                            style={styles.modalAvatar}
-                                        />
-                                        <View>
-                                            <Text style={styles.modalFriendName}>{item.name}</Text>
-                                            <Text style={styles.modalFriendUsername}>@{item.username}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                )}
-                                ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
-                            />
-                        </View>
-                    </TouchableWithoutFeedback>
-                </TouchableOpacity>
-            </Modal>
+            <ProfileListModal
+                visible={modalConfig.visible}
+                title={modalConfig.title}
+                data={modalConfig.data}
+                onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
+                currentUserId={userStatus?.userId || null}
+            />
 
             <Modal
-                animationType="fade"
-                transparent={true}
                 visible={isRespondModalVisible}
+                transparent
+                animationType="fade"
                 onRequestClose={() => setIsRespondModalVisible(false)}
             >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPressOut={() => setIsRespondModalVisible(false)}
-                >
-                    <TouchableWithoutFeedback>
-                        <View style={styles.floatingModalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{"friend request from: \n" + user?.name}</Text>
-                                <TouchableOpacity onPress={() => setIsRespondModalVisible(false)}>
-                                    <FontAwesome
-                                        name="times-circle"
-                                        size={26}
-                                        color={Theme.container.inactiveText}
-                                    />
+                <TouchableWithoutFeedback onPress={() => setIsRespondModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.responseCard}>
+                                <Text style={styles.responseTitle}>Respond to {user?.name}</Text>
+
+                                <TouchableOpacity
+                                    style={[styles.responseBtn, styles.acceptBtn]}
+                                    onPress={() => handleAction('accept')}
+                                >
+                                    <Text style={styles.btnText}>Accept Friend Request</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.responseBtn, styles.declineBtn]}
+                                    onPress={() => handleAction('decline')}
+                                >
+                                    <Text style={styles.btnText}>Decline</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.responseBtn, styles.blockBtn]}
+                                    onPress={() => handleAction('block')}
+                                >
+                                    <Text style={[styles.btnText, { color: '#FF453A' }]}>Block User</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.cancelBtn}
+                                    onPress={() => setIsRespondModalVisible(false)}
+                                >
+                                    <Text style={styles.cancelText}>Cancel</Text>
                                 </TouchableOpacity>
                             </View>
-
-                            <View style={styles.requestActionsRow}>
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.acceptButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'accept');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Accept</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.declineButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'decline');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Decline</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.blockButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'block');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Block</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </TouchableOpacity>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
             </Modal>
-        </View>
+
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Theme.dark.background,
-    },
-    content: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    profileImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        marginRight: 12,
-        borderWidth: 2,
-        borderColor: Theme.container.mainBorder,
-    },
-    profileName: {
-        color: Theme.dark.white,
-        fontSize: 22,
-        fontWeight: 'bold',
-    },
-    usernameText: {
-        color: Theme.container.inactiveText,
-        fontSize: 14,
-    },
-    sideStatsContainer: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    sideStatBox: {
-        backgroundColor: Theme.container.background,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
-        minWidth: 70,
-    },
-    bioContainer: {
-        backgroundColor: Theme.container.background,
-        padding: 14,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        marginBottom: 15,
-    },
-    bioText: {
-        color: Theme.container.titleText,
-        fontSize: 14,
-        fontStyle: 'italic',
-        lineHeight: 20,
-    },
-    gridRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 15,
-        gap: 15,
-    },
-    featureCard: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        minHeight: 130,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    featureTitle: {
-        color: Theme.dark.white,
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    placeholderPhoto: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 5,
-    },
-    streakContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    streakNumber: {
-        color: Theme.dark.tertiary,
-        fontSize: 32,
-        fontWeight: 'bold',
-    },
-    statLabel: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    largeCard: {
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        height: 160,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    largePlaceholder: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    verticalListContainer: {
-        marginTop: 10,
-        gap: 12,
-    },
-    wideFeatureCard: {
-        backgroundColor: Theme.container.background,
-        borderRadius: 16,
-        padding: 22,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    lockSubtext: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        fontStyle: 'italic',
-        marginTop: 2,
-    },
-    addFriendButton: {
-        backgroundColor: Theme.dark.primary,
-        paddingVertical: 18,
-        borderRadius: 20,
-        alignItems: 'center',
-        marginTop: 20,
-        shadowColor: Theme.dark.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        elevation: 6,
-    },
-    addFriendText: {
-        color: Theme.dark.white,
-        fontSize: 18,
-        fontWeight: '800',
-        letterSpacing: 1,
-    },
-    pokeButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
-        borderColor: Theme.dark.primary,
-        borderRadius: 16,
-        padding: 16,
-        alignItems: 'center',
-    },
-    pokeText: {
-        color: Theme.dark.primary,
-        fontSize: 16,
-        fontWeight: '700',
-        letterSpacing: 1,
-        textTransform: 'lowercase',
-    },
-    friendActionRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginTop: 12,
-    },
-    friendActionButton: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: Theme.container.inactiveBorder,
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    requestActionsRow: {
-        flexDirection: 'column',
-        // flexDirection: 'row',
-        gap: 8,
-        marginTop: 4,
-    },
-    requestActionButton: {
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        alignSelf: 'stretch',
-        width: '100%',
-    },
-    acceptButton: {
-        backgroundColor: Theme.dark.primary,
-        borderColor: Theme.dark.primary,
-    },
-    declineButton: {
-        backgroundColor: Theme.container.inactiveBorder,
-        borderColor: Theme.container.inactiveBorder,
-    },
-    blockButton: {
-        backgroundColor: Theme.dark.error,
-        borderColor: Theme.dark.error,
-    },
-    requestActionText: {
-        color: Theme.dark.white,
-        fontWeight: '700',
-        fontSize: 14,
-        textTransform: 'none',
-    },
-    blockActionButton: {
-        borderColor: Theme.dark.error,
-    },
-    friendActionText: {
-        color: Theme.container.titleText,
-        fontSize: 13,
-        fontWeight: '700',
-        textTransform: 'lowercase',
-    },
-    toastContainer: {
-        position: 'absolute',
-        top: '1%',
-        alignSelf: 'center',
-        backgroundColor: Theme.dark.primary,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        borderRadius: 16,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-        zIndex: 999,
-        elevation: 10,
-    },
-    toastText: {
-        color: Theme.dark.white,
-        fontWeight: '700',
-        fontSize: 14,
-    },
+    container: { flex: 1, backgroundColor: Theme.dark.background },
+    content: { padding: 20, paddingBottom: 40 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.dark.background },
+    lockedContainer: { marginTop: 10 },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0,0,0,0.8)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    floatingModalContent: {
-        width: '90%',
-        maxHeight: '70%',
+    responseCard: {
+        width: '85%',
         backgroundColor: Theme.container.background,
         borderRadius: 24,
-        padding: 20,
+        padding: 24,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
-        elevation: 20,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    responseTitle: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: '700',
         marginBottom: 20,
-    },
-    modalTitle: {
-        color: Theme.container.titleText,
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    modalSearchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Theme.search.background,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        height: 45,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Theme.search.border,
-    },
-    modalSearchBar: {
-        flex: 1,
-        marginLeft: 10,
-        color: Theme.search.input,
-        fontSize: 16,
-    },
-    modalFriendRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-    },
-    modalAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 12,
-    },
-    modalFriendName: {
-        color: Theme.container.activeText,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalFriendUsername: {
-        color: Theme.container.inactiveText,
-        fontSize: 13,
-    },
-    emptyText: {
-        color: Theme.container.inactiveText,
-        fontSize: 16,
         textAlign: 'center',
-        paddingVertical: 20,
     },
-    profileInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    statsRow: {
-        flexDirection: 'row',
-        marginBottom: 15,
-        gap: 12,
-    },
-    statButton: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        paddingVertical: 12,
+    responseBtn: {
+        width: '100%',
+        paddingVertical: 14,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
         alignItems: 'center',
-        justifyContent: 'center',
+        marginBottom: 10,
     },
-    statNumber: {
-        color: Theme.dark.white,
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    statLabelSmall: {
-        color: Theme.container.inactiveText,
-        fontSize: 11,
-        fontWeight: '600',
-        // textTransform: 'uppercase',
-        marginTop: 2,
-    },
+    acceptBtn: { backgroundColor: Theme.dark.primary },
+    declineBtn: { backgroundColor: Theme.container.mainBorder },
+    blockBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FF453A' },
+    btnText: { color: 'white', fontWeight: '700', fontSize: 15 },
+    cancelBtn: { marginTop: 10 },
+    cancelText: { color: Theme.container.inactiveText, fontSize: 14, fontWeight: '600' },
 });
+
+// import React, { useState, useEffect } from 'react';
+// import {
+//     View,
+//     Text,
+//     Image,
+//     TouchableOpacity,
+//     ScrollView,
+//     StyleSheet,
+//     ActivityIndicator,
+//     FlatList,
+//     Modal,
+//     TextInput,
+//     TouchableWithoutFeedback,
+//     Animated,
+//     Alert
+// } from 'react-native';
+// import { FontAwesome } from '@expo/vector-icons';
+// import { router, useLocalSearchParams } from 'expo-router';
+// import * as Haptics from 'expo-haptics';
+// import { useAuth } from '@/hooks/use-auth';
+
+// import { Friend } from '@/types/types';
+// import {
+//     acceptFriendRequest,
+//     blockFriend,
+//     declineFriendRequest,
+//     getUserById,
+//     getUserFriends,
+//     getMutualFriends,
+//     removeFriend,
+//     sendFriendRequest
+// } from '@/services/userService';
+// import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+// import ErrorState from '@/components/ui/error-state';
+// import { Theme } from '@/constants/theme';
+
+// export default function FriendProfileScreen() {
+//     const { id } = useLocalSearchParams<{ id: string }>();
+//     const { userStatus } = useAuth();
+//     const [user, setUser] = useState<any | null>(null);
+//     const [friends, setFriends] = useState<Friend[]>([]);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState<Error | null>(null);
+
+//     // Modal State
+//     const [isModalVisible, setModalVisible] = useState(false);
+//     const [modalTitle, setModalTitle] = useState('');
+//     const [friendsToShow, setFriendsToShow] = useState<Friend[]>([]);
+//     const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
+//     const [modalSearchQuery, setModalSearchQuery] = useState('');
+
+//     // Animations
+//     const scaleAnim = useState(new Animated.Value(1))[0];
+//     const [showToast, setShowToast] = useState(false);
+//     const toastOpacity = useState(new Animated.Value(0))[0];
+//     const toastTranslateY = useState(new Animated.Value(-20))[0];
+
+//     const [isFriend, setIsFriend] = useState(false);
+//     const [requestSent, setRequestSent] = useState(false);
+//     const [hasIncomingRequest, setHasIncomingRequest] = useState(false);
+//     const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
+//     const [isBlocked, setIsBlocked] = useState(false);
+//     const [friendActionLoading, setFriendActionLoading] = useState(false);
+
+//     const [toastMessage, setToastMessage] = useState('');
+//     const [toastIcon, setToastIcon] = useState('check'); // Default icon name
+
+//     const triggerToast = (message: string, icon: string = 'check') => {
+
+//         setToastMessage(message);
+//         setToastIcon(icon);
+//         setShowToast(true);
+
+//         // Reset position just in case
+//         toastTranslateY.setValue(-20);
+
+//         // Animate In
+//         Animated.parallel([
+//             Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+//             Animated.spring(toastTranslateY, { toValue: 50, friction: 5, useNativeDriver: true }),
+//         ]).start();
+
+//         // Animate Out after delay
+//         setTimeout(() => {
+//             Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+//                 setShowToast(false);
+//             });
+//         }, 2500);
+//     };
+
+//     const handlePoke = () => {
+//         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+//         Animated.sequence([
+//             Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+//             Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
+//         ]).start();
+
+//         // Trigger the dynamic toast
+//         triggerToast(`You poked ${user?.name?.split(' ')[0]}!`, 'hand-o-right');
+//     };
+
+//     const handleAddFriend = async () => {
+//         try {
+//             const friendId = Number(id);
+//             if (!friendId || Number.isNaN(friendId)) {
+//                 Alert.alert("Error", "Invalid friend ID.");
+//                 return;
+//             }
+
+//             if (!userStatus?.userId) {
+//                 Alert.alert("Error", "You must be logged in to add friends.");
+//                 return;
+//             }
+
+//             if (friendId === userStatus.userId) {
+//                 Alert.alert("Error", "You can't add yourself as a friend.");
+//                 return;
+//             }
+
+//             await sendFriendRequest(userStatus.userId, friendId);
+
+//             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+//             Animated.sequence([
+//                 Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+//                 Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
+//             ]).start();
+
+//             setRequestSent(true);
+
+//             // Use the toast instead of Alert
+//             triggerToast("Friend Request Sent!", 'check');
+
+//         } catch (err) {
+//             console.error("Failed to add friend:", err);
+//             // Keep Alert for errors only
+//             Alert.alert("Error", "Could not send friend request.");
+//         }
+//     };
+
+//     const handleRemoveFriend = async () => {
+//         const friendId = Number(id);
+//         if (!friendId || Number.isNaN(friendId)) {
+//             Alert.alert("Error", "Invalid friend ID.");
+//             return;
+//         }
+
+//         if (!userStatus?.userId) {
+//             Alert.alert("Error", "You must be logged in.");
+//             return;
+//         }
+
+//         Alert.alert(
+//             "Remove friend",
+//             `Remove ${user?.name || 'this user'} from your friends list?`,
+//             [
+//                 { text: "Cancel", style: "cancel" },
+//                 {
+//                     text: "Remove",
+//                     style: "destructive",
+//                     onPress: async () => {
+//                         try {
+//                             setFriendActionLoading(true);
+//                             await removeFriend(userStatus.userId!, friendId);
+//                             setIsFriend(false);
+//                             triggerToast("Friend removed", "user-times");
+//                         } catch (err) {
+//                             console.error("Failed to remove friend:", err);
+//                             Alert.alert("Error", "Could not remove friend.");
+//                         } finally {
+//                             setFriendActionLoading(false);
+//                         }
+//                     }
+//                 }
+//             ]
+//         );
+//     };
+
+//     const handleBlockFriend = async () => {
+//         const friendId = Number(id);
+//         if (!friendId || Number.isNaN(friendId)) {
+//             Alert.alert("Error", "Invalid friend ID.");
+//             return;
+//         }
+
+//         if (!userStatus?.userId) {
+//             Alert.alert("Error", "You must be logged in.");
+//             return;
+//         }
+
+//         Alert.alert(
+//             "Block user",
+//             `Block ${user?.name || 'this user'}?`,
+//             [
+//                 { text: "Cancel", style: "cancel" },
+//                 {
+//                     text: "Block",
+//                     style: "destructive",
+//                     onPress: async () => {
+//                         try {
+//                             setFriendActionLoading(true);
+//                             await blockFriend(userStatus.userId!, friendId);
+//                             setIsFriend(false);
+//                             setIsBlocked(true);
+//                             setRequestSent(false);
+//                             triggerToast("User blocked", "ban");
+//                         } catch (err) {
+//                             console.error("Failed to block user:", err);
+//                             Alert.alert("Error", "Could not block user.");
+//                         } finally {
+//                             setFriendActionLoading(false);
+//                         }
+//                     }
+//                 }
+//             ]
+//         );
+//     };
+
+//     const handleUnblockUser = async () => {
+//         const friendId = Number(id);
+//         if (!friendId || Number.isNaN(friendId)) {
+//             Alert.alert("Error", "Invalid user ID.");
+//             return;
+//         }
+
+//         if (!userStatus?.userId) {
+//             Alert.alert("Error", "You must be logged in.");
+//             return;
+//         }
+
+//         Alert.alert(
+//             "Unblock user",
+//             `Unblock ${user?.name || 'this user'}?`,
+//             [
+//                 { text: "Cancel", style: "cancel" },
+//                 {
+//                     text: "Unblock",
+//                     onPress: async () => {
+//                         try {
+//                             setFriendActionLoading(true);
+//                             await removeFriend(userStatus.userId!, friendId);
+//                             setIsBlocked(false);
+//                             setRequestSent(false);
+//                             triggerToast("User unblocked", "unlock");
+//                         } catch (err) {
+//                             console.error("Failed to unblock user:", err);
+//                             Alert.alert("Error", "Could not unblock user.");
+//                         } finally {
+//                             setFriendActionLoading(false);
+//                         }
+//                     }
+//                 }
+//             ]
+//         );
+//     };
+
+//     const handlePendingDecision = async (friendId: number, action: 'accept' | 'decline' | 'block') => {
+//         if (!userStatus?.userId) {
+//             Alert.alert("Error", "You must be logged in.");
+//             return;
+//         }
+
+//         try {
+//             setFriendActionLoading(true);
+
+//             if (action === 'accept') {
+//                 await acceptFriendRequest(userStatus.userId, friendId);
+//                 setIsFriend(true);
+//                 triggerToast('Request accepted', 'check');
+//             } else if (action === 'decline') {
+//                 await declineFriendRequest(userStatus.userId, friendId);
+//                 triggerToast('Request declined', 'times');
+//             } else {
+//                 await blockFriend(userStatus.userId, friendId);
+//                 setIsBlocked(true);
+//                 triggerToast('User blocked', 'ban');
+//             }
+
+//             setHasIncomingRequest(false);
+//             setRequestSent(false);
+//         } catch (err) {
+//             console.error(`Failed to ${action} friend request:`, err);
+//             Alert.alert('Error', `Could not ${action} request.`);
+//         } finally {
+//             setFriendActionLoading(false);
+//         }
+//     };
+
+//     useEffect(() => {
+//         if (id && userStatus?.userId) {
+//             const userId = Number(id);
+
+//             // Redirect to account page if viewing own profile
+//             if (userId === userStatus.userId) {
+//                 router.push('./account');
+//                 return;
+//             }
+
+//             const fetchUserData = async () => {
+//                 setLoading(true);
+//                 try {
+//                     // Check if already friends locally first
+//                     const myFriends = await getUserFriends(userStatus.userId!);
+//                     const isAlreadyFriend = myFriends.some(f => f.id.toString() === id);
+//                     setIsFriend(isAlreadyFriend);
+
+//                     // Fetch profile data
+//                     const [userData, friendsData, mutualData] = await Promise.all([
+//                         getUserById(id),
+//                         getUserFriends(id),
+//                         getMutualFriends(userStatus.userId!, id)
+//                     ]);
+
+//                     const outgoingRelation = userData?.friendships_friendships_user_id_1Tousers?.find(
+//                         (relation: any) => relation.user_id_2 === userStatus.userId
+//                     );
+//                     const incomingRelation = userData?.friendships_friendships_user_id_2Tousers?.find(
+//                         (relation: any) => relation.user_id_1 === userStatus.userId
+//                     );
+//                     const relation = outgoingRelation || incomingRelation;
+//                     const isOutgoingPending = outgoingRelation?.friendship_status_id === 1;
+//                     const isIncomingPending = incomingRelation?.friendship_status_id === 1;
+
+//                     setIsBlocked(relation?.friendship_status_id === 4);
+//                     setRequestSent(Boolean(isOutgoingPending));
+//                     setHasIncomingRequest(Boolean(isIncomingPending));
+
+//                     console.log('User data fetched:', {
+//                         id: userData?.id,
+//                         username: userData?.username,
+//                         bio: userData?.bio,
+//                         hasBio: !!userData?.bio
+//                     });
+
+//                     setUser(userData);
+//                     setFriends(friendsData || []);
+//                     setMutualFriends(mutualData || []);
+//                 } catch (err) {
+//                     setError(err instanceof Error ? err : new Error('Failed to fetch user data'));
+//                 } finally {
+//                     setLoading(false);
+//                 }
+//             };
+//             fetchUserData();
+//         }
+//     }, [id, userStatus?.userId]);
+
+//     // Show loading if userStatus hasn't loaded yet
+//     if (loading || !userStatus?.userId) return (
+//         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+//             <ActivityIndicator size="large" color={Theme.dark.secondary || 'white'} />
+//         </View>
+//     );
+
+//     if (error || shouldForceErrorPage('friendProfile')) {
+//         return (
+//             <View style={styles.container}>
+//                 <ErrorState title="Unable to load friend profile" subtitle="Please try again later." />
+//             </View>
+//         );
+//     }
+
+//     return (
+//         <View style={styles.container}>
+//             {/* Custom Toast Notification */}
+//             {showToast && (
+//                 <Animated.View style={[
+//                     styles.toastContainer,
+//                     { opacity: toastOpacity, transform: [{ translateY: toastTranslateY }] }
+//                 ]}>
+//                     {/* Dynamic Icon */}
+//                     <FontAwesome name={toastIcon as any} size={16} color={Theme.dark.white} />
+
+//                     {/* Dynamic Message */}
+//                     <Text style={styles.toastText}>{toastMessage}</Text>
+//                 </Animated.View>
+//             )}
+
+//             <ScrollView contentContainerStyle={styles.content}>
+
+//                 {/* --- SHARED HEADER (Used for both Friend & Stranger) --- */}
+//                 {/* 1. HEADER ROW (Just Profile Pic & Name now) */}
+//                 <View style={styles.headerRow}>
+//                     <Image
+//                         source={user?.avatar || require('../../../../assets/images/Logo.png')}
+//                         style={styles.profileImage}
+//                     />
+//                     <View style={styles.profileInfo}>
+//                         <Text style={styles.profileName}>{user?.name}</Text>
+//                         <Text style={styles.usernameText}>@{user?.username}</Text>
+//                     </View>
+//                 </View>
+
+//                 {/* 2. NEW STATS ROW (Moved here, below header) */}
+//                 <View style={styles.statsRow}>
+//                     <TouchableOpacity
+//                         style={styles.statButton}
+//                         onPress={() => {
+//                             setModalTitle("Mutual Friends");
+//                             setFriendsToShow(mutualFriends);
+//                             setModalVisible(true);
+//                         }}
+//                     >
+//                         <Text style={styles.statNumber}>{mutualFriends.length}</Text>
+//                         <Text style={styles.statLabelSmall}>mutual</Text>
+//                     </TouchableOpacity>
+
+//                     <TouchableOpacity
+//                         style={styles.statButton}
+//                         onPress={() => {
+//                             setModalTitle("Total Friends");
+//                             setFriendsToShow(friends);
+//                             setModalVisible(true);
+//                         }}
+//                     >
+//                         <Text style={styles.statNumber}>{friends.length}</Text>
+//                         <Text style={styles.statLabelSmall}>total</Text>
+//                     </TouchableOpacity>
+//                 </View>
+
+//                 {/* --- CONDITIONAL BODY CONTENT --- */}
+//                 {isFriend ? (
+//                     /* FRIEND VIEW */
+//                     <View>
+//                         {/* Bio Section */}
+//                         <View style={styles.bioContainer}>
+//                             <Text style={styles.bioText}>
+//                                 {user?.bio || "This user hasn't added a bio yet. They're a mystery! 🕵️‍♂️"}
+//                             </Text>
+//                         </View>
+
+//                         {/* Middle Grid (Drink / Streak) */}
+//                         <View style={styles.gridRow}>
+//                             <View style={styles.featureCard}>
+//                                 <Text style={styles.featureTitle}>fav. drink</Text>
+//                                 <View style={styles.placeholderPhoto}>
+//                                     <FontAwesome name="glass" size={24} color={Theme.dark.secondary} />
+//                                 </View>
+//                             </View>
+
+//                             <View style={styles.featureCard}>
+//                                 <Text style={styles.featureTitle}>streak</Text>
+//                                 <View style={styles.streakContent}>
+//                                     <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
+//                                     <Text style={styles.statLabel}>weekends out in a row</Text>
+//                                 </View>
+//                             </View>
+//                         </View>
+
+//                         {/* Favorite Bar Card */}
+//                         <View style={styles.largeCard}>
+//                             <Text style={styles.featureTitle}>fav. bar w/ official photo</Text>
+//                             <View style={styles.largePlaceholder}>
+//                                 <FontAwesome name="map-marker" size={40} color={Theme.dark.muted} />
+//                             </View>
+//                         </View>
+
+//                         {/* Poke Button */}
+//                         <TouchableOpacity
+//                             activeOpacity={0.8}
+//                             onPress={handlePoke}
+//                             style={{ marginTop: 10 }}
+//                         >
+//                             <Animated.View style={[
+//                                 styles.pokeButton,
+//                                 { transform: [{ scale: scaleAnim }] }
+//                             ]}>
+//                                 <Text style={styles.pokeText}>
+//                                     poke {user?.name?.split(' ')[0] || '??'}
+//                                 </Text>
+//                             </Animated.View>
+//                         </TouchableOpacity>
+
+//                         <View style={styles.friendActionRow}>
+//                             <TouchableOpacity
+//                                 activeOpacity={0.8}
+//                                 onPress={handleRemoveFriend}
+//                                 disabled={friendActionLoading}
+//                                 style={styles.friendActionButton}
+//                             >
+//                                 <Text style={styles.friendActionText}>remove friend</Text>
+//                             </TouchableOpacity>
+
+//                             <TouchableOpacity
+//                                 activeOpacity={0.8}
+//                                 onPress={handleBlockFriend}
+//                                 disabled={friendActionLoading}
+//                                 style={[styles.friendActionButton, styles.blockActionButton]}
+//                             >
+//                                 <Text style={styles.friendActionText}>block</Text>
+//                             </TouchableOpacity>
+//                         </View>
+//                     </View>
+//                 ) : (
+//                     /* STRANGER VIEW */
+//                     <View style={styles.verticalListContainer}>
+//                         {/* Locked Content */}
+//                         <View style={styles.wideFeatureCard}>
+//                             <View>
+//                                 <Text style={styles.featureTitle}>fav drink</Text>
+//                                 <Text style={styles.lockSubtext}>Add friend to view details!</Text>
+//                             </View>
+//                             <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
+//                         </View>
+
+//                         <View style={styles.wideFeatureCard}>
+//                             <View>
+//                                 <Text style={styles.featureTitle}>fav bar</Text>
+//                                 <Text style={styles.lockSubtext}>Add friend to view details!</Text>
+//                             </View>
+//                             <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
+//                         </View>
+
+//                         {hasIncomingRequest && !isBlocked && (
+//                             <TouchableOpacity
+//                                 activeOpacity={0.8}
+//                                 onPress={() => setIsRespondModalVisible(true)}
+//                                 disabled={friendActionLoading}
+//                             >
+//                                 <Animated.View style={[
+//                                     styles.addFriendButton,
+//                                     { transform: [{ scale: scaleAnim }] }
+//                                 ]}>
+//                                     <Text style={styles.addFriendText}>Respond to Request</Text>
+//                                 </Animated.View>
+//                             </TouchableOpacity>
+//                         )}
+
+//                         {/* Add Friend / Unblock Button */}
+//                         {!hasIncomingRequest && (
+//                             <TouchableOpacity
+//                                 activeOpacity={0.8}
+//                                 onPress={() => {
+//                                     if (isBlocked) {
+//                                         handleUnblockUser();
+//                                     } else {
+//                                         handleAddFriend();
+//                                         console.log("attempt to add friend with ID:", id);
+//                                     }
+//                                 }}
+//                                 disabled={(requestSent && !isBlocked) || friendActionLoading}
+//                             >
+//                                 <Animated.View style={[
+//                                     styles.addFriendButton,
+//                                     {
+//                                         transform: [{ scale: scaleAnim }],
+//                                         backgroundColor: requestSent
+//                                             ? Theme.container.inactiveText
+//                                             : isBlocked
+//                                                 ? Theme.dark.secondary
+//                                                 : Theme.dark.primary
+//                                     }
+//                                 ]}>
+//                                     <Text style={styles.addFriendText}>
+//                                         {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
+//                                     </Text>
+//                                 </Animated.View>
+//                             </TouchableOpacity>
+//                         )}
+//                     </View>
+//                 )}
+//             </ScrollView>
+
+//             {/* --- MODAL (Kept outside ScrollView) --- */}
+//             <Modal
+//                 animationType="fade"
+//                 transparent={true}
+//                 visible={isModalVisible}
+//                 onRequestClose={() => setModalVisible(false)}
+//             >
+//                 <TouchableOpacity
+//                     style={styles.modalOverlay}
+//                     activeOpacity={1}
+//                     onPressOut={() => setModalVisible(false)}
+//                 >
+//                     <TouchableWithoutFeedback>
+//                         <View style={styles.floatingModalContent}>
+//                             <View style={styles.modalHeader}>
+//                                 <Text style={styles.modalTitle}>{modalTitle}</Text>
+//                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
+//                                     <FontAwesome
+//                                         name="times-circle"
+//                                         size={26}
+//                                         color={Theme.container.inactiveText}
+//                                     />
+//                                 </TouchableOpacity>
+//                             </View>
+
+//                             <View style={styles.modalSearchContainer}>
+//                                 <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
+//                                 <TextInput
+//                                     style={styles.modalSearchBar}
+//                                     placeholder="Search..."
+//                                     placeholderTextColor={Theme.search.inactiveInput}
+//                                     value={modalSearchQuery}
+//                                     onChangeText={setModalSearchQuery}
+//                                 />
+//                             </View>
+
+//                             <FlatList
+//                                 data={friendsToShow.filter(f =>
+//                                     (f.name ?? '').toLowerCase().includes(modalSearchQuery.toLowerCase())
+//                                 )}
+//                                 keyExtractor={(item) => item.id.toString()}
+//                                 renderItem={({ item }) => (
+//                                     <TouchableOpacity
+//                                         style={styles.modalFriendRow}
+//                                         onPress={() => {
+//                                             setModalVisible(false);
+//                                             router.push(`/account/${item.id}`);
+//                                         }}
+//                                     >
+//                                         <Image
+//                                             source={item.avatar || require('../../../../assets/images/Logo.png')}
+//                                             style={styles.modalAvatar}
+//                                         />
+//                                         <View>
+//                                             <Text style={styles.modalFriendName}>{item.name}</Text>
+//                                             <Text style={styles.modalFriendUsername}>@{item.username}</Text>
+//                                         </View>
+//                                     </TouchableOpacity>
+//                                 )}
+//                                 ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
+//                             />
+//                         </View>
+//                     </TouchableWithoutFeedback>
+//                 </TouchableOpacity>
+//             </Modal>
+
+//             <Modal
+//                 animationType="fade"
+//                 transparent={true}
+//                 visible={isRespondModalVisible}
+//                 onRequestClose={() => setIsRespondModalVisible(false)}
+//             >
+//                 <TouchableOpacity
+//                     style={styles.modalOverlay}
+//                     activeOpacity={1}
+//                     onPressOut={() => setIsRespondModalVisible(false)}
+//                 >
+//                     <TouchableWithoutFeedback>
+//                         <View style={styles.floatingModalContent}>
+//                             <View style={styles.modalHeader}>
+//                                 <Text style={styles.modalTitle}>{"friend request from: \n" + user?.name}</Text>
+//                                 <TouchableOpacity onPress={() => setIsRespondModalVisible(false)}>
+//                                     <FontAwesome
+//                                         name="times-circle"
+//                                         size={26}
+//                                         color={Theme.container.inactiveText}
+//                                     />
+//                                 </TouchableOpacity>
+//                             </View>
+
+//                             <View style={styles.requestActionsRow}>
+//                                 <TouchableOpacity
+//                                     style={[styles.requestActionButton, styles.acceptButton]}
+//                                     disabled={friendActionLoading}
+//                                     onPress={() => {
+//                                         setIsRespondModalVisible(false);
+//                                         handlePendingDecision(Number(id), 'accept');
+//                                     }}
+//                                 >
+//                                     <Text style={styles.requestActionText}>Accept</Text>
+//                                 </TouchableOpacity>
+
+//                                 <TouchableOpacity
+//                                     style={[styles.requestActionButton, styles.declineButton]}
+//                                     disabled={friendActionLoading}
+//                                     onPress={() => {
+//                                         setIsRespondModalVisible(false);
+//                                         handlePendingDecision(Number(id), 'decline');
+//                                     }}
+//                                 >
+//                                     <Text style={styles.requestActionText}>Decline</Text>
+//                                 </TouchableOpacity>
+
+//                                 <TouchableOpacity
+//                                     style={[styles.requestActionButton, styles.blockButton]}
+//                                     disabled={friendActionLoading}
+//                                     onPress={() => {
+//                                         setIsRespondModalVisible(false);
+//                                         handlePendingDecision(Number(id), 'block');
+//                                     }}
+//                                 >
+//                                     <Text style={styles.requestActionText}>Block</Text>
+//                                 </TouchableOpacity>
+//                             </View>
+//                         </View>
+//                     </TouchableWithoutFeedback>
+//                 </TouchableOpacity>
+//             </Modal>
+//         </View>
+//     );
+// }
+
+// const styles = StyleSheet.create({
+//     container: {
+//         flex: 1,
+//         backgroundColor: Theme.dark.background,
+//     },
+//     content: {
+//         padding: 20,
+//         paddingBottom: 40,
+//     },
+//     headerRow: {
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         justifyContent: 'space-between',
+//         marginBottom: 20,
+//     },
+//     profileImage: {
+//         width: 70,
+//         height: 70,
+//         borderRadius: 35,
+//         marginRight: 12,
+//         borderWidth: 2,
+//         borderColor: Theme.container.mainBorder,
+//     },
+//     profileName: {
+//         color: Theme.dark.white,
+//         fontSize: 22,
+//         fontWeight: 'bold',
+//     },
+//     usernameText: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 14,
+//     },
+//     sideStatsContainer: {
+//         flexDirection: 'row',
+//         gap: 8,
+//     },
+//     sideStatBox: {
+//         backgroundColor: Theme.container.background,
+//         paddingVertical: 10,
+//         paddingHorizontal: 12,
+//         borderRadius: 12,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//         alignItems: 'center',
+//         minWidth: 70,
+//     },
+//     bioContainer: {
+//         backgroundColor: Theme.container.background,
+//         padding: 14,
+//         borderRadius: 14,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//         marginBottom: 15,
+//     },
+//     bioText: {
+//         color: Theme.container.titleText,
+//         fontSize: 14,
+//         fontStyle: 'italic',
+//         lineHeight: 20,
+//     },
+//     gridRow: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         marginBottom: 15,
+//         gap: 15,
+//     },
+//     featureCard: {
+//         flex: 1,
+//         backgroundColor: Theme.container.background,
+//         borderRadius: 12,
+//         padding: 15,
+//         minHeight: 130,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//     },
+//     featureTitle: {
+//         color: Theme.dark.white,
+//         fontSize: 14,
+//         fontWeight: '600',
+//         marginBottom: 10,
+//     },
+//     placeholderPhoto: {
+//         flex: 1,
+//         backgroundColor: Theme.search.background,
+//         borderRadius: 8,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         marginTop: 5,
+//     },
+//     streakContent: {
+//         flex: 1,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//     },
+//     streakNumber: {
+//         color: Theme.dark.tertiary,
+//         fontSize: 32,
+//         fontWeight: 'bold',
+//     },
+//     statLabel: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 12,
+//         textAlign: 'center',
+//     },
+//     largeCard: {
+//         backgroundColor: Theme.container.background,
+//         borderRadius: 12,
+//         padding: 15,
+//         height: 160,
+//         marginBottom: 15,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//     },
+//     largePlaceholder: {
+//         flex: 1,
+//         backgroundColor: Theme.search.background,
+//         borderRadius: 8,
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//     },
+//     verticalListContainer: {
+//         marginTop: 10,
+//         gap: 12,
+//     },
+//     wideFeatureCard: {
+//         backgroundColor: Theme.container.background,
+//         borderRadius: 16,
+//         padding: 22,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//     },
+//     lockSubtext: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 12,
+//         fontStyle: 'italic',
+//         marginTop: 2,
+//     },
+//     addFriendButton: {
+//         backgroundColor: Theme.dark.primary,
+//         paddingVertical: 18,
+//         borderRadius: 20,
+//         alignItems: 'center',
+//         marginTop: 20,
+//         shadowColor: Theme.dark.primary,
+//         shadowOffset: { width: 0, height: 4 },
+//         shadowOpacity: 0.4,
+//         shadowRadius: 10,
+//         elevation: 6,
+//     },
+//     addFriendText: {
+//         color: Theme.dark.white,
+//         fontSize: 18,
+//         fontWeight: '800',
+//         letterSpacing: 1,
+//     },
+//     pokeButton: {
+//         backgroundColor: 'transparent',
+//         borderWidth: 1.5,
+//         borderColor: Theme.dark.primary,
+//         borderRadius: 16,
+//         padding: 16,
+//         alignItems: 'center',
+//     },
+//     pokeText: {
+//         color: Theme.dark.primary,
+//         fontSize: 16,
+//         fontWeight: '700',
+//         letterSpacing: 1,
+//         textTransform: 'lowercase',
+//     },
+//     friendActionRow: {
+//         flexDirection: 'row',
+//         gap: 10,
+//         marginTop: 12,
+//     },
+//     friendActionButton: {
+//         flex: 1,
+//         borderWidth: 1,
+//         borderColor: Theme.container.inactiveBorder,
+//         backgroundColor: Theme.container.background,
+//         borderRadius: 12,
+//         paddingVertical: 12,
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//     },
+//     requestActionsRow: {
+//         flexDirection: 'column',
+//         // flexDirection: 'row',
+//         gap: 8,
+//         marginTop: 4,
+//     },
+//     requestActionButton: {
+//         paddingVertical: 10,
+//         borderRadius: 8,
+//         alignItems: 'center',
+//         borderWidth: 1,
+//         alignSelf: 'stretch',
+//         width: '100%',
+//     },
+//     acceptButton: {
+//         backgroundColor: Theme.dark.primary,
+//         borderColor: Theme.dark.primary,
+//     },
+//     declineButton: {
+//         backgroundColor: Theme.container.inactiveBorder,
+//         borderColor: Theme.container.inactiveBorder,
+//     },
+//     blockButton: {
+//         backgroundColor: Theme.dark.error,
+//         borderColor: Theme.dark.error,
+//     },
+//     requestActionText: {
+//         color: Theme.dark.white,
+//         fontWeight: '700',
+//         fontSize: 14,
+//         textTransform: 'none',
+//     },
+//     blockActionButton: {
+//         borderColor: Theme.dark.error,
+//     },
+//     friendActionText: {
+//         color: Theme.container.titleText,
+//         fontSize: 13,
+//         fontWeight: '700',
+//         textTransform: 'lowercase',
+//     },
+//     toastContainer: {
+//         position: 'absolute',
+//         top: '1%',
+//         alignSelf: 'center',
+//         backgroundColor: Theme.dark.primary,
+//         paddingVertical: 15,
+//         paddingHorizontal: 20,
+//         borderRadius: 16,
+//         flexDirection: 'row',
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         gap: 8,
+//         zIndex: 999,
+//         elevation: 10,
+//     },
+//     toastText: {
+//         color: Theme.dark.white,
+//         fontWeight: '700',
+//         fontSize: 14,
+//     },
+//     modalOverlay: {
+//         flex: 1,
+//         backgroundColor: 'rgba(0, 0, 0, 0.8)',
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//     },
+//     floatingModalContent: {
+//         width: '90%',
+//         maxHeight: '70%',
+//         backgroundColor: Theme.container.background,
+//         borderRadius: 24,
+//         padding: 20,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//         elevation: 20,
+//     },
+//     modalHeader: {
+//         flexDirection: 'row',
+//         justifyContent: 'space-between',
+//         alignItems: 'center',
+//         marginBottom: 20,
+//     },
+//     modalTitle: {
+//         color: Theme.container.titleText,
+//         fontSize: 20,
+//         fontWeight: 'bold',
+//     },
+//     modalSearchContainer: {
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         backgroundColor: Theme.search.background,
+//         borderRadius: 10,
+//         paddingHorizontal: 12,
+//         height: 45,
+//         marginBottom: 15,
+//         borderWidth: 1,
+//         borderColor: Theme.search.border,
+//     },
+//     modalSearchBar: {
+//         flex: 1,
+//         marginLeft: 10,
+//         color: Theme.search.input,
+//         fontSize: 16,
+//     },
+//     modalFriendRow: {
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         paddingVertical: 12,
+//         paddingHorizontal: 8,
+//     },
+//     modalAvatar: {
+//         width: 40,
+//         height: 40,
+//         borderRadius: 20,
+//         marginRight: 12,
+//     },
+//     modalFriendName: {
+//         color: Theme.container.activeText,
+//         fontSize: 16,
+//         fontWeight: '600',
+//     },
+//     modalFriendUsername: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 13,
+//     },
+//     emptyText: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 16,
+//         textAlign: 'center',
+//         paddingVertical: 20,
+//     },
+//     profileInfo: {
+//         flex: 1,
+//         justifyContent: 'center',
+//     },
+//     statsRow: {
+//         flexDirection: 'row',
+//         marginBottom: 15,
+//         gap: 12,
+//     },
+//     statButton: {
+//         flex: 1,
+//         backgroundColor: Theme.container.background,
+//         paddingVertical: 12,
+//         borderRadius: 12,
+//         borderWidth: 1,
+//         borderColor: Theme.container.mainBorder,
+//         alignItems: 'center',
+//         justifyContent: 'center',
+//     },
+//     statNumber: {
+//         color: Theme.dark.white,
+//         fontSize: 20,
+//         fontWeight: 'bold',
+//     },
+//     statLabelSmall: {
+//         color: Theme.container.inactiveText,
+//         fontSize: 11,
+//         fontWeight: '600',
+//         // textTransform: 'uppercase',
+//         marginTop: 2,
+//     },
+// });
