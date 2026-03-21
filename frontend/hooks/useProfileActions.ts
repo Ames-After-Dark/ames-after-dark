@@ -16,24 +16,43 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
 
     const handlePoke = (name: string) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        // Now triggerToast will work!
+
+        // 2. This MUST match the argument name above
         triggerToast(`You poked ${name.split(' ')[0]}!`, 'hand-o-right');
+
+        console.log("Poke triggered for:", name); // Add this to debug in your terminal
     };
 
-    const handleAdd = async (currentUserId: number, targetUserId: number) => {
-        setLoading(true);
+    // hooks/useProfileActions.ts
+
+    const handleAdd = async (
+        currentUserId: number,
+        targetUserId: number,
+        onOptimisticUpdate: () => void, // 1. Function to change UI instantly
+        onSuccess: () => void           // 2. Function to refresh data from server
+    ) => {
+        // START: Optimistic Update
+        // We call this immediately BEFORE the await so the button 
+        // changes the moment the user taps it.
+        onOptimisticUpdate();
+
         try {
             await sendFriendRequest(currentUserId, targetUserId);
+
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             triggerToast("Friend Request Sent!", 'check');
+
+            // Final sync with the database
+            onSuccess();
         } catch (err) {
+            console.error(err);
             Alert.alert("Error", "Could not send friend request.");
-        } finally {
-            setLoading(false);
+
+            // If it fails, we refresh to "revert" the UI to the 'Add Friend' state
+            onSuccess();
         }
     };
 
-    // Renamed to handleConfirmBlock to match your return statement
     const handleConfirmBlock = (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
         Alert.alert("Block User", `Are you sure you want to block ${name}?`, [
             { text: "Cancel", style: "cancel" },
@@ -93,12 +112,41 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         }
     };
 
+    const handleRemove = async (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
+        // We use an Alert first to prevent accidental unfriending
+        Alert.alert(
+            "Remove Friend",
+            `Are you sure you want to remove ${name} from your friends list?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            await removeFriend(currentUserId, targetUserId);
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                            triggerToast(`${name} removed`, "user-times");
+                            onSuccess(); // Refresh the profile
+                        } catch (err) {
+                            Alert.alert("Error", "Could not remove friend.");
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return {
         handlePoke,
         handleAdd,
         handleConfirmBlock,
         handleUnblock,
         handlePendingDecision,
+        handleRemove,
         loading
     };
 };

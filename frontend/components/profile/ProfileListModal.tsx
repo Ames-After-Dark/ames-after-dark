@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Modal,
     View,
@@ -26,29 +26,20 @@ interface UserData {
     name: string;
     username: string;
     avatar?: string;
-}
-
-interface FriendshipItem {
-    user_id_1?: number;
-    user_id_2?: number;
-    users_friendships_user_id_1Tousers?: UserData;
-    users_friendships_user_id_2Tousers?: UserData;
-    id?: number;
-    name?: string;
-    username?: string;
-    avatar?: string;
+    type?: 'SENT' | 'RECEIVED'; // Added this
+    isHeader?: boolean;         // Added this for sectioning
+    title?: string;             // Added this for sectioning
 }
 
 interface ProfileListModalProps {
     visible: boolean;
     onClose: () => void;
     title: string;
-    data: FriendshipItem[];
+    data: any[]; // Use any here because it's a mix of headers and users now
     currentUserId: number | null;
     recommendedData?: UserData[];
     onAddRecommended?: (id: number) => void;
     actionLoadingId?: number | null;
-    emptyMessage?: string;
     onAcceptRequest?: (id: number) => void;
     onDeclineRequest?: (id: number) => void;
     onCancelRequest?: (id: number) => void;
@@ -63,7 +54,6 @@ export const ProfileListModal = ({
     recommendedData = [],
     onAddRecommended,
     actionLoadingId,
-    emptyMessage,
     onCancelRequest,
     onAcceptRequest,
     onDeclineRequest,
@@ -71,76 +61,58 @@ export const ProfileListModal = ({
     const [search, setSearch] = useState('');
     const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
-    // Animation Logic
+    // 1. Logic to split and group the data
+    const sections = useMemo(() => {
+        const searchStr = search.toLowerCase();
+
+        // Filter based on search first
+        const filtered = data.filter(item => {
+            const name = (item.name || '').toLowerCase();
+            const username = (item.username || '').toLowerCase();
+            return name.includes(searchStr) || username.includes(searchStr);
+        });
+
+        if (title !== 'Pending Requests') return filtered;
+
+        const received = filtered.filter(item => item.type === 'RECEIVED');
+        const sent = filtered.filter(item => item.type === 'SENT');
+
+        return [
+            ...(received.length > 0 ? [{ isHeader: true, title: 'Requests for You' }, ...received] : []),
+            ...(sent.length > 0 ? [{ isHeader: true, title: 'Sent by You' }, ...sent] : [])
+        ];
+    }, [data, title, search]);
+
+    // Animation & Gesture Logic (Kept your existing code)
     useEffect(() => {
         if (visible) {
-            Animated.spring(panY, {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 50,
-                friction: 10
-            }).start();
+            Animated.spring(panY, { toValue: 0, useNativeDriver: true, tension: 50, friction: 10 }).start();
         } else {
-            Animated.timing(panY, {
-                toValue: SCREEN_HEIGHT,
-                duration: 300,
-                useNativeDriver: true
-            }).start();
+            Animated.timing(panY, { toValue: SCREEN_HEIGHT, duration: 300, useNativeDriver: true }).start();
         }
     }, [visible, panY]);
 
-    // Gesture Logic
     const panResponder = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
-            onPanResponderMove: (_, gestureState) => {
-                if (gestureState.dy > 0) panY.setValue(gestureState.dy);
-            },
+            onPanResponderMove: (_, gestureState) => { if (gestureState.dy > 0) panY.setValue(gestureState.dy); },
             onPanResponderRelease: (_, gestureState) => {
-                if (gestureState.dy > 150 || gestureState.vy > 0.5) {
-                    closeModal();
-                } else {
-                    Animated.spring(panY, { toValue: 0, useNativeDriver: true }).start();
-                }
+                if (gestureState.dy > 150 || gestureState.vy > 0.5) closeModal();
+                else Animated.spring(panY, { toValue: 0, useNativeDriver: true }).start();
             }
         })
     ).current;
 
     const closeModal = () => {
-        Animated.timing(panY, {
-            toValue: SCREEN_HEIGHT,
-            duration: 250,
-            useNativeDriver: true
-        }).start(() => {
-            setSearch(''); // Clear search on close
+        Animated.timing(panY, { toValue: SCREEN_HEIGHT, duration: 250, useNativeDriver: true }).start(() => {
+            setSearch('');
             onClose();
         });
     };
 
-    const getDisplayUser = (item: FriendshipItem): UserData | undefined => {
-        const user1 = item?.users_friendships_user_id_1Tousers;
-        const user2 = item?.users_friendships_user_id_2Tousers;
-
-        if (user1 && user1.id !== currentUserId) return user1;
-        if (user2 && user2.id !== currentUserId) return user2;
-
-        // Fallback for flat lists
-        if (item.id) return item as UserData;
-        return undefined;
-    };
-
-    const filteredData = data.filter((item) => {
-        const user = getDisplayUser(item);
-        const searchStr = search.toLowerCase();
-        return (
-            (user?.name || '').toLowerCase().includes(searchStr) ||
-            (user?.username || '').toLowerCase().includes(searchStr)
-        );
-    });
-
+    // 2. Fixed renderHeader (Removed the broken 'item.isHeader' check)
     const renderHeader = () => {
-
         if (title !== 'Friends' || search.length > 0 || recommendedData.length === 0) return null;
 
         return (
@@ -180,6 +152,68 @@ export const ProfileListModal = ({
         );
     };
 
+    // 3. New renderItem that handles Headers vs. Users
+    const renderItem = ({ item }: { item: UserData }) => {
+        if (item.isHeader) {
+            return (
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeaderText}>{item.title}</Text>
+                </View>
+            );
+        }
+
+        const isOutgoing = item.type === 'SENT';
+
+        return (
+            <View style={styles.itemRow}>
+                <TouchableOpacity
+                    style={styles.userInfo}
+                    onPress={() => {
+                        closeModal();
+                        router.push(`/account/${item.id}`);
+                    }}
+                >
+                    <Image
+                        source={item.avatar ? { uri: item.avatar } : require('@/assets/images/Logo.png')}
+                        style={styles.avatar}
+                    />
+                    <View>
+                        <Text style={styles.name}>{item.name}</Text>
+                        <Text style={styles.username}>@{item.username}</Text>
+                    </View>
+                </TouchableOpacity>
+
+                {title === 'Pending Requests' && (
+                    <View style={styles.actionGroup}>
+                        {isOutgoing ? (
+                            <TouchableOpacity
+                                style={styles.cancelBtnSmall}
+                                onPress={() => onCancelRequest?.(item.id)}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.acceptCircle}
+                                    onPress={() => onAcceptRequest?.(item.id)}
+                                >
+                                    <FontAwesome name="check" size={14} color="white" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.declineCircle}
+                                    onPress={() => onDeclineRequest?.(item.id)}
+                                >
+                                    <FontAwesome name="times" size={14} color="#FF453A" />
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                )}
+            </View>
+        );
+    };
+
     if (!visible) return null;
 
     return (
@@ -189,9 +223,7 @@ export const ProfileListModal = ({
                     <View style={StyleSheet.absoluteFill} />
                 </TouchableWithoutFeedback>
 
-                <Animated.View
-                    style={[styles.sheet, { transform: [{ translateY: panY }] }]}
-                >
+                <Animated.View style={[styles.sheet, { transform: [{ translateY: panY }] }]}>
                     <View {...panResponder.panHandlers} style={styles.dragHandleContainer}>
                         <View style={styles.handle} />
                     </View>
@@ -215,74 +247,12 @@ export const ProfileListModal = ({
                     </View>
 
                     <FlatList
-                        data={filteredData}
-                        keyExtractor={(item, index) => `${getDisplayUser(item)?.id || index}-${index}`}
-
+                        data={sections}
+                        keyExtractor={(item, index) => item.isHeader ? `header-${index}` : item.id.toString()}
                         ListHeaderComponent={renderHeader}
-
-                        renderItem={({ item }: { item: FriendshipItem }) => {
-                            const displayUser = getDisplayUser(item);
-                            if (!displayUser) return null;
-
-                            // Logic to determine direction
-                            const isOutgoing = item.user_id_1 === currentUserId;
-                            const isIncoming = item.user_id_2 === currentUserId;
-
-                            return (
-                                <View style={styles.itemRow}>
-                                    <TouchableOpacity
-                                        style={styles.userInfo}
-                                        onPress={() => {
-                                            closeModal();
-                                            router.push(displayUser.id === currentUserId ? '/account' : `/account/${displayUser.id}`);
-                                        }}
-                                    >
-                                        <Image
-                                            source={displayUser.avatar ? { uri: displayUser.avatar } : require('@/assets/images/Logo.png')}
-                                            style={styles.avatar}
-                                        />
-                                        <View>
-                                            <Text style={styles.name}>{displayUser.name}</Text>
-                                            <Text style={styles.username}>@{displayUser.username}</Text>
-                                            {title === 'Pending Requests' && (
-                                                <Text style={[styles.pendingStatus, { color: isOutgoing ? Theme.container.inactiveText : Theme.dark.secondary }]}>
-                                                    {isOutgoing ? 'Request Sent' : 'Incoming Request'}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    </TouchableOpacity>
-
-                                    {/* ACTION BUTTONS */}
-                                    {title === 'Pending Requests' && (
-                                        <View style={styles.actionGroup}>
-                                            {isOutgoing ? (
-                                                <TouchableOpacity
-                                                    style={styles.cancelBtnSmall}
-                                                    onPress={() => onCancelRequest?.(displayUser.id)}
-                                                >
-                                                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                                                </TouchableOpacity>
-                                            ) : (
-                                                <>
-                                                    <TouchableOpacity
-                                                        style={styles.acceptCircle}
-                                                        onPress={() => onAcceptRequest?.(displayUser.id)}
-                                                    >
-                                                        <FontAwesome name="check" size={14} color="white" />
-                                                    </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={styles.declineCircle}
-                                                        onPress={() => onDeclineRequest?.(displayUser.id)}
-                                                    >
-                                                        <FontAwesome name="times" size={14} color="#FF453A" />
-                                                    </TouchableOpacity>
-                                                </>
-                                            )}
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        }}
+                        renderItem={renderItem}
+                        // Added sticky headers for better UX
+                        stickyHeaderIndices={title === 'Pending Requests' ? sections.map((item, index) => item.isHeader ? index : -1).filter(i => i !== -1) : []}
                     />
                 </Animated.View>
             </View>
@@ -368,5 +338,20 @@ const styles = StyleSheet.create({
         marginTop: 2,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+    },
+    sectionHeader: {
+        backgroundColor: Theme.container.background,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.container.mainBorder,
+        marginTop: 10,
+    },
+    sectionHeaderText: {
+        color: Theme.container.inactiveText,
+        fontSize: 11,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
     },
 });

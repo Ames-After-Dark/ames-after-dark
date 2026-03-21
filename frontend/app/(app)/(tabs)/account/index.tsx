@@ -48,7 +48,7 @@ export default function AccountScreen() {
 
     // --- Data State ---
     const [user, setUser] = useState<any>(null);
-    const [pendingRequests, setPendingRequests] = useState<PendingFriendRequest[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [recommendedFriends, setRecommendedFriends] = useState<any[]>([]);
     const [modalConfig, setModalConfig] = useState<{ visible: boolean; title: string; data: any[] }>({
         visible: false,
@@ -103,21 +103,70 @@ export default function AccountScreen() {
         }
     };
 
+    // const fetchData = async () => {
+    //     if (!userStatus?.userId) return;
+    //     try {
+    //         const token = await getAccessToken();
+    //         if (!token) return;
+
+    //         const [userData, pendingData, recData] = await Promise.all([
+    //             getUserProfileByAuth(token),
+    //             getPendingFriendRequests(userStatus.userId),
+    //             getRecommendedFriends(userStatus.userId, 5)
+    //         ]);
+            
+    //         setUser(userData);
+    //         setPendingRequests(pendingData || []);
+    //         setRecommendedFriends(recData || []);
+    //     } catch (err) {
+    //         console.error("Fetch Error:", err);
+    //     } finally {
+    //         setLoading(false);
+    //         setRefreshing(false);
+    //     }
+    // };
+
     const fetchData = async () => {
-        if (!userStatus?.userId) return;
+        // 1. Guard against null user
+        if (!userStatus?.userId) {
+            console.log("No user ID found, skipping fetch.");
+            return;
+        }
+
         try {
+            const myId = userStatus.userId;
             const token = await getAccessToken();
             if (!token) return;
 
-            const [userData, pendingData, recData] = await Promise.all([
+            // 2. Fetch everything in parallel for speed
+            const [userData, rawRequests, recData] = await Promise.all([
                 getUserProfileByAuth(token),
-                getPendingFriendRequests(userStatus.userId),
-                getRecommendedFriends(userStatus.userId, 5)
+                getPendingFriendRequests(myId),
+                getRecommendedFriends(myId, 5)
             ]);
-            
+
+            // 3. Map the raw database requests into UI-friendly objects
+            const mappedRequests = (rawRequests || []).map(req => {
+                const isIUser1 = req.user_id_1 === myId;
+
+                // Get the OTHER person's data
+                const friendData = isIUser1
+                    ? req.users_friendships_user_id_2Tousers
+                    : req.users_friendships_user_id_1Tousers;
+
+                return {
+                    ...friendData,
+                    id: friendData?.id,
+                    // If I am user_id_1, I am the sender (SENT). Otherwise, I RECEIVED it.
+                    type: isIUser1 ? 'SENT' : 'RECEIVED'
+                };
+            });
+
+            // 4. Update all states
             setUser(userData);
-            setPendingRequests(pendingData || []);
             setRecommendedFriends(recData || []);
+            setPendingRequests(mappedRequests);
+
         } catch (err) {
             console.error("Fetch Error:", err);
         } finally {

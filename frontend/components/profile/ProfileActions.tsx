@@ -57,6 +57,12 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
                     </TouchableOpacity>
                 </View>
             )}
+            {/* Inside ProfileActions.tsx */}
+            {status === 'FRIEND' && (
+                <TouchableOpacity onPress={() => onAction('remove')}>
+                    <Text>Remove Friend</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };

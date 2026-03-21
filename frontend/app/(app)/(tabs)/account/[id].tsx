@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 // Hooks & Services
 import { useProfileActions } from '@/hooks/useProfileActions';
@@ -79,6 +80,7 @@ export default function FriendProfileScreen() {
         handleConfirmBlock,
         handleUnblock,
         handlePendingDecision,
+        handleRemove,
         loading: actionLoading
     } = useProfileActions(triggerToast);
 
@@ -132,12 +134,21 @@ export default function FriendProfileScreen() {
         if (type === 'poke') {
             handlePoke(user.name);
         } else if (type === 'primary') {
-            if (status === 'STRANGER') await handleAdd(myId, friendId);
+            // Inside handleAction in [id].tsx
+            if (status === 'STRANGER') {
+                await handleAdd(
+                    myId,
+                    friendId,
+                    // This runs INSTANTLY
+                    () => setRelationship(prev => ({ ...prev, sentRequest: true })),
+                    // This runs after the server responds
+                    fetchProfile
+                );
+            }
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
             if (status === 'BLOCKED') {
                 await handleUnblock(myId, friendId, fetchProfile);
             }
-            // Add unblock logic here if needed
         } else if (type === 'respond') {
             setIsRespondModalVisible(true);
         } else if (type === 'accept' || type === 'decline') {
@@ -146,6 +157,8 @@ export default function FriendProfileScreen() {
         } else if (type === 'block') {
             handleConfirmBlock(myId, friendId, user.name, fetchProfile);
             setIsRespondModalVisible(false);
+        } else if (type === 'remove' || type === 'cancel') {
+            await handleRemove(myId, friendId, user.name, fetchProfile);
         }
     };
 
@@ -213,6 +226,21 @@ export default function FriendProfileScreen() {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
+            {/* --- TOAST UI COMPONENT --- */}
+            {showToast && (
+                <Animated.View
+                    style={[
+                        styles.toastContainer,
+                        {
+                            opacity: toastOpacity,
+                            transform: [{ translateY: toastTranslateY }],
+                        },
+                    ]}
+                >
+                    <FontAwesome name={toastIcon as any} size={18} color="white" />
+                    <Text style={styles.toastText}>{toastMessage}</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -233,6 +261,26 @@ const styles = StyleSheet.create({
     btnText: { color: 'white', fontWeight: '700', fontSize: 15 },
     cancelBtn: { marginTop: 10 },
     cancelText: { color: Theme.container.inactiveText, fontSize: 14, fontWeight: '600' },
+    toastContainer: {
+        position: 'absolute',
+        top: '1%',
+        alignSelf: 'center',
+        backgroundColor: Theme.dark.primary,
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderRadius: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        zIndex: 999,
+        elevation: 10,
+    },
+    toastText: {
+        color: Theme.dark.white,
+        fontWeight: '700',
+        fontSize: 14,
+    },
 });
 
 // import React, { useState, useEffect, useMemo } from 'react';
