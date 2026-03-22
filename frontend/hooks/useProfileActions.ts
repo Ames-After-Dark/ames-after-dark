@@ -140,6 +140,20 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         );
     };
 
+    const handleCancelRequest = async (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
+        setLoading(true);
+        try {
+            await removeFriend(currentUserId, targetUserId);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            triggerToast(`Cancelled request to ${name}`, 'times');
+            onSuccess();
+        } catch (err) {
+            Alert.alert("Error", "Could not cancel request.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return {
         handlePoke,
         handleAdd,
@@ -147,6 +161,7 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         handleUnblock,
         handlePendingDecision,
         handleRemove,
+        handleCancelRequest,
         loading
     };
 };

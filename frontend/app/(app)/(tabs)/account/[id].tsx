@@ -92,6 +92,7 @@ export default function FriendProfileScreen() {
         handleUnblock,
         handlePendingDecision,
         handleRemove,
+        handleCancelRequest,
         loading: actionLoading
     } = useProfileActions(triggerToast);
 
@@ -199,6 +200,24 @@ export default function FriendProfileScreen() {
         fetchProfile();
     }, [id, isMe]);
 
+    useEffect(() => {
+        if (!modalConfig.visible) return;
+
+        if (modalConfig.title === 'Friends') {
+            setModalConfig(prev => ({ ...prev, data: friends }));
+            return;
+        }
+
+        if (modalConfig.title === 'Pending Requests') {
+            setModalConfig(prev => ({ ...prev, data: pendingRequests }));
+            return;
+        }
+
+        if (modalConfig.title === 'Mutual Friends') {
+            setModalConfig(prev => ({ ...prev, data: mutualFriends }));
+        }
+    }, [modalConfig.visible, modalConfig.title, friends, pendingRequests, mutualFriends]);
+
     // useEffect(() => { fetchProfile(); }, [id]);
     // useEffect(() => {
     //     if (isMe) {
@@ -225,10 +244,6 @@ export default function FriendProfileScreen() {
         const myId = userStatus!.userId!;
         const isRecommendedAdd = type === 'primary' && typeof targetId === 'number' && isMe;
 
-        const targetUserInModal = targetId
-            ? modalConfig.data.find(u => u.id === targetId)
-            : null;
-        // const targetName = targetUserInModal?.name || "this user";
         const targetName = targetNameFromModal || user?.name || "this user";
 
         if (type === 'poke') {
@@ -265,21 +280,29 @@ export default function FriendProfileScreen() {
         } else if (type === 'block') {
             handleConfirmBlock(myId, friendId, user.name, fetchProfile);
             setIsRespondModalVisible(false);
-        } else if (type === 'remove' || type === 'cancel') {
-
-            const actionLabel = type === 'cancel' ? 'cancel your request to' : 'remove';
-            const questionLabel = type === 'cancel' ? 'cancel this request?' : `remove ${targetName} from your friends list?`;
-
-            const isCancel = type === 'cancel';
+        } else if (type === 'remove') {
+            handleRemove(myId, friendId, targetName, fetchProfile);
+        } else if (type === 'cancel') {
             Alert.alert(
-                isCancel ? "Cancel Request" : "Remove Friend",
-                `Are you sure you want to ${isCancel ? 'cancel your request to' : 'remove'} ${targetName}?`,
+                "Cancel Request",
+                `Are you sure you want to cancel your request to ${targetName}?`,
                 [
                     { text: "Back", style: "cancel" },
                     {
                         text: "Yes",
                         style: "destructive",
-                        onPress: () => handleRemove(myId, friendId, targetName, fetchProfile)
+                        onPress: async () => {
+                            setPendingRequests(prev => prev.filter(req => req.id !== friendId));
+                            setModalConfig(prev => {
+                                if (prev.title !== 'Pending Requests') return prev;
+                                return {
+                                    ...prev,
+                                    data: prev.data.filter((req: any) => req.id !== friendId)
+                                };
+                            });
+
+                            await handleCancelRequest(myId, friendId, targetName, fetchProfile);
+                        }
                     }
                 ]
             );
