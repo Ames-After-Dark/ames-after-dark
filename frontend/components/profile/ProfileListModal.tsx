@@ -17,6 +17,7 @@ import {
 import { FontAwesome } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
+import { Friend } from '@/types/types';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -37,7 +38,7 @@ interface ProfileListModalProps {
     title: string;
     data: any[]; // Use any here because it's a mix of headers and users now
     currentUserId: number | null;
-    recommendedData?: UserData[];
+    recommendedData?: Friend[];
     onAddRecommended?: (id: number) => void;
     actionLoadingId?: number | null;
     onAcceptRequest?: (id: number) => void;
@@ -112,8 +113,53 @@ export const ProfileListModal = ({
     };
 
     // 2. Fixed renderHeader (Removed the broken 'item.isHeader' check)
+    // const renderHeader = () => {
+    //     if (title !== 'Friends' || search.length > 0 || recommendedData.length === 0) return null;
+
+    //     return (
+    //         <View style={styles.recommendedSection}>
+    //             <Text style={styles.sectionTitle}>Recommended Friends</Text>
+    //             {recommendedData.map((rec) => (
+    //                 <View key={rec.id} style={styles.itemRow}>
+    //                     <TouchableOpacity
+    //                         style={styles.userInfo}
+    //                         onPress={() => { closeModal(); router.push(`/account/${rec.id}`); }}
+    //                     >
+    //                         <Image
+    //                             source={rec.avatar ? { uri: rec.avatar } : require('@/assets/images/Logo.png')}
+    //                             style={styles.avatar}
+    //                         />
+    //                         <View>
+    //                             <Text style={styles.name}>{rec.name}</Text>
+    //                             <Text style={styles.username}>@{rec.username}</Text>
+    //                         </View>
+    //                     </TouchableOpacity>
+    //                     <TouchableOpacity
+    //                         style={[styles.addButton, actionLoadingId === rec.id && styles.disabledButton]}
+    //                         onPress={() => onAddRecommended?.(rec.id)}
+    //                         disabled={actionLoadingId === rec.id}
+    //                     >
+    //                         {actionLoadingId === rec.id ? (
+    //                             <ActivityIndicator size="small" color="white" />
+    //                         ) : (
+    //                             <Text style={styles.addButtonText}>Add</Text>
+    //                         )}
+    //                     </TouchableOpacity>
+    //                 </View>
+    //             ))}
+    //             <View style={styles.divider} />
+    //             <Text style={styles.sectionTitle}>Your Friends</Text>
+    //         </View>
+    //     );
+    // };
+
     const renderHeader = () => {
-        if (title !== 'Friends' || search.length > 0 || recommendedData.length === 0) return null;
+        // 1. Hide if searching or if there's no data
+        if (search.length > 0 || recommendedData.length === 0) return null;
+
+        // 2. Only show recommendations if we are looking at a "Friends" list 
+        // (This hides it when looking at "Pending Requests")
+        if (!title.toLowerCase().includes('friends')) return null;
 
         return (
             <View style={styles.recommendedSection}>
@@ -135,7 +181,7 @@ export const ProfileListModal = ({
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.addButton, actionLoadingId === rec.id && styles.disabledButton]}
-                            onPress={() => onAddRecommended?.(rec.id)}
+                            onPress={() => onAddRecommended?.(Number(rec.id))}
                             disabled={actionLoadingId === rec.id}
                         >
                             {actionLoadingId === rec.id ? (
@@ -147,7 +193,9 @@ export const ProfileListModal = ({
                     </View>
                 ))}
                 <View style={styles.divider} />
-                <Text style={styles.sectionTitle}>Your Friends</Text>
+                <Text style={styles.sectionTitle}>
+                    {title === 'Mutual Friends' ? 'Mutual Friends' : 'Your Friends'}
+                </Text>
             </View>
         );
     };
@@ -287,12 +335,22 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     searchInput: { flex: 1, marginLeft: 10, color: 'white', fontSize: 16 },
-    itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+    // itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
     userInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15, borderWidth: 1, borderColor: Theme.container.mainBorder },
     name: { color: Theme.dark.white, fontSize: 16, fontWeight: '600' },
     username: { color: Theme.container.inactiveText, fontSize: 13 },
-    recommendedSection: { marginTop: 10 },
+    itemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10, // Use a consistent small padding
+        // Remove any 'flex: 1' if it's there
+    },
+    recommendedSection: {
+        marginTop: 0,
+        // Ensure there is no 'flex: 1' here either
+    },
     sectionTitle: { color: Theme.dark.white, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 15, marginTop: 10 },
     addButton: { backgroundColor: Theme.dark.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 },
     addButtonText: { color: 'white', fontWeight: '700', fontSize: 14 },

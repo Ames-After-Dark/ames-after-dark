@@ -13,6 +13,7 @@ type AuthContextType = {
   isSwitching: boolean,
   setIsSwitching: (value: boolean) => void
   user: any
+  currentUser: any;
   error: Error | null
   userStatus: UserStatus | null
   username: string | null
@@ -35,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSwitching, setIsSwitching] = useState(false)
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null)
   const [username, setUsername] = useState<string | null>(null)
+
+  // hold actual DB user
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -67,13 +71,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // const refreshUserStatus = async () => {
+  //   try {
+  //     const credentials = await getCredentials()
+  //     if (credentials?.accessToken) {
+  //       const status = await checkUserStatus(credentials.accessToken)
+  //       setUserStatus(status)
+  //       console.log("User status:", status)
+  //     }
+  //   } catch (e) {
+  //     console.error("Error fetching user status:", e)
+  //   }
+  // }
+
   const refreshUserStatus = async () => {
     try {
       const credentials = await getCredentials()
       if (credentials?.accessToken) {
         const status = await checkUserStatus(credentials.accessToken)
         setUserStatus(status)
-        console.log("User status:", status)
+
+        // save the real database user globally here
+        if (status.user) {
+          setCurrentUser(status.user);
+        }
+
+        console.log("User status synced:", status)
       }
     } catch (e) {
       console.error("Error fetching user status:", e)
@@ -128,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isSwitching: isSwitching,
         setIsSwitching,
         user,
+        currentUser,
         error,
         userStatus,
         username,

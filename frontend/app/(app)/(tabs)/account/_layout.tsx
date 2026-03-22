@@ -30,6 +30,7 @@ export default function AccountStackLayout() {
                     headerTintColor: 'white',
                     headerBackTitle: 'Back',
                     title: '',
+                    // headerShown: false,
                 }}
             />
         </Stack>

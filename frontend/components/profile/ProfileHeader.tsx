@@ -1,14 +1,16 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Theme } from '@/constants/theme';
+import FontAwesome from '@expo/vector-icons/build/FontAwesome';
 
 interface ProfileHeaderProps {
     user: any;
+    isMe?: boolean;
     showBio?: boolean;
     onlyBio?: boolean;
 }
 
-export const ProfileHeader = ({ user, showBio, onlyBio }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, isMe, showBio, onlyBio }: ProfileHeaderProps): React.JSX.Element => {
 
     if (onlyBio) {
 
@@ -47,6 +49,13 @@ export const ProfileHeader = ({ user, showBio, onlyBio }: ProfileHeaderProps): R
                     </Text>
                 </View>
             )}
+
+            {/* HIDE POKE BUTTON IF IT IS ME */}
+            {/* {!isMe && (
+                <TouchableOpacity style={styles.pokeButton} onPress={() => {/* handlePoke * }}>
+                    <FontAwesome name="hand-o-right" size={20} color="white" />
+                </TouchableOpacity>
+            )} */}
         </View>
     );
 };

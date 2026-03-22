@@ -7,6 +7,7 @@ import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 // import { AuthProvider, useAuth } from "@/hooks/use-auth"
+import { useAuth } from '@/hooks/use-auth';
 
 import TopHeader from "@/components/TopHeader";
 
@@ -43,6 +44,12 @@ function withHexOpacity(hexColor: string, opacity: number) {
 }
 
 export default function TabLayout() {
+
+  const { currentUser } = useAuth();
+
+  // get the logged in user's ID 
+  const myId = currentUser?.id;
+
   const insets = useSafeAreaInsets();
 
   const tabBarBackgroundColor =
@@ -55,9 +62,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      initialRouteName="tonight"  
+      initialRouteName="tonight"
       screenOptions={{
-        
+
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
@@ -80,9 +87,9 @@ export default function TabLayout() {
           shadowColor: Theme.dark.black,
           shadowOpacity: 0.2,
           shadowRadius: 14,
-          shadowOffset: { 
-            width: 0, 
-            height: 8 
+          shadowOffset: {
+            width: 0,
+            height: 8
           },
           elevation: 12,
         },
@@ -95,17 +102,56 @@ export default function TabLayout() {
 
         // 🔹 Global header on every tab
         header: () => <TopHeader />,
+
+        // header: (props) => {
+        //   // Get the ID from the current route params
+        //   const routeId = props.route.params?.id;
+        //   // Check if the route we are on matches the logged-in user
+        //   const isMe = myId && routeId && Number(routeId) === myId;
+
+        //   return <TopHeader isMe={isMe} />;
+        // },
+
         // If you wanted to hide header on web only, you can swap this back:
         // headerShown: useClientOnlyValue(false, true),
         headerShown: true,
       }}>
       {/* FRIENDS */}
+      {/* <Tabs.Screen
+        name="account"
+        options={{
+          title: "Account",
+          href: (myId ? `/account/${myId}` : '/account') as any,
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+        }}
+      /> */}
+      {/* FRIENDS / ACCOUNT */}
       <Tabs.Screen
         name="account"
         options={{
-            title: "Account",
-            tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          title: "Account",
+          // The dynamic href tells Expo where the tab "starts"
+          href: (myId ? `/account/${myId}` : '/account') as any,
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          tabBarIconStyle: {
+            marginTop: 6, // Fine-tune just this one icon
+          }
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (myId) {
+              // 1. Prevent the default behavior (which might just stay on the current screen)
+              e.preventDefault();
+
+              // 2. Force navigate to your specific ID
+              // This ensures if you're on a friend's page, you "jump" back to yours
+              navigation.navigate('account', {
+                screen: '[id]',
+                params: { id: myId.toString() },
+              });
+            }
+          },
+        })}
       />
 
       {/* MAP */}
