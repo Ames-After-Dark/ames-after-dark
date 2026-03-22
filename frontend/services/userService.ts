@@ -1,13 +1,6 @@
 import { apiFetch } from './apiClient';
-import { Friend } from '@/types/types';
+import { Friend, PendingFriendRequest } from '@/types/types';
 
-export interface PendingFriendRequest {
-  user_id_1: number;
-  user_id_2: number;
-  friendship_status_id: number;
-  users_friendships_user_id_1Tousers?: Friend;
-  users_friendships_user_id_2Tousers?: Friend;
-}
 
 export async function sendFriendRequest(userId: string | number, friendId: string | number) {
   try {
