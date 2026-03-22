@@ -220,25 +220,31 @@ export default function FriendProfileScreen() {
     }, [relationship]);
 
     // --- Unified Action Handler ---
-    const handleAction = async (type: string, targetId?: number) => {
+    const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
         const friendId = targetId || Number(id);
         const myId = userStatus!.userId!;
+
+        const targetUserInModal = targetId
+            ? modalConfig.data.find(u => u.id === targetId)
+            : null;
+        // const targetName = targetUserInModal?.name || "this user";
+        const targetName = targetNameFromModal || user?.name || "this user";
 
         if (type === 'poke') {
             handlePoke(user.name);
         } else if (type === 'primary') {
-            // Inside handleAction in [id].tsx
+
             if (status === 'STRANGER') {
                 await handleAdd(
                     myId,
                     friendId,
-                    // This runs INSTANTLY
                     () => setRelationship(prev => ({ ...prev, sentRequest: true })),
-                    // This runs after the server responds
                     fetchProfile
                 );
             }
+
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
+
             if (status === 'BLOCKED') {
                 await handleUnblock(myId, friendId, fetchProfile);
             }
@@ -251,7 +257,23 @@ export default function FriendProfileScreen() {
             handleConfirmBlock(myId, friendId, user.name, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'remove' || type === 'cancel') {
-            await handleRemove(myId, friendId, user.name, fetchProfile);
+
+            const actionLabel = type === 'cancel' ? 'cancel your request to' : 'remove';
+            const questionLabel = type === 'cancel' ? 'cancel this request?' : `remove ${targetName} from your friends list?`;
+
+            const isCancel = type === 'cancel';
+            Alert.alert(
+                isCancel ? "Cancel Request" : "Remove Friend",
+                `Are you sure you want to ${isCancel ? 'cancel your request to' : 'remove'} ${targetName}?`,
+                [
+                    { text: "Back", style: "cancel" },
+                    {
+                        text: "Yes",
+                        style: "destructive",
+                        onPress: () => handleRemove(myId, friendId, targetName, fetchProfile)
+                    }
+                ]
+            );
         }
     };
 
@@ -342,9 +364,20 @@ export default function FriendProfileScreen() {
                 visible={modalConfig.visible}
                 title={modalConfig.title}
                 data={modalConfig.data}
-                recommendedData={recommendedFriends} // UNCOMMENT AND PASS THIS
+                recommendedData={recommendedFriends}
                 onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                 currentUserId={userStatus?.userId || null}
+
+                // onAcceptRequest={(targetId) => handleAction('accept', targetId)}
+                // onDeclineRequest={(targetId) => handleAction('decline', targetId)}
+                // onCancelRequest={(targetId) => handleAction('cancel', targetId)}
+                onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
+                onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
+                onDeclineRequest={(targetId, targetName) => handleAction('decline', targetId, targetName)}
+
+                onAddRecommended={(targetId) => handleAction('primary', targetId)}
+
+                actionLoadingId={actionLoading ? Number(id) : null}
             />
 
             <Modal visible={isRespondModalVisible} transparent animationType="fade">

@@ -39,11 +39,16 @@ interface ProfileListModalProps {
     data: any[]; // Use any here because it's a mix of headers and users now
     currentUserId: number | null;
     recommendedData?: Friend[];
-    onAddRecommended?: (id: number) => void;
+    // onAddRecommended?: (id: number) => void;
     actionLoadingId?: number | null;
-    onAcceptRequest?: (id: number) => void;
-    onDeclineRequest?: (id: number) => void;
-    onCancelRequest?: (id: number) => void;
+    // onAcceptRequest?: (id: number) => void;
+    // onDeclineRequest?: (id: number) => void;
+    // onCancelRequest?: (id: number) => void;
+
+    onAcceptRequest?: (id: number, name: string) => void; // Updated
+    onDeclineRequest?: (id: number, name: string) => void; // Updated
+    onCancelRequest?: (id: number, name: string) => void;  // Updated
+    onAddRecommended?: (id: number, name: string) => void; // Updated
 }
 
 export const ProfileListModal = ({
@@ -181,7 +186,7 @@ export const ProfileListModal = ({
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.addButton, actionLoadingId === rec.id && styles.disabledButton]}
-                            onPress={() => onAddRecommended?.(Number(rec.id))}
+                            onPress={() => onAddRecommended?.(Number(rec.id), rec.name)}
                             disabled={actionLoadingId === rec.id}
                         >
                             {actionLoadingId === rec.id ? (
@@ -234,9 +239,17 @@ export const ProfileListModal = ({
                 {title === 'Pending Requests' && (
                     <View style={styles.actionGroup}>
                         {isOutgoing ? (
+                            // <TouchableOpacity
+                            //     style={styles.cancelBtnSmall}
+                            //     // onPress={() => onCancelRequest?.(item.id)}
+                            //     onPress={() => onCancelRequest?.(item.id, item.name)}
+                            // >
+                            //     <Text style={styles.cancelBtnText}>Cancel</Text>
+                            // </TouchableOpacity>
+                            // Inside ProfileListModal's renderItem
                             <TouchableOpacity
                                 style={styles.cancelBtnSmall}
-                                onPress={() => onCancelRequest?.(item.id)}
+                                onPress={() => onCancelRequest?.(Number(item.id), item.name)} // Pass name here
                             >
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
@@ -244,13 +257,13 @@ export const ProfileListModal = ({
                             <>
                                 <TouchableOpacity
                                     style={styles.acceptCircle}
-                                    onPress={() => onAcceptRequest?.(item.id)}
+                                    onPress={() => onAcceptRequest?.(item.id, item.name)}
                                 >
                                     <FontAwesome name="check" size={14} color="white" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.declineCircle}
-                                    onPress={() => onDeclineRequest?.(item.id)}
+                                    onPress={() => onDeclineRequest?.(item.id, item.name)}
                                 >
                                     <FontAwesome name="times" size={14} color="#FF453A" />
                                 </TouchableOpacity>
