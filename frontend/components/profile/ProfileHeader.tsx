@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Theme } from '@/constants/theme';
-import FontAwesome from '@expo/vector-icons/build/FontAwesome';
 
 interface ProfileHeaderProps {
     user: any;
@@ -33,7 +32,15 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio }: ProfileHeaderPro
         <View style={styles.container}>
             <View style={styles.headerRow}>
                 <Image
-                    source={user?.avatar || require('@/assets/images/Logo.png')}
+                    // source={user?.avatar || require('@/assets/images/Logo.png')}
+                    source={
+                        user?.avatar
+                            ? (typeof user.avatar === 'string'
+                                ? { uri: user.avatar }
+                                : user.avatar)
+                            : require('@/assets/images/Logo.png')
+                    }
+
                     style={styles.profileImage}
                 />
                 <View style={styles.infoContainer}>

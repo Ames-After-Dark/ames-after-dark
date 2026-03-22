@@ -92,7 +92,12 @@ export default function FriendProfileScreen() {
     } = useProfileActions(triggerToast);
 
     const fetchProfile = async () => {
-        if (!id || !userStatus?.userId) return;
+
+        if (!id || !userStatus?.userId) {
+
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError(null);
@@ -105,6 +110,21 @@ export default function FriendProfileScreen() {
                 isMe ? Promise.resolve([]) : getMutualFriends(userStatus.userId, id),
                 isMe ? getPendingFriendRequests(userStatus.userId) : Promise.resolve([]),
             ]);
+
+            // const formattedPending = (pendingRequestsData || []).map(req => {
+            //     const isOutgoing = req.user_id_1 === userStatus.userId;
+            //     const friend = isOutgoing
+            //         ? req.users_friendships_user_id_2Tousers
+            //         : req.users_friendships_user_id_1Tousers;
+
+            //     return {
+            //         id: friend?.id,
+            //         name: friend?.name || 'Unknown User',
+            //         username: friend?.username || 'unknown',
+            //         avatar: friend?.avatar,
+            //         type: isOutgoing ? 'SENT' : 'RECEIVED'
+            //     };
+            // });
 
             const formattedPending = (pendingRequestsData || []).map(req => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
@@ -181,13 +201,13 @@ export default function FriendProfileScreen() {
     }, [modalConfig.visible, modalConfig.title, friends, pendingRequests, mutualFriends]);
 
     const status = useMemo(() => {
-        if (isMe) return 'ME';
+        if (isMe) return 'SELF';
         if (relationship.isBlocked) return 'BLOCKED';
         if (relationship.isFriend) return 'FRIEND';
         if (relationship.sentRequest) return 'PENDING_SENT';
         if (relationship.receivedRequest) return 'PENDING_RECEIVED';
         return 'STRANGER';
-    }, [relationship]);
+    }, [relationship, isMe]);
 
     const hasForcedError = shouldForceErrorPage(isMe ? 'account' : 'friendProfile');
 
@@ -330,7 +350,7 @@ export default function FriendProfileScreen() {
 
                 onAddRecommended={(targetId, targetName) => handleAction('primary', targetId, targetName)}
 
-                actionLoadingId={actionLoading ? Number(id) : null}
+                actionLoadingId={null}
             />
 
             <Modal visible={isRespondModalVisible} transparent animationType="fade">

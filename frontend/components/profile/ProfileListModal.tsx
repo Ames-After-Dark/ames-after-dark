@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     sectionHeaderText: {
-        color: Theme.container.inactiveText,
+        color: Theme.dark.white,
         fontSize: 11,
         fontWeight: '900',
         textTransform: 'uppercase',
