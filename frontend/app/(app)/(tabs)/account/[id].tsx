@@ -323,50 +323,18 @@ export default function FriendProfileScreen() {
                     </View>
                 )}
 
-                <ProfileActions
-                    status={status as any}
-                    loading={actionLoading}
-                    userName={user.name}
-                    onAction={handleAction}
-                />
-                {/* --- Profile Stats --- */}
-                {/* <ProfileStats
-                    friendCount={friends.length}
-                    isMe={isMe}
-                    // If it's me, this number doesn't matter as much, or you can pass pending count
-                    mutualCount={mutualFriends.length}
-                    onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
-                    onPressMutuals={() => setModalConfig({ visible: true, title: 'Mutual Friends', data: mutualFriends })}
-                />
-
-                <ProfileHeader user={user} showBio={true} onlyBio={true} />
-
-                {/* --- Content Grid --- *}
-                {(relationship.isFriend || isMe) ? ( // Show grid if friend OR if it's me
-                    <ProfileGrid user={user} />
-                ) : (
-                    <View style={styles.lockedContainer}>
-                        <Text style={styles.lockedText}>Add {user.name} to see their weekend stats!</Text>
-                    </View>
+                {/* ONLY render ProfileActions if it is NOT my own profile */}
+                {!isMe && (
+                    <ProfileActions
+                        status={status as any}
+                        loading={actionLoading}
+                        userName={user.name}
+                        onAction={handleAction}
+                    />
                 )}
 
-                {/* --- Action Buttons --- /}
-                {isMe ?
-                    (
-                        <TouchableOpacity
-                            style={styles.editButton}
-                            onPress={() => Alert.alert("Edit Profile", "Navigate to settings here.")}
-                        >
-                            <Text style={styles.editButtonText}>Edit Profile</Text>
-                        </TouchableOpacity>
-                    ) : (
-                        <ProfileActions
-                            status={status as any}
-                            loading={actionLoading}
-                            userName={user.name}
-                            onAction={handleAction}
-                        />
-                    )} */}
+                {/* <ProfileHeader user={user} showBio={true} onlyBio={true} /> */}
+
             </ScrollView>
 
             {/* Modals & Response Popup */}
