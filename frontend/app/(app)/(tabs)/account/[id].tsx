@@ -23,6 +23,7 @@ import { ProfileStats } from '@/components/profile/ProfileStats';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileActions } from '@/components/profile/ProfileActions';
 import { ProfileListModal } from '@/components/profile/ProfileListModal';
+import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -111,21 +112,6 @@ export default function FriendProfileScreen() {
                 isMe ? getPendingFriendRequests(userStatus.userId) : Promise.resolve([]),
             ]);
 
-            // const formattedPending = (pendingRequestsData || []).map(req => {
-            //     const isOutgoing = req.user_id_1 === userStatus.userId;
-            //     const friend = isOutgoing
-            //         ? req.users_friendships_user_id_2Tousers
-            //         : req.users_friendships_user_id_1Tousers;
-
-            //     return {
-            //         id: friend?.id,
-            //         name: friend?.name || 'Unknown User',
-            //         username: friend?.username || 'unknown',
-            //         avatar: friend?.avatar,
-            //         type: isOutgoing ? 'SENT' : 'RECEIVED'
-            //     };
-            // });
-
             const formattedPending = (pendingRequestsData || []).map(req => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
                 const friend = isOutgoing
@@ -148,7 +134,7 @@ export default function FriendProfileScreen() {
 
             if (isMe) {
 
-                const recs = await getRecommendedFriends(userStatus.userId); // Ensure this service exists
+                const recs = await getRecommendedFriends(userStatus.userId);
                 setRecommendedFriends(recs || []);
 
                 setRelationship({
@@ -276,11 +262,17 @@ export default function FriendProfileScreen() {
         }
     };
 
-    if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.dark.secondary} /></View>;
+    if (loading) {
+        return <ProfileSkeleton />;
+    }
+
+    if (!user || hasForcedError) {
+        return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
+    }
+
     if (error || hasForcedError) {
         return <ErrorState title="Unable to load account" subtitle={error || 'Please try again later.'} />;
     }
-    if (!user) return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
 
     return (
         <View style={styles.container}>

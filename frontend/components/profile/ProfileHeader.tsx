@@ -32,7 +32,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio }: ProfileHeaderPro
         <View style={styles.container}>
             <View style={styles.headerRow}>
                 <Image
-                    // source={user?.avatar || require('@/assets/images/Logo.png')}
+
                     source={
                         user?.avatar
                             ? (typeof user.avatar === 'string'

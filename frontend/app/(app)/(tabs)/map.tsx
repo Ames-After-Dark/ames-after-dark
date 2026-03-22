@@ -124,7 +124,7 @@ export default function MapScreen() {
     if (isLoading) return <MapSkeleton />;
 
     if (error || shouldForceErrorPage('map')) {
-        return <ErrorState title="Unable to load map" subtitle={error || 'Try again later.'} />;
+        return <ErrorState title="Unable to load map" subtitle={error || 'Please try again later.'} />;
     }
 
     const handleGoToBarPage = () => {
