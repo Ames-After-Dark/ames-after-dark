@@ -7,6 +7,7 @@ import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 import { useProfileActions } from '@/hooks/useProfileActions';
 import {
@@ -39,6 +40,7 @@ export default function FriendProfileScreen() {
     const [friends, setFriends] = useState<Friend[]>([]);
     const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [toastIcon, setToastIcon] = useState('check');
@@ -93,6 +95,7 @@ export default function FriendProfileScreen() {
         if (!id || !userStatus?.userId) return;
 
         setLoading(true);
+        setError(null);
 
         try {
 
@@ -149,6 +152,7 @@ export default function FriendProfileScreen() {
             }
         } catch (err) {
             console.error(err);
+            setError('Unable to load account and friends right now.');
         } finally {
             setLoading(false);
         }
@@ -185,6 +189,8 @@ export default function FriendProfileScreen() {
         return 'STRANGER';
     }, [relationship]);
 
+    const hasForcedError = shouldForceErrorPage(isMe ? 'account' : 'friendProfile');
+
     const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
         const friendId = targetId || Number(id);
         const myId = userStatus!.userId!;
@@ -204,7 +210,7 @@ export default function FriendProfileScreen() {
                     () => {
                         triggerToast(`Friend request sent to ${targetName}`);
                     },
-                    fetchProfile // Refresh the data so they disappear from "Recommended"
+                    fetchProfile
                 );
             }
 
@@ -251,6 +257,9 @@ export default function FriendProfileScreen() {
     };
 
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.dark.secondary} /></View>;
+    if (error || hasForcedError) {
+        return <ErrorState title="Unable to load account" subtitle={error || 'Please try again later.'} />;
+    }
     if (!user) return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
 
     return (
