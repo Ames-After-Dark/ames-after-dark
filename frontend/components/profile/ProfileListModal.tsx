@@ -186,7 +186,7 @@ export const ProfileListModal = ({
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.addButton, actionLoadingId === rec.id && styles.disabledButton]}
-                            onPress={() => onAddRecommended?.(Number(rec.id), rec.name)}
+                            onPress={() => onAddRecommended?.(Number(rec.id), rec.name || "this user")}
                             disabled={actionLoadingId === rec.id}
                         >
                             {actionLoadingId === rec.id ? (
@@ -257,13 +257,13 @@ export const ProfileListModal = ({
                             <>
                                 <TouchableOpacity
                                     style={styles.acceptCircle}
-                                    onPress={() => onAcceptRequest?.(item.id, item.name)}
+                                    onPress={() => onAcceptRequest?.(Number(item.id), item.name)}
                                 >
                                     <FontAwesome name="check" size={14} color="white" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.declineCircle}
-                                    onPress={() => onDeclineRequest?.(item.id, item.name)}
+                                    onPress={() => onDeclineRequest?.(Number(item.id), item.name)}
                                 >
                                     <FontAwesome name="times" size={14} color="#FF453A" />
                                 </TouchableOpacity>

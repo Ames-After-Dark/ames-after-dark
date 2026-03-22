@@ -223,6 +223,7 @@ export default function FriendProfileScreen() {
     const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
         const friendId = targetId || Number(id);
         const myId = userStatus!.userId!;
+        const isRecommendedAdd = type === 'primary' && typeof targetId === 'number' && isMe;
 
         const targetUserInModal = targetId
             ? modalConfig.data.find(u => u.id === targetId)
@@ -234,12 +235,20 @@ export default function FriendProfileScreen() {
             handlePoke(user.name);
         } else if (type === 'primary') {
 
-            if (status === 'STRANGER') {
+            if (status === 'STRANGER' || isRecommendedAdd) {
+                // await handleAdd(
+                //     myId,
+                //     friendId,
+                //     () => setRelationship(prev => ({ ...prev, sentRequest: true })),
+                //     fetchProfile
+                // );
                 await handleAdd(
                     myId,
                     friendId,
-                    () => setRelationship(prev => ({ ...prev, sentRequest: true })),
-                    fetchProfile
+                    () => {
+                        triggerToast(`Friend request sent to ${targetName}`);
+                    },
+                    fetchProfile // Refresh the data so they disappear from "Recommended"
                 );
             }
 
@@ -375,7 +384,7 @@ export default function FriendProfileScreen() {
                 onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
                 onDeclineRequest={(targetId, targetName) => handleAction('decline', targetId, targetName)}
 
-                onAddRecommended={(targetId) => handleAction('primary', targetId)}
+                onAddRecommended={(targetId, targetName) => handleAction('primary', targetId, targetName)}
 
                 actionLoadingId={actionLoading ? Number(id) : null}
             />
