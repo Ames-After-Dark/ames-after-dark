@@ -45,7 +45,6 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
                 {renderPrimaryButton()}
             </TouchableOpacity>
 
-            {/* Graceful Block/Remove options for Friends only */}
             {status === 'FRIEND' && (
                 <View style={styles.secondaryRow}>
                     <TouchableOpacity onPress={() => onAction('remove')}>
@@ -57,7 +56,7 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
                     </TouchableOpacity>
                 </View>
             )}
-            {/* Inside ProfileActions.tsx */}
+
             {status === 'FRIEND' && (
                 <TouchableOpacity onPress={() => onAction('remove')}>
                     <Text>Remove Friend</Text>
@@ -68,7 +67,11 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
 };
 
 const styles = StyleSheet.create({
-    container: { marginTop: 10, width: '100%', alignItems: 'center' },
+    container: {
+        marginTop: 10,
+        width: '100%',
+        alignItems: 'center'
+    },
     primaryButton: {
         width: '100%',
         paddingVertical: 16,
@@ -77,9 +80,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    pokeButton: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Theme.dark.primary },
-    primaryText: { color: 'white', fontSize: 16, fontWeight: '800' },
-    secondaryRow: { flexDirection: 'row', gap: 15, marginTop: 20, opacity: 0.7 },
-    dangerText: { color: Theme.container.inactiveText, fontSize: 13, fontWeight: '600' },
-    divider: { color: Theme.container.inactiveText },
+    pokeButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderColor: Theme.dark.primary
+    },
+    primaryText: {
+        color: Theme.dark.white,
+        fontSize: 16,
+        fontWeight: '800'
+    },
+    secondaryRow: {
+        flexDirection: 'row',
+        gap: 15,
+        marginTop: 20,
+        opacity: 0.7
+    },
+    dangerText: {
+        color: Theme.container.inactiveText,
+        fontSize: 13, fontWeight: '600'
+    },
+    divider: {
+        color: Theme.container.inactiveText
+    },
 });

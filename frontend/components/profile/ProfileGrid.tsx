@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         width: '100%'
     },
     gridRow: {
-        marginBottom: 15, // gap between the double row and the large single row
+        marginBottom: 15,
         flexDirection: 'row',
         width: '100%',
         justifyContent: 'space-between',
@@ -85,7 +85,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 15,
         height: 140,
-        // marginBottom: 15,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
     },

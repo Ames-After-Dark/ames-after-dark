@@ -21,34 +21,28 @@ import { Friend } from '@/types/types';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-// --- TYPES ---
 interface UserData {
     id: number;
     name: string;
     username: string;
     avatar?: string;
-    type?: 'SENT' | 'RECEIVED'; // Added this
-    isHeader?: boolean;         // Added this for sectioning
-    title?: string;             // Added this for sectioning
+    type?: 'SENT' | 'RECEIVED';
+    isHeader?: boolean;
+    title?: string;
 }
 
 interface ProfileListModalProps {
     visible: boolean;
     onClose: () => void;
     title: string;
-    data: any[]; // Use any here because it's a mix of headers and users now
+    data: any[];
     currentUserId: number | null;
     recommendedData?: Friend[];
-    // onAddRecommended?: (id: number) => void;
     actionLoadingId?: number | null;
-    // onAcceptRequest?: (id: number) => void;
-    // onDeclineRequest?: (id: number) => void;
-    // onCancelRequest?: (id: number) => void;
-
-    onAcceptRequest?: (id: number, name: string) => void; // Updated
-    onDeclineRequest?: (id: number, name: string) => void; // Updated
-    onCancelRequest?: (id: number, name: string) => void;  // Updated
-    onAddRecommended?: (id: number, name: string) => void; // Updated
+    onAcceptRequest?: (id: number, name: string) => void;
+    onDeclineRequest?: (id: number, name: string) => void;
+    onCancelRequest?: (id: number, name: string) => void;
+    onAddRecommended?: (id: number, name: string) => void;
 }
 
 export const ProfileListModal = ({
@@ -67,7 +61,7 @@ export const ProfileListModal = ({
     const [search, setSearch] = useState('');
     const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
-    // 1. Logic to split and group the data
+    // logic to split and group the data
     const sections = useMemo(() => {
         const searchStr = search.toLowerCase();
 
@@ -89,7 +83,7 @@ export const ProfileListModal = ({
         ];
     }, [data, title, search]);
 
-    // Animation & Gesture Logic (Kept your existing code)
+    // Animation & Gesture Logic
     useEffect(() => {
         if (visible) {
             Animated.spring(panY, { toValue: 0, useNativeDriver: true, tension: 50, friction: 10 }).start();
@@ -117,53 +111,11 @@ export const ProfileListModal = ({
         });
     };
 
-    // 2. Fixed renderHeader (Removed the broken 'item.isHeader' check)
-    // const renderHeader = () => {
-    //     if (title !== 'Friends' || search.length > 0 || recommendedData.length === 0) return null;
-
-    //     return (
-    //         <View style={styles.recommendedSection}>
-    //             <Text style={styles.sectionTitle}>Recommended Friends</Text>
-    //             {recommendedData.map((rec) => (
-    //                 <View key={rec.id} style={styles.itemRow}>
-    //                     <TouchableOpacity
-    //                         style={styles.userInfo}
-    //                         onPress={() => { closeModal(); router.push(`/account/${rec.id}`); }}
-    //                     >
-    //                         <Image
-    //                             source={rec.avatar ? { uri: rec.avatar } : require('@/assets/images/Logo.png')}
-    //                             style={styles.avatar}
-    //                         />
-    //                         <View>
-    //                             <Text style={styles.name}>{rec.name}</Text>
-    //                             <Text style={styles.username}>@{rec.username}</Text>
-    //                         </View>
-    //                     </TouchableOpacity>
-    //                     <TouchableOpacity
-    //                         style={[styles.addButton, actionLoadingId === rec.id && styles.disabledButton]}
-    //                         onPress={() => onAddRecommended?.(rec.id)}
-    //                         disabled={actionLoadingId === rec.id}
-    //                     >
-    //                         {actionLoadingId === rec.id ? (
-    //                             <ActivityIndicator size="small" color="white" />
-    //                         ) : (
-    //                             <Text style={styles.addButtonText}>Add</Text>
-    //                         )}
-    //                     </TouchableOpacity>
-    //                 </View>
-    //             ))}
-    //             <View style={styles.divider} />
-    //             <Text style={styles.sectionTitle}>Your Friends</Text>
-    //         </View>
-    //     );
-    // };
-
     const renderHeader = () => {
-        // 1. Hide if searching or if there's no data
+        // Hide if searching or if there's no data
         if (search.length > 0 || recommendedData.length === 0) return null;
 
-        // 2. Only show recommendations if we are looking at a "Friends" list 
-        // (This hides it when looking at "Pending Requests")
+        // Only show recommendations if looking at a "Friends" list 
         if (!title.toLowerCase().includes('friends')) return null;
 
         return (
@@ -205,7 +157,6 @@ export const ProfileListModal = ({
         );
     };
 
-    // 3. New renderItem that handles Headers vs. Users
     const renderItem = ({ item }: { item: UserData }) => {
         if (item.isHeader) {
             return (
@@ -239,14 +190,6 @@ export const ProfileListModal = ({
                 {title === 'Pending Requests' && (
                     <View style={styles.actionGroup}>
                         {isOutgoing ? (
-                            // <TouchableOpacity
-                            //     style={styles.cancelBtnSmall}
-                            //     // onPress={() => onCancelRequest?.(item.id)}
-                            //     onPress={() => onCancelRequest?.(item.id, item.name)}
-                            // >
-                            //     <Text style={styles.cancelBtnText}>Cancel</Text>
-                            // </TouchableOpacity>
-                            // Inside ProfileListModal's renderItem
                             <TouchableOpacity
                                 style={styles.cancelBtnSmall}
                                 onPress={() => onCancelRequest?.(Number(item.id), item.name)} // Pass name here
@@ -265,7 +208,7 @@ export const ProfileListModal = ({
                                     style={styles.declineCircle}
                                     onPress={() => onDeclineRequest?.(Number(item.id), item.name)}
                                 >
-                                    <FontAwesome name="times" size={14} color="#FF453A" />
+                                    <FontAwesome name="times" size={14} color={Theme.dark.error} />
                                 </TouchableOpacity>
                             </>
                         )}
@@ -312,7 +255,6 @@ export const ProfileListModal = ({
                         keyExtractor={(item, index) => item.isHeader ? `header-${index}` : item.id.toString()}
                         ListHeaderComponent={renderHeader}
                         renderItem={renderItem}
-                        // Added sticky headers for better UX
                         stickyHeaderIndices={title === 'Pending Requests' ? sections.map((item, index) => item.isHeader ? index : -1).filter(i => i !== -1) : []}
                     />
                 </Animated.View>
@@ -322,7 +264,11 @@ export const ProfileListModal = ({
 };
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end'
+    },
     sheet: {
         height: SCREEN_HEIGHT * 0.85,
         backgroundColor: Theme.container.background,
@@ -332,9 +278,23 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
     },
-    dragHandleContainer: { width: '100%', paddingVertical: 15, alignItems: 'center' },
-    handle: { width: 40, height: 5, backgroundColor: Theme.container.mainBorder, borderRadius: 10 },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    dragHandleContainer: {
+        width: '100%',
+        paddingVertical: 15,
+        alignItems: 'center'
+    },
+    handle: {
+        width: 40,
+        height: 5,
+        backgroundColor: Theme.container.mainBorder,
+        borderRadius: 10
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20
+    },
     title: { color: Theme.dark.white, fontSize: 22, fontWeight: '800' },
     searchContainer: {
         flexDirection: 'row',
@@ -347,29 +307,77 @@ const styles = StyleSheet.create({
         borderColor: Theme.search.border,
         marginBottom: 10,
     },
-    searchInput: { flex: 1, marginLeft: 10, color: 'white', fontSize: 16 },
-    // itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
-    userInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-    avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15, borderWidth: 1, borderColor: Theme.container.mainBorder },
-    name: { color: Theme.dark.white, fontSize: 16, fontWeight: '600' },
-    username: { color: Theme.container.inactiveText, fontSize: 13 },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        color: Theme.dark.white,
+        fontSize: 16
+    },
+    userInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    avatar: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginRight: 15,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder
+    },
+    name: {
+        color: Theme.dark.white,
+        fontSize: 16,
+        fontWeight: '600'
+    },
+    username: {
+        color: Theme.container.inactiveText,
+        fontSize: 13
+    },
     itemRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 10, // Use a consistent small padding
-        // Remove any 'flex: 1' if it's there
+        paddingVertical: 10,
     },
     recommendedSection: {
         marginTop: 0,
-        // Ensure there is no 'flex: 1' here either
     },
-    sectionTitle: { color: Theme.dark.white, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 15, marginTop: 10 },
-    addButton: { backgroundColor: Theme.dark.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 },
-    addButtonText: { color: 'white', fontWeight: '700', fontSize: 14 },
-    disabledButton: { opacity: 0.5 },
-    divider: { height: 1, backgroundColor: Theme.container.mainBorder, marginVertical: 15 },
-    emptyText: { color: Theme.container.inactiveText, textAlign: 'center', marginTop: 60, fontSize: 16 },
+    sectionTitle: {
+        color: Theme.dark.white,
+        fontSize: 13,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        marginBottom: 15,
+        marginTop: 10
+    },
+    addButton: {
+        backgroundColor: Theme.dark.primary,
+        paddingHorizontal: 18,
+        paddingVertical: 8,
+        borderRadius: 10
+    },
+    addButtonText: {
+        color: Theme.dark.white,
+        fontWeight: '700',
+        fontSize: 14
+    },
+    disabledButton: {
+        opacity: 0.5
+    },
+    divider: {
+        height: 1,
+        backgroundColor: Theme.container.mainBorder,
+        marginVertical: 15
+    },
+    emptyText: {
+        color: Theme.container.inactiveText,
+        textAlign: 'center',
+        marginTop: 60,
+        fontSize: 16
+    },
     actionGroup: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -388,7 +396,7 @@ const styles = StyleSheet.create({
         height: 34,
         borderRadius: 17,
         borderWidth: 1,
-        borderColor: '#FF453A',
+        borderColor: Theme.dark.error, // '#FF453A',
         justifyContent: 'center',
         alignItems: 'center',
     },

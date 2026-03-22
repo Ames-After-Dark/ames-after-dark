@@ -6,7 +6,6 @@ import { HapticTab } from '@/components/haptic-tab';
 import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-// import { AuthProvider, useAuth } from "@/hooks/use-auth"
 import { useAuth } from '@/hooks/use-auth';
 
 import TopHeader from "@/components/TopHeader";
@@ -103,48 +102,28 @@ export default function TabLayout() {
         // 🔹 Global header on every tab
         header: () => <TopHeader />,
 
-        // header: (props) => {
-        //   // Get the ID from the current route params
-        //   const routeId = props.route.params?.id;
-        //   // Check if the route we are on matches the logged-in user
-        //   const isMe = myId && routeId && Number(routeId) === myId;
-
-        //   return <TopHeader isMe={isMe} />;
-        // },
-
         // If you wanted to hide header on web only, you can swap this back:
         // headerShown: useClientOnlyValue(false, true),
         headerShown: true,
       }}>
-      {/* FRIENDS */}
-      {/* <Tabs.Screen
-        name="account"
-        options={{
-          title: "Account",
-          href: (myId ? `/account/${myId}` : '/account') as any,
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-        }}
-      /> */}
       {/* FRIENDS / ACCOUNT */}
       <Tabs.Screen
         name="account"
         options={{
           title: "Account",
-          // The dynamic href tells Expo where the tab "starts"
+
           href: (myId ? `/account/${myId}` : '/account') as any,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
           tabBarIconStyle: {
-            marginTop: 6, // Fine-tune just this one icon
+            marginTop: 6,
           }
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             if (myId) {
-              // 1. Prevent the default behavior (which might just stay on the current screen)
+
               e.preventDefault();
 
-              // 2. Force navigate to your specific ID
-              // This ensures if you're on a friend's page, you "jump" back to yours
               navigation.navigate('account', {
                 screen: '[id]',
                 params: { id: myId.toString() },

@@ -8,7 +8,6 @@ import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
-// Hooks & Services
 import { useProfileActions } from '@/hooks/useProfileActions';
 import {
     getUserById,
@@ -18,7 +17,6 @@ import {
     getPendingFriendRequests,
 } from '@/services/userService';
 
-// Modular Components
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
@@ -27,7 +25,6 @@ import { ProfileListModal } from '@/components/profile/ProfileListModal';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    // const { userStatus } = useAuth();
 
     const { currentUser, userStatus } = useAuth();
 
@@ -35,11 +32,9 @@ export default function FriendProfileScreen() {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
     }, [id, currentUser, userStatus]);
 
-    // --- Animation Refs for Toast ---
     const toastTranslateY = useRef(new Animated.Value(-20)).current;
     const toastOpacity = useRef(new Animated.Value(0)).current;
 
-    // --- State ---
     const [user, setUser] = useState<any>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
     const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
@@ -65,7 +60,6 @@ export default function FriendProfileScreen() {
         data: [] as any[]
     });
 
-    // --- Initialize Toast Function ---
     const triggerToast = (message: string, icon: string = 'check') => {
         setToastMessage(message);
         setToastIcon(icon);
@@ -84,7 +78,6 @@ export default function FriendProfileScreen() {
         }, 2500);
     };
 
-    // --- Initialize the Hook ---
     const {
         handlePoke,
         handleAdd,
@@ -96,45 +89,13 @@ export default function FriendProfileScreen() {
         loading: actionLoading
     } = useProfileActions(triggerToast);
 
-    // const fetchProfile = async () => {
-    //     if (!id || !userStatus?.userId) return;
-    //     setLoading(true);
-    //     try {
-    //         const [userData, friendsData, mutualData, myFriends] = await Promise.all([
-    //             getUserById(id),
-    //             getUserFriends(id),
-    //             getMutualFriends(userStatus.userId, id),
-    //             getUserFriends(userStatus.userId)
-    //         ]);
-
-    //         setUser(userData);
-    //         setFriends(friendsData || []);
-    //         setMutualFriends(mutualData || []);
-
-    //         const isFriend = myFriends.some(f => f.id.toString() === id);
-    //         const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
-    //         const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
-
-    //         setRelationship({
-    //             isFriend,
-    //             isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
-    //             sentRequest: Boolean(incoming?.friendship_status_id === 1),
-    //             receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
-    //         });
-    //     } catch (err) {
-    //         console.error(err);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
     const fetchProfile = async () => {
         if (!id || !userStatus?.userId) return;
 
         setLoading(true);
 
         try {
-            // 1. If it's me, we only need my profile and my friends
+
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
                 getUserById(id),
                 getUserFriends(id),
@@ -162,7 +123,6 @@ export default function FriendProfileScreen() {
             setMutualFriends(mutualData || []);
             setPendingRequests(formattedPending);
 
-            // 2. Relationship logic
             if (isMe) {
 
                 const recs = await getRecommendedFriends(userStatus.userId); // Ensure this service exists
@@ -175,7 +135,6 @@ export default function FriendProfileScreen() {
                     receivedRequest: false,
                 });
             } else {
-                // Keep your existing relationship logic for others
                 const myFriends = await getUserFriends(userStatus.userId);
                 const isFriend = myFriends.some(f => f.id.toString() === id);
                 const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
@@ -195,7 +154,6 @@ export default function FriendProfileScreen() {
         }
     };
 
-    // Replace your two existing useEffects with this one clean one:
     useEffect(() => {
         fetchProfile();
     }, [id, isMe]);
@@ -218,17 +176,6 @@ export default function FriendProfileScreen() {
         }
     }, [modalConfig.visible, modalConfig.title, friends, pendingRequests, mutualFriends]);
 
-    // useEffect(() => { fetchProfile(); }, [id]);
-    // useEffect(() => {
-    //     if (isMe) {
-    //         // Force the status to something that doesn't show "Add Friend"
-    //         setStatus('ME');
-    //     } else {
-    //         // Only run your friendship check if it's NOT you
-    //         fetchRelationshipStatus();
-    //     }
-    // }, [id, isMe]);
-
     const status = useMemo(() => {
         if (isMe) return 'ME';
         if (relationship.isBlocked) return 'BLOCKED';
@@ -238,7 +185,6 @@ export default function FriendProfileScreen() {
         return 'STRANGER';
     }, [relationship]);
 
-    // --- Unified Action Handler ---
     const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
         const friendId = targetId || Number(id);
         const myId = userStatus!.userId!;
@@ -251,12 +197,7 @@ export default function FriendProfileScreen() {
         } else if (type === 'primary') {
 
             if (status === 'STRANGER' || isRecommendedAdd) {
-                // await handleAdd(
-                //     myId,
-                //     friendId,
-                //     () => setRelationship(prev => ({ ...prev, sentRequest: true })),
-                //     fetchProfile
-                // );
+
                 await handleAdd(
                     myId,
                     friendId,
@@ -318,37 +259,15 @@ export default function FriendProfileScreen() {
             <Stack.Screen
                 options={{
                     headerShown: !isMe,
-                    headerShadowVisible: false, // Optional: makes it cleaner
+                    headerShadowVisible: false,
                 }}
             />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <ProfileHeader
                     user={user}
-                    isMe={isMe} // Tell the header if this is the logged-in user
-                />
-
-                {/* <ProfileStats
-                    friendCount={friends.length}
-                    isMe={isMe} // Stats might look different for you vs a stranger
-                    mutualCount={mutualFriends.length}
-                    secondLabel="mutual"
-                    onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
-                    onPressMutuals={() => setModalConfig({ visible: true, title: 'Mutual Friends', data: mutualFriends })}
-                /> */}
-
-                {/* <ProfileStats
-                    friendCount={friends.length}
                     isMe={isMe}
-                    mutualCount={isMe ? pendingRequests.length : mutualFriends.length} // Show pending count if it's me
-                    secondLabel={isMe ? "pending" : "mutual"} // DYNAMIC LABEL
-                    onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
-                    onPressMutuals={() => setModalConfig({
-                        visible: true,
-                        title: isMe ? 'Pending Requests' : 'Mutual Friends', // DYNAMIC TITLE
-                        data: isMe ? pendingRequests : mutualFriends // DYNAMIC DATA
-                    })}
-                /> */}
+                />
 
                 <ProfileStats
                     friendCount={friends.length}
@@ -377,7 +296,6 @@ export default function FriendProfileScreen() {
                     </View>
                 )}
 
-                {/* ONLY render ProfileActions if it is NOT my own profile */}
                 {!isMe && (
                     <ProfileActions
                         status={status as any}
@@ -387,11 +305,8 @@ export default function FriendProfileScreen() {
                     />
                 )}
 
-                {/* <ProfileHeader user={user} showBio={true} onlyBio={true} /> */}
-
             </ScrollView>
 
-            {/* Modals & Response Popup */}
             <ProfileListModal
                 visible={modalConfig.visible}
                 title={modalConfig.title}
@@ -400,9 +315,6 @@ export default function FriendProfileScreen() {
                 onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                 currentUserId={userStatus?.userId || null}
 
-                // onAcceptRequest={(targetId) => handleAction('accept', targetId)}
-                // onDeclineRequest={(targetId) => handleAction('decline', targetId)}
-                // onCancelRequest={(targetId) => handleAction('cancel', targetId)}
                 onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
                 onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
                 onDeclineRequest={(targetId, targetName) => handleAction('decline', targetId, targetName)}
@@ -424,7 +336,7 @@ export default function FriendProfileScreen() {
                                 <Text style={styles.btnText}>Decline</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={[styles.responseBtn, styles.blockBtn]} onPress={() => handleAction('block')}>
-                                <Text style={[styles.btnText, { color: '#FF453A' }]}>Block User</Text>
+                                <Text style={[styles.btnText, { color: Theme.dark.error }]}>Block User</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsRespondModalVisible(false)}>
                                 <Text style={styles.cancelText}>Cancel</Text>
@@ -433,7 +345,7 @@ export default function FriendProfileScreen() {
                     </View>
                 </TouchableWithoutFeedback>
             </Modal>
-            {/* --- TOAST UI COMPONENT --- */}
+
             {showToast && (
                 <Animated.View
                     style={[
@@ -453,31 +365,88 @@ export default function FriendProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    // container: { flex: 1, backgroundColor: Theme.dark.background },
-    // scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, gap: 15 },
     container: {
         flex: 1,
         backgroundColor: Theme.dark.background
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 0,   // Change this to 0 to remove the gap
+        paddingTop: 0,
         paddingBottom: 40,
         gap: 15
     },
-    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.dark.background },
-    lockedContainer: { padding: 30, alignItems: 'center', backgroundColor: Theme.container.background, borderRadius: 20, borderStyle: 'dashed', borderWidth: 1, borderColor: Theme.container.mainBorder },
-    lockedText: { color: Theme.container.inactiveText, textAlign: 'center', fontSize: 14 },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-    responseCard: { width: '85%', backgroundColor: Theme.container.background, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Theme.container.mainBorder, alignItems: 'center' },
-    responseTitle: { color: 'white', fontSize: 18, fontWeight: '700', marginBottom: 20 },
-    responseBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
-    acceptBtn: { backgroundColor: Theme.dark.primary },
-    declineBtn: { backgroundColor: Theme.container.mainBorder },
-    blockBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FF453A' },
-    btnText: { color: 'white', fontWeight: '700', fontSize: 15 },
-    cancelBtn: { marginTop: 10 },
-    cancelText: { color: Theme.container.inactiveText, fontSize: 14, fontWeight: '600' },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: Theme.dark.background
+    },
+    lockedContainer: {
+        padding: 30,
+        alignItems: 'center',
+        backgroundColor: Theme.container.background,
+        borderRadius: 20,
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder
+    },
+    lockedText: {
+        color: Theme.container.inactiveText,
+        textAlign: 'center',
+        fontSize: 14
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    responseCard: {
+        width: '85%',
+        backgroundColor: Theme.container.background,
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        alignItems: 'center'
+    },
+    responseTitle: {
+        color: Theme.dark.white,
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 20
+    },
+    responseBtn: {
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginBottom: 10
+    },
+    acceptBtn: {
+        backgroundColor: Theme.dark.primary
+    },
+    declineBtn: {
+        backgroundColor: Theme.container.mainBorder
+    },
+    blockBtn: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: Theme.dark.error,
+    },
+    btnText: {
+        color: Theme.dark.white,
+        fontWeight: '700',
+        fontSize: 15
+    },
+    cancelBtn: {
+        marginTop: 10
+    },
+    cancelText: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        fontWeight: '600'
+    },
     toastContainer: {
         position: 'absolute',
         top: '1%',

@@ -14,7 +14,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio }: ProfileHeaderPro
 
     if (onlyBio) {
 
-        if (!showBio) return <View />; // Using empty View instead of null to maintain gap spacing in newer React Native versions
+        if (!showBio) return <View />;
 
         return (
             <View style={styles.sidePadding}>
@@ -49,13 +49,6 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio }: ProfileHeaderPro
                     </Text>
                 </View>
             )}
-
-            {/* HIDE POKE BUTTON IF IT IS ME */}
-            {/* {!isMe && (
-                <TouchableOpacity style={styles.pokeButton} onPress={() => {/* handlePoke * }}>
-                    <FontAwesome name="hand-o-right" size={20} color="white" />
-                </TouchableOpacity>
-            )} */}
         </View>
     );
 };
@@ -66,13 +59,12 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     sidePadding: {
-        paddingHorizontal: 0, // Set to 0 because the ScrollView now handles it
+        paddingHorizontal: 0,
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginVertical: 16,
-        // marginBottom: 15,
     },
     profileImage: {
         width: 75,
@@ -99,7 +91,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
         marginTop: 4,
-        // marginBottom: 15,
     },
     bioText: {
         color: Theme.container.titleText,
