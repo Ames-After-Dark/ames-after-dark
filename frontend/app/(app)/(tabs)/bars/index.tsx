@@ -10,6 +10,7 @@ import { Theme } from '@/constants/theme';
 
 import { BarCard, FilterTab } from "@/components/bars/bar-list-components";
 import { Skeleton, } from "@/components/ui/skeleton";
+import { useFavorites } from '@/context/FavoritesContext';
 
 export default function Bars() {
   const router = useRouter();
@@ -36,8 +37,10 @@ export default function Bars() {
     });
   }, [barIdsSig]);
 
-  const toggleFavorite = (id: string) => setFav(prev => ({ ...prev, [id]: !prev[id] }));
-  const isFav = (id: string, backendFav: boolean) => fav[id] ?? backendFav;
+  // const toggleFavorite = (id: string) => setFav(prev => ({ ...prev, [id]: !prev[id] }));
+  // const isFav = (id: string, backendFav: boolean) => fav[id] ?? backendFav;
+
+  const { isFavorited, toggleFavorite } = useFavorites();
 
   const BarsSkeleton = () => (
     <View style={{ padding: 16 }}>
@@ -63,11 +66,11 @@ export default function Bars() {
         const id = String(b.id);
         if (filter === "Bars" && b.location_type_id !== 1) return false;
         if (filter === "Restaurants" && b.location_type_id !== 2) return false;
-        if (filter === "Favorites" && !isFav(id, !!b.favorite)) return false;
+        if (filter === "Favorites" && !isFavorited(b.id)) return false;
         if (q && !(b.name?.toLowerCase().includes(q) || b.description?.toLowerCase().includes(q))) return false;
         return true;
       })
-      .sort((a, b) => Number(isFav(String(b.id), !!b.favorite)) - Number(isFav(String(a.id), !!a.favorite)));
+      .sort((a, b) => Number(isFavorited(b.id)) - Number(isFavorited(a.id)));
   }, [bars, filter, search, fav]);
 
   if (!!error || shouldForceErrorPage("bars")) {
@@ -121,8 +124,8 @@ export default function Bars() {
           renderItem={({ item }) => (
             <BarCard
               item={item}
-              isFav={isFav(String(item.id), !!item.favorite)}
-              onToggleFav={toggleFavorite}
+              isFav={isFavorited(item.id)}
+              onToggleFav={() => toggleFavorite(item.id)}
               onPress={(id) => router.push({ pathname: "/(app)/(tabs)/bars/[id]", params: { id } })}
             />
           )}

@@ -15,6 +15,7 @@ import {
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFavorites } from '@/context/FavoritesContext';
 
 export default function BarProfile() {
   const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: string }>();
@@ -26,10 +27,9 @@ export default function BarProfile() {
 
   const toggleMapOverlay = () => setIsMapVisible(!isMapVisible);
 
-  // Inside app/bars/[id].tsx
-
   const ProfileSkeleton = () => (
     <View style={styles.container}>
+
       {/* Cover Photo */}
       <Skeleton width="100%" height={180} borderRadius={0} />
 
@@ -56,6 +56,9 @@ export default function BarProfile() {
       </View>
     </View>
   );
+
+  const { isFavorited, toggleFavorite } = useFavorites();
+  const barIdNumeric = Number(id);
 
   const navigateToInternalMap = () => {
     setIsMapVisible(false);
@@ -98,6 +101,20 @@ export default function BarProfile() {
         headerLeft: () => (
           <TouchableOpacity onPress={handleBack} style={{ paddingHorizontal: 12 }}>
             <FontAwesome name="chevron-left" size={20} color={Theme.dark.secondary} />
+          </TouchableOpacity>
+        ),
+
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => toggleFavorite(barIdNumeric)}
+            style={{ paddingHorizontal: 16 }}
+          >
+            <FontAwesome
+              // Update names to star and star-o
+              name={isFavorited(barIdNumeric) ? "star" : "star-o"}
+              size={22}
+              color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
+            />
           </TouchableOpacity>
         )
       }} />
