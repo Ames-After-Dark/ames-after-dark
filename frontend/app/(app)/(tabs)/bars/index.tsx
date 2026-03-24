@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, RefreshControl } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl } from "react-native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBars } from "@/hooks/useBars";
@@ -11,22 +11,16 @@ import { Theme } from '@/constants/theme';
 import { BarCard, FilterTab } from "@/components/bars/bar-list-components";
 import { Skeleton, } from "@/components/ui/skeleton";
 import { useFavorites } from '@/context/FavoritesContext';
-import { useBarDetail } from "@/hooks/useBarDetail";
-import { fetchLocationById, MapLocation } from "@/services/locationService";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
 export default function Bars() {
-
-  const { id } = useLocalSearchParams<{ id: string }>();
 
   const router = useRouter();
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const { bars, loading, error } = useBars({ q: search || undefined });
-  const [fav, setFav] = useState<Record<string, boolean>>({});
 
-  const barIdsSig = useMemo(() => (bars?.length ? bars.map(b => String(b.id)).join(",") : ""), [bars]);
+  const { bars, loading, error, refetch } = useBars({ q: search || undefined });
 
-  const { refetch } = useBars({ q: search || undefined });
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -42,21 +36,32 @@ export default function Bars() {
     }
   }, [refetch]);
 
+  const navigation = useNavigation<BottomTabNavigationProp<any>>();
+
   useEffect(() => {
-    if (!barIdsSig) return;
-    setFav(prev => {
-      const next = { ...prev };
-      let changed = false;
-      bars?.forEach(b => {
-        const id = String(b.id);
-        if (!(id in next)) {
-          next[id] = !!b.favorite;
-          changed = true;
+
+    const tabNavigation = navigation.getParent<BottomTabNavigationProp<any>>();
+
+    if (tabNavigation) {
+      const unsubscribe = tabNavigation.addListener('tabPress', (e) => {
+
+        const isFocused = navigation.isFocused();
+
+        if (isFocused) {
+          console.log("Martini Icon Tapped - Resetting State");
+
+          setSearch("");
+          setFilter(null);
+
+          if (refetch) {
+            refetch();
+          }
         }
       });
-      return changed ? next : prev;
-    });
-  }, [barIdsSig]);
+
+      return unsubscribe;
+    }
+  }, [navigation, refetch]);
 
   const { isFavorited, toggleFavorite } = useFavorites();
 
@@ -81,15 +86,24 @@ export default function Bars() {
 
     return bars
       .filter(b => {
+
         const id = String(b.id);
+
+        // Filter by Type
         if (filter === "Bars" && b.location_type_id !== 1) return false;
         if (filter === "Restaurants" && b.location_type_id !== 2) return false;
-        if (filter === "Favorites" && !isFavorited(b.id)) return false;
+
+        // Filter by Favorites (using the Context function)
+        if (filter === "Favorites" && !isFavorited(id)) return false;
+
+        // Search logic
         if (q && !(b.name?.toLowerCase().includes(q) || b.description?.toLowerCase().includes(q))) return false;
+
         return true;
       })
       .sort((a, b) => Number(isFavorited(b.id)) - Number(isFavorited(a.id)));
-  }, [bars, filter, search, fav]);
+
+  }, [bars, filter, search, isFavorited]);
 
   if (!!error || shouldForceErrorPage("bars")) {
     return (
@@ -125,7 +139,6 @@ export default function Bars() {
       </View>
 
       {loading ? (
-        // <ActivityIndicator style={{ marginTop: 24 }} color={Theme.dark.primary} />
         <BarsSkeleton />
       ) : visibleBars.length === 0 ? (
         <View style={styles.emptyContainer}>
