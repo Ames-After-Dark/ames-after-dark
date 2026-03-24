@@ -26,8 +26,7 @@ import {
     declineFriendRequest,
     blockFriend,
     PendingFriendRequest,
-    getUserProfileByAuth,
-    updateUser,
+    getUserProfileByAuth
 } from '@/services/userService';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import ErrorState from '@/components/ui/error-state';
@@ -294,14 +293,15 @@ export default function AccountScreen() {
                 const userData = await getUserProfileByAuth(accessToken);
                 setUser(userData);
 
-                if (userData.profile_photo_id) {
-                    const match = AVATAR_OPTIONS.find(a => a.id === userData.profile_photo_id);
-                    if (match) setSelectedAvatar(match);
-                }
-                if (userData.favorite_drink_id) {
-                    const match = DRINK_OPTIONS.find(d => d.id === userData.favorite_drink_id);
-                    if (match) setSelectedDrink(match);
-                }
+                // TODO: When API returns avatar/drink fields, initialize selections like:
+                // if (userData.avatarId) {
+                //     const match = AVATAR_OPTIONS.find(a => a.id === userData.avatarId);
+                //     if (match) setSelectedAvatar(match);
+                // }
+                // if (userData.drinkId) {
+                //     const match = DRINK_OPTIONS.find(d => d.id === userData.drinkId);
+                //     if (match) setSelectedDrink(match);
+                // }
 
             } catch (err) {
                 setUserError(err instanceof Error ? err : new Error('Failed to fetch user'));
@@ -339,24 +339,16 @@ export default function AccountScreen() {
         }, [fetchPendingRequests, refetch])
     );
 
-    const handleAvatarSelect = async (item: { id: string; source: ImageSourcePropType }) => {
+    const handleAvatarSelect = (item: { id: string; source: ImageSourcePropType }) => {
         setSelectedAvatar(item);
-        if (!userStatus?.userId) return;
-        try {
-            await updateUser(userStatus.userId, { profile_photo_id: item.id });
-        } catch (err) {
-            console.error('Failed to save avatar:', err);
-        }
+        // TODO: Call API to persist avatar selection, e.g.:
+        // await updateUserAvatar(userStatus.userId, item.id);
     };
 
-    const handleDrinkSelect = async (item: { id: string; source: ImageSourcePropType }) => {
+    const handleDrinkSelect = (item: { id: string; source: ImageSourcePropType }) => {
         setSelectedDrink(item);
-        if (!userStatus?.userId) return;
-        try {
-            await updateUser(userStatus.userId, { favorite_drink_id: item.id });
-        } catch (err) {
-            console.error('Failed to save drink:', err);
-        }
+        // TODO: Call API to persist drink selection, e.g.:
+        // await updateUserDrink(userStatus.userId, item.id);
     };
 
     const getOtherUserFromRequest = (request: PendingFriendRequest): Friend | null => {
