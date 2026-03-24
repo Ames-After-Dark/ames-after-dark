@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -17,10 +17,10 @@ import {
     getRecommendedFriends,
     getPendingFriendRequests,
 } from '@/services/userService';
-import { apiFetch } from '@/services/apiClient';
 
-import { ProfileHeader } from '@/components/profile/ProfileHeader';
-import { ProfileGrid } from '@/components/profile/ProfileGrid';
+import { ProfileHeader } from '@/components/profile/ProfileHeader1';
+import { ProfileStats } from '@/components/profile/ProfileStats';
+import { ProfileGrid } from '@/components/profile/ProfileGrid1';
 import { ProfileActions } from '@/components/profile/ProfileActions';
 import { ProfileListModal } from '@/components/profile/ProfileListModal';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
@@ -56,10 +56,6 @@ export default function FriendProfileScreen() {
         sentRequest: false,
         receivedRequest: false,
     });
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [isBioModalVisible, setIsBioModalVisible] = useState(false);
-    const [bioText, setBioText] = useState('');
 
     const [modalConfig, setModalConfig] = useState({
         visible: false,
@@ -292,27 +288,29 @@ export default function FriendProfileScreen() {
                 <ProfileHeader
                     user={user}
                     isMe={isMe}
-                    isEditing={isEditing}
-                    onRequestEdit={() => setIsEditing(true)}
-                    onSave={() => setIsEditing(false)}
                 />
 
-
-
-                <ProfileHeader
-                    user={user}
-                    showBio={true}
-                    onlyBio={true}
+                <ProfileStats
+                    friendCount={friends.length}
                     isMe={isMe}
-                    isEditing={isEditing}
-                    onEditBio={() => {
-                        setBioText(user?.bio || '');
-                        setIsBioModalVisible(true);
-                    }}
+                    mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
+                    secondLabel={isMe ? "pending" : "mutual"}
+                    onPressFriends={() => setModalConfig({
+                        visible: true,
+                        title: 'Friends',
+                        data: friends
+                    })}
+                    onPressMutuals={() => setModalConfig({
+                        visible: true,
+                        title: isMe ? 'Pending Requests' : 'Mutual Friends',
+                        data: isMe ? pendingRequests : mutualFriends
+                    })}
                 />
+
+                <ProfileHeader user={user} showBio={true} onlyBio={true} />
 
                 {relationship.isFriend ? (
-                    <ProfileGrid user={user} isMe={isMe} isEditing={isEditing} />
+                    <ProfileGrid user={user} />
                 ) : (
                     <View style={styles.lockedContainer}>
                         <Text style={styles.lockedText}>Add {user.name} to see their weekend stats!</Text>
@@ -369,50 +367,6 @@ export default function FriendProfileScreen() {
                 </TouchableWithoutFeedback>
             </Modal>
 
-            {/* Bio Edit Modal */}
-            <Modal visible={isBioModalVisible} transparent animationType="fade">
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-                    <TouchableWithoutFeedback onPress={() => setIsBioModalVisible(false)}>
-                        <View style={styles.modalOverlay}>
-                            <TouchableWithoutFeedback>
-                                <View style={styles.responseCard}>
-                                    <Text style={styles.responseTitle}>Edit Bio</Text>
-                                    <TextInput
-                                        style={styles.bioInput}
-                                        value={bioText}
-                                        onChangeText={setBioText}
-                                        placeholder="Tell people about yourself..."
-                                        placeholderTextColor={Theme.container.inactiveText}
-                                        multiline
-                                        maxLength={200}
-                                        autoFocus
-                                    />
-                                    <Text style={styles.bioCharCount}>{bioText.length}/200</Text>
-                                    <TouchableOpacity
-                                        style={[styles.responseBtn, styles.acceptBtn]}
-                                        onPress={async () => {
-                                            try {
-                                                await apiFetch('/users/auth/bio', { method: 'PUT', body: JSON.stringify({ bio: bioText }) });
-                                                setUser((prev: any) => ({ ...prev, bio: bioText }));
-                                                setIsBioModalVisible(false);
-                                                triggerToast('Bio updated!');
-                                            } catch {
-                                                triggerToast('Failed to save bio');
-                                            }
-                                        }}
-                                    >
-                                        <Text style={styles.btnText}>Save Bio</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsBioModalVisible(false)}>
-                                        <Text style={styles.cancelText}>Cancel</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </TouchableWithoutFeedback>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </KeyboardAvoidingView>
-            </Modal>
-
             {showToast && (
                 <Animated.View
                     style={[
@@ -423,9 +377,7 @@ export default function FriendProfileScreen() {
                         },
                     ]}
                 >
-                    <View style={styles.toastIconWrap}>
-                        <FontAwesome name={toastIcon as any} size={14} color={Theme.dark.primary} />
-                    </View>
+                    <FontAwesome name={toastIcon as any} size={18} color="white" />
                     <Text style={styles.toastText}>{toastMessage}</Text>
                 </Animated.View>
             )}
@@ -520,52 +472,21 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: '1%',
         alignSelf: 'center',
-        backgroundColor: Theme.container.background,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 14,
+        backgroundColor: Theme.dark.primary,
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        borderRadius: 16,
         flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         zIndex: 999,
         elevation: 10,
     },
-    toastIconWrap: {
-        width: 28,
-        height: 28,
-        borderRadius: 999,
-        backgroundColor: Theme.dark.background,
-        borderWidth: 1,
-        borderColor: Theme.dark.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     toastText: {
         color: Theme.dark.white,
-        fontWeight: '600',
+        fontWeight: '700',
         fontSize: 14,
-    },
-    bioInput: {
-        width: '100%',
-        backgroundColor: Theme.dark.background,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        borderRadius: 12,
-        padding: 12,
-        color: Theme.dark.white,
-        fontSize: 14,
-        lineHeight: 20,
-        minHeight: 100,
-        textAlignVertical: 'top',
-        marginBottom: 6,
-    },
-    bioCharCount: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        alignSelf: 'flex-end',
-        marginBottom: 16,
     },
     editButton: {
         backgroundColor: Theme.container.mainBorder,
