@@ -37,9 +37,6 @@ export default function Bars() {
     });
   }, [barIdsSig]);
 
-  // const toggleFavorite = (id: string) => setFav(prev => ({ ...prev, [id]: !prev[id] }));
-  // const isFav = (id: string, backendFav: boolean) => fav[id] ?? backendFav;
-
   const { isFavorited, toggleFavorite } = useFavorites();
 
   const BarsSkeleton = () => (

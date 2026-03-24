@@ -83,13 +83,6 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
           <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
         </View>
       </View>
-      {/* <TouchableOpacity>
-        <FontAwesome 
-          name="star" 
-          size={24} 
-          color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveInput} 
-        />
-      </TouchableOpacity> */}
     </View>
   </View>
 );

@@ -5,19 +5,19 @@ import { useAuth } from '@/hooks/use-auth';
 const FavoritesContext = createContext<ReturnType<typeof useBaseFavorites> | null>(null);
 
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
-    const favoritesLogic = useBaseFavorites();
-    const { currentUser } = useAuth();
 
-    // Directly extract the ID to watch it
+    const favoritesLogic = useBaseFavorites();
+
+    const { currentUser } = useAuth();
     const userId = currentUser?.id;
 
     useEffect(() => {
-        // Only fetch if we have a valid numeric ID
+
         if (userId && typeof userId === 'number') {
             console.log("Auth synced. Triggering favorites load for ID:", userId);
             favoritesLogic.loadFavorites();
         }
-    }, [userId]); // This ensures that as soon as 21 appears, we fetch.
+    }, [userId]);
 
     return (
         <FavoritesContext.Provider value={favoritesLogic}>

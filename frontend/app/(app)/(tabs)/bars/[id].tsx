@@ -110,7 +110,6 @@ export default function BarProfile() {
             style={{ paddingHorizontal: 16 }}
           >
             <FontAwesome
-              // Update names to star and star-o
               name={isFavorited(barIdNumeric) ? "star" : "star-o"}
               size={22}
               color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
