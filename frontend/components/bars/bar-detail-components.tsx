@@ -87,13 +87,13 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
   </View>
 );
 
-export const BarStats = ({ bar }: { bar: any }) => (
-  <View style={styles.statsRow}>
-    <StatItem number={bar.visits ?? 0} label="Visits" />
-    <StatItem number={bar.friends ?? 0} label="Friends" />
-    <StatItem number={bar.favorites ?? 0} label="Favorites" />
-  </View>
-);
+// export const BarStats = ({ bar }: { bar: any }) => (
+//   <View style={styles.statsRow}>
+//     <StatItem number={bar.visits ?? 0} label="Visits" />
+//     <StatItem number={bar.friends ?? 0} label="Friends" />
+//     <StatItem number={bar.favorites ?? 0} label="Favorites" />
+//   </View>
+// );
 
 const StatItem = ({ number, label }: { number: number | string, label: string }) => (
   <View style={styles.statBox}>

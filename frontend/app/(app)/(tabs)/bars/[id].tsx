@@ -11,7 +11,10 @@ import ErrorState from "@/components/ui/error-state";
 
 import {
   BarHeader,
-  BarStats, InfoSection, BottomCard, BarMapModal
+  // BarStats, 
+  InfoSection,
+  BottomCard,
+  BarMapModal
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -79,11 +82,11 @@ export default function BarProfile() {
       </View>
 
       {/* Stats Row */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
+      {/* <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
         <Skeleton width={80} height={40} />
         <Skeleton width={80} height={40} />
         <Skeleton width={80} height={40} />
-      </View>
+      </View> */}
 
       {/* Section Blocks */}
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
@@ -168,7 +171,7 @@ export default function BarProfile() {
       >
         <BarHeader bar={bar} assets={assets} openNow={openNow} />
 
-        <BarStats bar={bar} />
+        {/* <BarStats bar={bar} /> */}
 
         <TouchableOpacity
           style={styles.menuButton}
