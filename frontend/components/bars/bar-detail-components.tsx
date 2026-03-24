@@ -77,30 +77,23 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
         <Text style={styles.barName}>{bar.name}</Text>
         <Text style={styles.barDescription}>{bar.description}</Text>
         <View style={[
-          styles.statusPill, 
+          styles.statusPill,
           { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
         ]}>
           <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
         </View>
       </View>
-      <TouchableOpacity>
-        <FontAwesome 
-          name="star" 
-          size={24} 
-          color={bar.favorite ? Theme.dark.tertiary : Theme.search.inactiveInput} 
-        />
-      </TouchableOpacity>
     </View>
   </View>
 );
 
-export const BarStats = ({ bar }: { bar: any }) => (
-  <View style={styles.statsRow}>
-    <StatItem number={bar.visits ?? 0} label="Visits" />
-    <StatItem number={bar.friends ?? 0} label="Friends" />
-    <StatItem number={bar.favorites ?? 0} label="Favorites" />
-  </View>
-);
+// export const BarStats = ({ bar }: { bar: any }) => (
+//   <View style={styles.statsRow}>
+//     <StatItem number={bar.visits ?? 0} label="Visits" />
+//     <StatItem number={bar.friends ?? 0} label="Friends" />
+//     <StatItem number={bar.favorites ?? 0} label="Favorites" />
+//   </View>
+// );
 
 const StatItem = ({ number, label }: { number: number | string, label: string }) => (
   <View style={styles.statBox}>
@@ -133,104 +126,104 @@ export const BottomCard = ({ title, image, onPress }: { title: string, image: an
 );
 
 const styles = StyleSheet.create({
-  coverPhoto: { 
-    width: "100%", 
-    height: 180 
+  coverPhoto: {
+    width: "100%",
+    height: 180
   },
-  headerRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    padding: 16 
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16
   },
-  barImage: { 
-    width: 70, 
-    height: 70, 
-    borderRadius: 12, 
-    marginRight: 12 
+  barImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    marginRight: 12
   },
-  barName: { 
-    color: Theme.container.titleText, 
-    fontSize: 20, 
-    fontWeight: "700" 
+  barName: {
+    color: Theme.container.titleText,
+    fontSize: 20,
+    fontWeight: "700"
   },
-  barDescription: { 
-    color: Theme.container.titleText, 
-    fontSize: 14 
+  barDescription: {
+    color: Theme.container.titleText,
+    fontSize: 14
   },
-  statusPill: { 
-    paddingHorizontal: 8, 
-    paddingVertical: 2, 
-    borderRadius: 999, 
-    alignSelf: "flex-start", 
-    marginTop: 6 
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+    marginTop: 6
   },
-  statusPillText: { 
-    color: Theme.container.background, 
-    fontSize: 10, 
-    fontWeight: "800" 
+  statusPillText: {
+    color: Theme.container.background,
+    fontSize: 10,
+    fontWeight: "800"
   },
-  statsRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-around", 
-    paddingVertical: 10, 
-    marginHorizontal: 12 
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+    marginHorizontal: 12
   },
-  statBox: { 
-    alignItems: "center" 
+  statBox: {
+    alignItems: "center"
   },
-  statNumber: { 
-    color: Theme.container.titleText, 
-    fontSize: 18, 
-    fontWeight: "700" 
+  statNumber: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: "700"
   },
-  statLabel: { 
-    color: Theme.container.titleText, 
-    fontSize: 12 
+  statLabel: {
+    color: Theme.container.titleText,
+    fontSize: 12
   },
-  sectionContainer: { 
-    backgroundColor: Theme.container.background, 
-    borderRadius: 12, 
-    padding: 14, 
-    marginHorizontal: 12, 
-    marginVertical: 6 
+  sectionContainer: {
+    backgroundColor: Theme.container.background,
+    borderRadius: 12,
+    padding: 14,
+    marginHorizontal: 12,
+    marginVertical: 6
   },
-  sectionTitle: { 
-    color: Theme.container.titleText, 
-    fontSize: 18, 
-    fontWeight: "600", 
-    marginBottom: 6 
+  sectionTitle: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 6
   },
-  sectionItem: { 
-    color: Theme.container.titleText, 
-    fontSize: 14, 
-    marginVertical: 2 
+  sectionItem: {
+    color: Theme.container.titleText,
+    fontSize: 14,
+    marginVertical: 2
   },
-  bottomRow: { 
-    flexDirection: "row", 
-    justifyContent: "space-around", 
-    margin: 12 
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    margin: 12
   },
-  bottomCard: { 
-    flex: 1, 
-    borderRadius: 12, 
-    marginHorizontal: 4, 
-    padding: 8 
+  bottomCard: {
+    flex: 1,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    padding: 8
   },
-  bottomCardHeader: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "center", 
-    marginBottom: 4 
+  bottomCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4
   },
-  bottomCardTitle: { 
-    color: Theme.container.titleText, 
-    fontSize: 16, 
-    fontWeight: "600" 
+  bottomCardTitle: {
+    color: Theme.container.titleText,
+    fontSize: 16,
+    fontWeight: "600"
   },
-  bottomCardImage: { 
-    width: "100%", 
-    height: 100, 
-    borderRadius: 8 
+  bottomCardImage: {
+    width: "100%",
+    height: 100,
+    borderRadius: 8
   },
   modalOverlay: {
     flex: 1,
@@ -270,9 +263,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  openInMapsText: { 
-    color: 'white', 
-    fontWeight: '700' 
+  openInMapsText: {
+    color: 'white',
+    fontWeight: '700'
   },
   customPinContainer: {
     width: 40,
@@ -291,7 +284,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   loadingContainer: {
-    flex: 1, 
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Theme.dark.background,
