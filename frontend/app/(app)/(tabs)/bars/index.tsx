@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, RefreshControl } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBars } from "@/hooks/useBars";
@@ -11,8 +11,13 @@ import { Theme } from '@/constants/theme';
 import { BarCard, FilterTab } from "@/components/bars/bar-list-components";
 import { Skeleton, } from "@/components/ui/skeleton";
 import { useFavorites } from '@/context/FavoritesContext';
+import { useBarDetail } from "@/hooks/useBarDetail";
+import { fetchLocationById, MapLocation } from "@/services/locationService";
 
 export default function Bars() {
+
+  const { id } = useLocalSearchParams<{ id: string }>();
+
   const router = useRouter();
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -20,6 +25,22 @@ export default function Bars() {
   const [fav, setFav] = useState<Record<string, boolean>>({});
 
   const barIdsSig = useMemo(() => (bars?.length ? bars.map(b => String(b.id)).join(",") : ""), [bars]);
+
+  const { refetch } = useBars({ q: search || undefined });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (refetch) {
+        await refetch();
+      }
+    } catch (err) {
+      console.error("Refresh failed:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   useEffect(() => {
     if (!barIdsSig) return;
@@ -118,6 +139,14 @@ export default function Bars() {
           keyExtractor={item => String(item.id)}
           contentContainerStyle={styles.barList}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Theme.dark.primary}
+              colors={[Theme.dark.primary]}
+            />
+          }
           renderItem={({ item }) => (
             <BarCard
               item={item}

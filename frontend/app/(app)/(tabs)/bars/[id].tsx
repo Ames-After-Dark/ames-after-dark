@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -20,12 +20,48 @@ import { useFavorites } from '@/context/FavoritesContext';
 export default function BarProfile() {
   const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: string }>();
   const router = useRouter();
-  const { bar, loading } = useBarDetail(id);
+  // const { bar, loading } = useBarDetail(id);
 
   const [mapData, setMapData] = useState<MapLocation | null>(null);
   const [isMapVisible, setIsMapVisible] = useState(false);
 
   const toggleMapOverlay = () => setIsMapVisible(!isMapVisible);
+
+
+  const { bar, loading, refetch } = useBarDetail(id);
+  const [refreshing, setRefreshing] = useState(false);
+  // const [mapData, setMapData] = useState<MapLocation | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (refetch) refetch();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // 1. Refresh bar details (Open/Closed status, stats, etc.)
+      if (refetch) {
+        await refetch();
+      }
+
+      // 2. Refresh map data
+      if (id) {
+        const data = await fetchLocationById(id);
+        setMapData(data); // This is the function causing the error
+      }
+
+      console.log("Bar page refreshed");
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      setRefreshing(false);
+    }
+    // Add ALL external variables used inside the function to this array
+  }, [id, refetch, setMapData]);
 
   const ProfileSkeleton = () => (
     <View style={styles.container}>
@@ -118,7 +154,18 @@ export default function BarProfile() {
         )
       }} />
 
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Theme.dark.primary}
+            colors={[Theme.dark.primary]}
+          />
+        }
+      >
         <BarHeader bar={bar} assets={assets} openNow={openNow} />
 
         <BarStats bar={bar} />
