@@ -1,6 +1,7 @@
 
 const userService = require('../services/userService');
 const validationService = require('../services/validationService');
+const authService = require('../services/authService');
 
 // GET /api/users
 exports.getUsers = async (req, res) => {
@@ -530,5 +531,41 @@ exports.getUserProfilePhotoOptionsById = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// DELETE /api/users/auth/account
+// Delete a user from both our DB and Auth0. Protected endpoint (requires Auth0 JWT)
+exports.deleteAccount = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Authentication required' });
+
+    // Delete from Auth0 first to immediately revoke access, then remove from our DB.
+    // Both operations are treated idempotently where possible.
+    try {
+      await authService.deleteAuth0User(auth0Id);
+    } catch (err) {
+      // If Auth0 deletion fails, log and return 502 to indicate upstream failure
+      console.error('Auth0 deletion failed:', err);
+      return res.status(502).json({ message: 'Failed to delete user from Auth0' });
+    }
+
+    try {
+      await userService.deleteUserByAuthID(auth0Id);
+    } catch (err) {
+      // Prisma will throw if record not found; treat as success for idempotency
+      const isNotFound = err.code === 'P2025';
+      if (!isNotFound) {
+        console.error('DB deletion failed:', err);
+        return res.status(500).json({ message: 'Failed to delete user from database' });
+      }
+    }
+
+    // Successful deletion (or idempotent)
+    return res.status(204).send();
+  } catch (err) {
+    console.error('Unexpected error deleting account:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
