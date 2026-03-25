@@ -19,7 +19,7 @@ export const UserLocationService = {
 
 export const FriendLocationService = {
     getFriendsLocations: async (userId: number) => {
-        // Backend now serves this from userlocations and returns a flat array.
+
         return await apiFetch(`/userlocations/${userId}/friends/locations`);
     }
 };

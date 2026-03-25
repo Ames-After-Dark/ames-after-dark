@@ -19,12 +19,9 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
     const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const router = useRouter();
 
-    // Type Guards
     const isFriend = (loc: any): loc is FriendLocation => !!loc && 'username' in loc && !('friends' in loc);
     const isGroup = (loc: any): loc is GroupLocation => !!loc && 'friends' in loc;
-    // const isBar = (loc: any): loc is BarLocation => !!loc && 'name' in loc && !('username' in loc) && !('friends' in loc);
 
-    // Extraction logic
     const friendUpdatedAt = isFriend(location) ? location.user_locations?.updated_at : undefined;
     const friendStatus = friendUpdatedAt ? `Active ${formatLastActive(friendUpdatedAt)}` : 'Last active unknown';
     const friendSubtitle = isFriend(location)
@@ -70,12 +67,11 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
             style={[styles.bottomSheet, { transform: [{ translateY: slideAnim }] }]}
         >
             <View style={styles.sheetContent}>
-                {/* Drag Area stays at the very top */}
+
                 <View {...panResponder.panHandlers} style={styles.dragArea}>
                     <View style={styles.dragHandle} />
                 </View>
 
-                {/* Header Section */}
                 <View style={styles.sheetHeader}>
                     <Image
                         source={displayImage}
@@ -87,7 +83,6 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </View>
                 </View>
 
-                {/* Middle Content Section */}
                 {isGroup(location) ? (
                     <View style={styles.friendListContainer}>
                         <ScrollView
@@ -118,7 +113,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     <TouchableOpacity
                         style={[styles.button, { backgroundColor: Theme.dark.accent }]}
                         onPress={() => {
-                            router.push(`/account/${location.id}`);
+                            router.push(`/(app)/(tabs)/account/${location.id}`);
                             onClose();
                         }}
                     >
@@ -132,7 +127,6 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </TouchableOpacity>
                 )}
 
-                {/* Single Dismiss Button at the bottom */}
                 <TouchableOpacity style={[styles.button, styles.closeButton]} onPress={onClose}>
                     <Text style={styles.buttonText}>Dismiss</Text>
                 </TouchableOpacity>
