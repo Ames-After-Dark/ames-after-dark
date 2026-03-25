@@ -122,7 +122,9 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity style={styles.button} onPress={onViewDetails}>
-                        <Text style={styles.buttonText}>View Bar Details</Text>
+                        <Text style={styles.barDetailsButtonText}>
+                            View <Text style={styles.barNameText}>{location?.name ?? 'Bar'}</Text> Details
+                        </Text>
                     </TouchableOpacity>
                 )}
 
@@ -243,6 +245,14 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    barDetailsButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    barNameText: {
+        fontWeight: '800',
     },
     closeButton: {
         backgroundColor: '#222',
