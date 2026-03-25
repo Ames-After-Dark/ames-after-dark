@@ -13,7 +13,6 @@ interface BarHeaderProps {
   bar: Bar;
   assets: any;
   openNow: boolean;
-  statusText?: string;
 }
 
 interface BarMapModalProps {
@@ -90,7 +89,7 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps,
   </Modal>
 );
 
-export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) => (
+export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
   <View>
     <Image source={assets.cover} style={styles.coverPhoto} resizeMode="cover" />
     <View style={styles.headerRow}>
@@ -100,9 +99,13 @@ export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) 
         <Text style={styles.barDescription}>{bar.description}</Text>
         <View style={[
           styles.statusPill,
+<<<<<<< HEAD
           { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
+=======
+          { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
+>>>>>>> parent of fe14904 (Merge pull request #190 from Ames-After-Dark/bar-status)
         ]}>
-          <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
+          <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
         </View>
       </View>
     </View>
