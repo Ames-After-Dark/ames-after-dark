@@ -13,13 +13,13 @@ const checkJwt = auth({
 const optionalJwt = (req, res, next) => {
     // Check if Authorization header exists
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         // No token provided, set empty auth and continue
         req.auth = {};
         return next();
     }
-    
+
     // Token provided - validate it with checkJwt
     checkJwt(req, res, (err) => {
         if (err) {
