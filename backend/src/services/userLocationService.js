@@ -78,3 +78,20 @@ exports.getFriendsLocations = async (userId) => {
 
   return allFriends.filter(friend => friend.user_locations !== null);
 };
+
+exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
+  if (shouldEnable) {
+    return await prisma.location_permissions.upsert({
+      where: {
+        owner_id_viewer_id: { owner_id: ownerId, viewer_id: viewerId }
+      },
+      update: {}, // No fields to update, just ensure it exists
+      create: { owner_id: ownerId, viewer_id: viewerId }
+    });
+  } else {
+    // deleteMany is safer than delete because it won't throw 404 if already deleted
+    return await prisma.location_permissions.deleteMany({
+      where: { owner_id: ownerId, viewer_id: viewerId }
+    });
+  }
+};

@@ -125,6 +125,9 @@ exports.updateUserLimited = async (id, updateData) => {
   if (updateData.username !== undefined) allowedFields.username = updateData.username;
   if (updateData.email !== undefined) allowedFields.email = updateData.email;
   if (updateData.bio !== undefined) allowedFields.bio = updateData.bio;
+  if (updateData.favorite_drink_id !== undefined) allowedFields.favorite_drink_id = updateData.favorite_drink_id;
+  if (updateData.profile_photo_id !== undefined) allowedFields.profile_photo_id = updateData.profile_photo_id;
+  if (updateData.favorite_profile_location_id !== undefined) allowedFields.favorite_profile_location_id = updateData.favorite_profile_location_id;
 
   return prisma.users.update({
     where: { id: Number(id) },
