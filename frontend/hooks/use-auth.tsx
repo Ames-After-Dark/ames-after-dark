@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await clearSession()
+      await clearSession({ federated: false, useEphemeralSession: true })
       setIsAuthenticated(false)
       setUserStatus(null)
       setUsername(null)
