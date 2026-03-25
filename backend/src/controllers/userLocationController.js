@@ -24,3 +24,15 @@ exports.updateUserLocation = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.getFriendsLocations = async (req, res) => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+  try {
+    const locations = await userLocationService.getFriendsLocations(userId);
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
