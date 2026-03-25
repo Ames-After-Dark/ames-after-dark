@@ -45,12 +45,15 @@ exports.updateUserLimited = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
-  // Only allow username, email, and bio
-  const { username, email, bio } = req.body;
+  // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
+  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id} = req.body;
   const updateData = {};
   if (username !== undefined) updateData.username = username;
   if (email !== undefined) updateData.email = email;
   if (bio !== undefined) updateData.bio = bio;
+  if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
+  if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
+  if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ message: 'No valid fields to update' });
