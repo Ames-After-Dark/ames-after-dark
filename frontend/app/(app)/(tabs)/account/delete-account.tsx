@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { router, Stack } from 'expo-router';
+import { useAuth } from '@/hooks/use-auth';
+import { deleteAccount } from '@/services/userService';
 
 export default function DeleteAccountScreen() {
+  const { signOut, getAccessToken } = useAuth()
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
 
-  const handleDelete = () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter your email to confirm deletion.');
+  const handleDelete = async () => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      Alert.alert('Error', 'Could not get access token.');
       return;
     }
 
-    Alert.alert('Account Deleted', 'Your account has been successfully deleted.', [
-      { text: 'OK', onPress: () => router.replace('/(app)/(tabs)/account') },
-    ]);
+    try {
+      await deleteAccount(accessToken);
+      // Sign out via Auth0 and navigate away
+      await signOut();
+      router.replace('/');
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
+    }
   };
 
   return (
@@ -31,23 +41,6 @@ export default function DeleteAccountScreen() {
       />
 
       <Text style={styles.title}>Confirm Account Deletion</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={[styles.input, styles.reasonInput]}
-        placeholder="Reason (optional)"
-        placeholderTextColor="#666"
-        value={reason}
-        onChangeText={setReason}
-        multiline
-      />
 
       <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
         <Text style={styles.deleteButtonText}>Delete Account</Text>
