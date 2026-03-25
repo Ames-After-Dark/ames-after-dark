@@ -104,7 +104,7 @@ export default function BarProfile() {
 
     router.push({
       pathname: "/(app)/(tabs)/map",
-      params: { selectedId: id }
+      params: { selectedId: id, focusToken: String(Date.now()) }
     });
   };
 
