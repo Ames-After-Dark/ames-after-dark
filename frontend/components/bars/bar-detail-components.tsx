@@ -79,8 +79,8 @@ export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) 
         <Text style={styles.barDescription}>{bar.description}</Text>
         <View style={[
           styles.statusPill,
-          // { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
-          { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
+          { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
+          // { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
         ]}>
           <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
         </View>
