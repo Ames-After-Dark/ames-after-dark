@@ -328,3 +328,18 @@ export async function updateBioByAuth(accessToken: string, bio: string): Promise
     throw error;
   }
 }
+
+export async function deleteAccount(accessToken: string): Promise<{ message: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to delete account:', error);
+    throw error;
+  }
+}

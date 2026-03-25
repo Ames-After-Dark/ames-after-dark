@@ -172,42 +172,6 @@ exports.blockFriend = async (userId, friendId) => {
   });
 };
 
-exports.getFriendsLocations = async (userId) => {
-  return prisma.users.findUnique({
-    where: { id: userId },
-    select: {
-      // 1. Get friends where current user is user_id_1
-      friendships_friendships_user_id_1Tousers: {
-        where: { friendship_status_id: 2 }, // Assuming 2 = 'Accepted'
-        select: {
-          users_friendships_user_id_2Tousers: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              user_locations: true, // This contains lat/long
-            },
-          },
-        },
-      },
-      // 2. Get friends where current user is user_id_2
-      friendships_friendships_user_id_2Tousers: {
-        where: { friendship_status_id: 2 },
-        select: {
-          users_friendships_user_id_1Tousers: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              user_locations: true, // This contains lat/long
-            },
-          },
-        },
-      },
-    },
-  });
-};
-
 // Simple recommendation: Return first N users who aren't friends (for users with no/few friends)
 const getSimpleRecommendations = async (userId, limit, excludedIds) => {
   const users = await prisma.users.findMany({

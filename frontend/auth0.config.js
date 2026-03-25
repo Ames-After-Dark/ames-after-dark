@@ -1,5 +1,5 @@
 export const config = {
-  clientId: "fQkKYY3zDeKaQZYEQdPt2IrCRgvA5eKN",
-  domain: "dev-lz0c3j2voxj6hy6v.us.auth0.com",
-  audience: "ames-after-dark-api",
+  domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
+  clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
+  audience: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE,
 };

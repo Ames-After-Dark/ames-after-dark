@@ -15,6 +15,7 @@ import {
   InputAccessoryView,
   Modal,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useEffect, useRef } from "react"
 import DateTimePicker from '@react-native-community/datetimepicker'
 
@@ -29,6 +30,7 @@ export default function RegisterScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const inputAccessoryViewID = "phoneInputDone"
+  const phoneInputRef = useRef<TextInput | null>(null)
   const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Validate username format
@@ -217,11 +219,11 @@ export default function RegisterScreen() {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.content}>
           <View style={{ width: '100%' }}>
-            <ThemedText style={styles.title}>Complete Your Profile</ThemedText>
+            <ThemedText type="title" style={styles.title}>Complete Your Profile</ThemedText>
             <ThemedText style={styles.subtitle}>
               We need a few more details to get you started
             </ThemedText>
@@ -276,6 +278,7 @@ export default function RegisterScreen() {
               editable={!isLoading}
               returnKeyType="done"
               inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+              ref={phoneInputRef}
             />
           </View>
 
@@ -366,20 +369,23 @@ export default function RegisterScreen() {
             )}
           </TouchableOpacity>
         </View>
-        {Platform.OS === 'ios' && (
-          <InputAccessoryView nativeID={inputAccessoryViewID}>
-            <View style={styles.accessoryView}>
-              <TouchableOpacity
-                style={styles.doneButton}
-                onPress={Keyboard.dismiss}
-              >
-                <ThemedText style={styles.doneButtonText}>Done</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </InputAccessoryView>
-        )}
-      </View>
-    </TouchableWithoutFeedback>
+      </TouchableWithoutFeedback>
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={inputAccessoryViewID}>
+          <View style={styles.accessoryView}>
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => {
+                Keyboard.dismiss()
+                phoneInputRef.current?.blur()
+              }}
+            >
+              <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
+    </SafeAreaView>
   )
 }
 

@@ -125,6 +125,9 @@ exports.updateUserLimited = async (id, updateData) => {
   if (updateData.username !== undefined) allowedFields.username = updateData.username;
   if (updateData.email !== undefined) allowedFields.email = updateData.email;
   if (updateData.bio !== undefined) allowedFields.bio = updateData.bio;
+  if (updateData.favorite_drink_id !== undefined) allowedFields.favorite_drink_id = updateData.favorite_drink_id;
+  if (updateData.profile_photo_id !== undefined) allowedFields.profile_photo_id = updateData.profile_photo_id;
+  if (updateData.favorite_profile_location_id !== undefined) allowedFields.favorite_profile_location_id = updateData.favorite_profile_location_id;
 
   return prisma.users.update({
     where: { id: Number(id) },
@@ -133,6 +136,12 @@ exports.updateUserLimited = async (id, updateData) => {
       roles: true,
       user_favorites: true
     }
+  });
+};
+
+exports.deleteUserByAuthID = async (uid) => {
+  return prisma.users.delete({
+    where: { uid: uid }
   });
 };
 
@@ -196,7 +205,7 @@ exports.getUserByAuth0Id = async (auth0Id) => {
  */
 exports.createUserWithAuth0 = async (userData) => {
   const { auth0Id, phoneNumber, birthday, email, name, username } = userData;
-  
+
   return prisma.users.create({
     data: {
       uid: auth0Id,
@@ -240,49 +249,49 @@ exports.getUsernameByAuth0Id = async (auth0Id) => {
 };
 
 exports.getUserProfileFavoriteDrinkOptions = async () => {
-    return await prisma.drinks.findMany({
-        select: {
-            id: true,
-            name: true,
-            image_url: true,
-        },
-        orderBy: {
-            name: 'asc',
-        },
-    });
+  return await prisma.drinks.findMany({
+    select: {
+      id: true,
+      name: true,
+      image_url: true,
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
 };
 
 exports.getUserProfileFavoriteDrinkOptionsById = async (id) => {
-    return await prisma.drinks.findUnique({
-        where: { id: Number(id) },
-        select: {
-            id: true,
-            name: true,
-            image_url: true,
-        }
-    });
+  return await prisma.drinks.findUnique({
+    where: { id: Number(id) },
+    select: {
+      id: true,
+      name: true,
+      image_url: true,
+    }
+  });
 };
 
 exports.getUserProfilePhotoOptions = async () => {
-    return await prisma.user_profile_photos.findMany({
-        select: {
-            id: true,
-            name: true,
-            image_url: true,
-        },
-        orderBy: {
-            name: 'asc',
-        },
-    });
+  return await prisma.user_profile_photos.findMany({
+    select: {
+      id: true,
+      name: true,
+      image_url: true,
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
 };
 
 exports.getUserProfilePhotoOptionsById = async (id) => {
-    return await prisma.user_profile_photos.findUnique({
-        where: { id: Number(id) },
-        select: {
-            id: true,
-            name: true,
-            image_url: true,
-        }
-    });
+  return await prisma.user_profile_photos.findUnique({
+    where: { id: Number(id) },
+    select: {
+      id: true,
+      name: true,
+      image_url: true,
+    }
+  });
 };

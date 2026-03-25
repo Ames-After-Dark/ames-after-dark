@@ -1,6 +1,7 @@
 
 const userService = require('../services/userService');
 const validationService = require('../services/validationService');
+const authService = require('../services/authService');
 
 // GET /api/users
 exports.getUsers = async (req, res) => {
@@ -44,12 +45,15 @@ exports.updateUserLimited = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
-  // Only allow username, email, and bio
-  const { username, email, bio } = req.body;
+  // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
+  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id} = req.body;
   const updateData = {};
   if (username !== undefined) updateData.username = username;
   if (email !== undefined) updateData.email = email;
   if (bio !== undefined) updateData.bio = bio;
+  if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
+  if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
+  if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ message: 'No valid fields to update' });
@@ -530,5 +534,41 @@ exports.getUserProfilePhotoOptionsById = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// DELETE /api/users/auth/account
+// Delete a user from both our DB and Auth0. Protected endpoint (requires Auth0 JWT)
+exports.deleteAccount = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Authentication required' });
+
+    // Delete from Auth0 first to immediately revoke access, then remove from our DB.
+    // Both operations are treated idempotently where possible.
+    try {
+      await authService.deleteAuth0User(auth0Id);
+    } catch (err) {
+      // If Auth0 deletion fails, log and return 502 to indicate upstream failure
+      console.error('Auth0 deletion failed:', err);
+      return res.status(502).json({ message: 'Failed to delete user from Auth0' });
+    }
+
+    try {
+      await userService.deleteUserByAuthID(auth0Id);
+    } catch (err) {
+      // Prisma will throw if record not found; treat as success for idempotency
+      const isNotFound = err.code === 'P2025';
+      if (!isNotFound) {
+        console.error('DB deletion failed:', err);
+        return res.status(500).json({ message: 'Failed to delete user from database' });
+      }
+    }
+
+    // Successful deletion (or idempotent)
+    return res.status(204).send();
+  } catch (err) {
+    console.error('Unexpected error deleting account:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
