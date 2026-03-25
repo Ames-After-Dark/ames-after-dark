@@ -26,7 +26,12 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
 
     // Extraction logic
     const friendUpdatedAt = isFriend(location) ? location.user_locations?.updated_at : undefined;
-    const friendSubtitle = friendUpdatedAt ? `Active ${formatLastActive(friendUpdatedAt)}` : 'Last active unknown';
+    const friendStatus = friendUpdatedAt ? `Active ${formatLastActive(friendUpdatedAt)}` : 'Last active unknown';
+    const friendSubtitle = isFriend(location)
+        ? location.atBarName
+            ? `${friendStatus} at ${location.atBarName}`
+            : friendStatus
+        : 'Last active unknown';
     const title = isFriend(location) ? location.name : isGroup(location) ? `${location.friends.length} Friends` : location?.name;
     const subtitle = isFriend(location) ? friendSubtitle : isGroup(location) ? `at ${location.bar.name}` : location?.hours;
     const displayImage = isFriend(location)
@@ -94,7 +99,7 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                                 <TouchableOpacity
                                     key={f.id}
                                     style={styles.friendListRow}
-                                    onPress={() => onSelectLocation(f)}
+                                    onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
                                 >
                                     <Image
                                         source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}

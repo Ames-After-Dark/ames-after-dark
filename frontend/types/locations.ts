@@ -13,6 +13,7 @@ export interface FriendLocation {
     username: string;
     name: string;
     profile_pic_url?: string;
+    atBarName?: string;
     user_locations?: {
         latitude: number | string;
         longitude: number | string;

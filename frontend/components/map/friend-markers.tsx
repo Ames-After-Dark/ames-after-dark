@@ -15,6 +15,29 @@ interface FriendMarkersProps {
 // TODO - define the radius for geofencing; no clue what it should be
 export const GEOFENCE_RADIUS_METERS = 50;
 
+const STACKED_BAR_NAMES = new Set(['sips', "paddy's irish pub"]);
+const STACKED_BAR_GROUP_ID = 'stacked-sips-paddys';
+
+const getGroupMeta = (bar: BarLocation) => {
+    const normalizedName = bar.name.trim().toLowerCase();
+
+    if (STACKED_BAR_NAMES.has(normalizedName)) {
+        return {
+            groupId: STACKED_BAR_GROUP_ID,
+            groupBar: {
+                ...bar,
+                id: STACKED_BAR_GROUP_ID,
+                name: "Sips + Paddy's Irish Pub",
+            },
+        };
+    }
+
+    return {
+        groupId: String(bar.id),
+        groupBar: bar,
+    };
+};
+
 export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
     const barGroups = friends.reduce((acc, friend) => {
 
@@ -38,11 +61,13 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
         );
 
         if (atBar) {
-            const barId = String(atBar.id);
-            if (!acc[barId]) {
-                acc[barId] = { bar: atBar, friends: [] };
+            const { groupId, groupBar } = getGroupMeta(atBar);
+
+            if (!acc[groupId]) {
+                acc[groupId] = { bar: groupBar, friends: [] };
             }
-            acc[barId].friends.push(friend);
+
+            acc[groupId].friends.push(friend);
         }
         return acc;
     }, {} as Record<string, GroupLocation>);
@@ -61,7 +86,11 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
                         }}
                         onPress={(e: MarkerPressEvent) => {
                             e.stopPropagation();
-                            onSelectFriend(group.friends.length === 1 ? group.friends[0] : group);
+                            onSelectFriend(
+                                group.friends.length === 1
+                                    ? { ...group.friends[0], atBarName: group.bar.name }
+                                    : group
+                            );
                         }}
                         zIndex={100}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
