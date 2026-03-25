@@ -46,15 +46,14 @@ export default function BarProfile() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // 1. Refresh bar details (Open/Closed status, stats, etc.)
+
       if (refetch) {
         await refetch();
       }
 
-      // 2. Refresh map data
       if (id) {
         const data = await fetchLocationById(id);
-        setMapData(data); // This is the function causing the error
+        setMapData(data);
       }
 
       console.log("Bar page refreshed");
@@ -63,7 +62,7 @@ export default function BarProfile() {
     } finally {
       setRefreshing(false);
     }
-    // Add ALL external variables used inside the function to this array
+
   }, [id, refetch, setMapData]);
 
   const ProfileSkeleton = () => (
@@ -80,13 +79,6 @@ export default function BarProfile() {
           <Skeleton width={60} height={20} borderRadius={20} />
         </View>
       </View>
-
-      {/* Stats Row */}
-      {/* <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-      </View> */}
 
       {/* Section Blocks */}
       <View style={{ paddingHorizontal: 16, gap: 12 }}>

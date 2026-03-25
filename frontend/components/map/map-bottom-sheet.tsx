@@ -88,7 +88,6 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                         <ScrollView
                             showsVerticalScrollIndicator={false}
                             style={{ maxHeight: 200 }}
-                            // This ensures the ScrollView doesn't fight with the PanResponder
                             nestedScrollEnabled={true}
                         >
                             {location.friends.map((f) => (
@@ -147,7 +146,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingHorizontal: 20,
-        paddingBottom: 34, // Extra padding for the iOS home indicator
+        paddingBottom: 34,
         paddingTop: 8,
         elevation: 20,
         shadowColor: '#000',

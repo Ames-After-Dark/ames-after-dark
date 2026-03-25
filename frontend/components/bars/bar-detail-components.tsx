@@ -101,27 +101,11 @@ export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) 
         <View style={[
           styles.statusPill,
           { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
-          // { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
         ]}>
           <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
         </View>
       </View>
     </View>
-  </View>
-);
-
-// export const BarStats = ({ bar }: { bar: any }) => (
-//   <View style={styles.statsRow}>
-//     <StatItem number={bar.visits ?? 0} label="Visits" />
-//     <StatItem number={bar.friends ?? 0} label="Friends" />
-//     <StatItem number={bar.favorites ?? 0} label="Favorites" />
-//   </View>
-// );
-
-const StatItem = ({ number, label }: { number: number | string, label: string }) => (
-  <View style={styles.statBox}>
-    <Text style={styles.statNumber}>{number}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
 
