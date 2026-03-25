@@ -126,6 +126,15 @@ export default function BarProfile() {
     }
   };
 
+  const openLocationModal = () => {
+    if (!mapData || !Number.isFinite(mapData.latitude) || !Number.isFinite(mapData.longitude)) {
+      Alert.alert("Location unavailable", "This location does not have map coordinates yet.");
+      return;
+    }
+
+    setIsMapVisible(true);
+  };
+
   useEffect(() => {
     if (id) fetchLocationById(id).then(setMapData);
   }, [id]);
@@ -215,7 +224,7 @@ export default function BarProfile() {
           <BottomCard
             title="Location"
             image={assets.map}
-            onPress={() => setIsMapVisible(true)}
+            onPress={openLocationModal}
           />
           <BottomCard
             title="Gallery"

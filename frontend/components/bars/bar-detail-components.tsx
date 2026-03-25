@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Dimensions, } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/utils/bar-assets';
@@ -26,54 +26,67 @@ interface BarMapModalProps {
 }
 
 export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <TouchableOpacity style={styles.closeIconBtn} onPress={onClose}>
-          <FontAwesome name="close" size={16} color="white" />
-        </TouchableOpacity>
-
-        {mapData ? (
-          <>
-            <MapView
-              style={styles.overlayMap}
-              showsPointsOfInterest={false}
-              initialRegion={{
-                latitude: mapData.latitude,
-                longitude: mapData.longitude,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              }}
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <TouchableWithoutFeedback onPress={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={() => { }}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeIconBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Marker coordinate={{ latitude: mapData.latitude, longitude: mapData.longitude }}>
-                <View style={styles.customPinContainer}>
-                  <Image source={mapData.logo} style={styles.customPinImage} />
+              <FontAwesome name="close" size={16} color="white" />
+            </TouchableOpacity>
+
+            {mapData && Number.isFinite(mapData.latitude) && Number.isFinite(mapData.longitude) ? (
+              <>
+                <MapView
+                  style={styles.overlayMap}
+                  showsPointsOfInterest={false}
+                  initialRegion={{
+                    latitude: mapData.latitude,
+                    longitude: mapData.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                >
+                  <Marker coordinate={{ latitude: mapData.latitude, longitude: mapData.longitude }}>
+                    <View style={styles.customPinContainer}>
+                      <Image source={mapData.logo} style={styles.customPinImage} />
+                    </View>
+                  </Marker>
+                </MapView>
+
+                <View style={styles.overlayFooter}>
+                  <View style={styles.primaryActionsRow}>
+                    <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
+                      <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
+                      <Text style={styles.openInMapsText}>In-App Map</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.openInAppleMapsBtn} onPress={onOpenInAppleMaps}>
+                      <FontAwesome name="location-arrow" size={18} color="white" style={{ marginRight: 8 }} />
+                      <Text style={styles.openInMapsText}>Apple Maps</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </Marker>
-            </MapView>
-
-            <View style={styles.overlayFooter}>
-              <View style={styles.primaryActionsRow}>
-                <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
-                  <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
-                  <Text style={styles.openInMapsText}>In-App Map</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.openInAppleMapsBtn} onPress={onOpenInAppleMaps}>
-                  <FontAwesome name="location-arrow" size={18} color="white" style={{ marginRight: 8 }} />
-                  <Text style={styles.openInMapsText}>Apple Maps</Text>
-                </TouchableOpacity>
+              </>
+            ) : mapData ? (
+              <View style={styles.loadingContainer}>
+                <FontAwesome name="map-marker" size={28} color={Theme.dark.error} />
+                <Text style={styles.loadingText}>Location unavailable for {barName}.</Text>
               </View>
-            </View>
-          </>
-        ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Theme.dark.primary} />
-            <Text style={styles.loadingText}>Locating {barName}...</Text>
+            ) : (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Theme.dark.primary} />
+                <Text style={styles.loadingText}>Locating {barName}...</Text>
+              </View>
+            )}
           </View>
-        )}
+        </TouchableWithoutFeedback>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   </Modal>
 );
 
@@ -250,11 +263,11 @@ const styles = StyleSheet.create({
   },
   closeIconBtn: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    top: 10,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
