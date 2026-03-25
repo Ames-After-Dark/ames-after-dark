@@ -8,6 +8,7 @@ export default function DeleteAccountScreen() {
   const { signOut, getAccessToken } = useAuth()
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {
     const accessToken = await getAccessToken();
@@ -16,15 +17,34 @@ export default function DeleteAccountScreen() {
       return;
     }
 
-    try {
-      await deleteAccount(accessToken);
-      // Sign out via Auth0 and navigate away
-      await signOut();
-      router.replace('/');
-    } catch (err) {
-      console.error('Failed to delete account:', err);
-      Alert.alert('Error', 'Failed to delete account. Please try again.');
-    }
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and sign you out.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (isSubmitting) return;
+            setIsSubmitting(true);
+            try {
+              // 1. Clear Auth0 session first. If user cancels the Auth0 popup, this should reject.
+              await signOut(true);
+
+              // 2. With the previously fetched accessToken, delete the account on the backend.
+              await deleteAccount(accessToken);
+
+              // 3. Navigate away; signOut already cleared local state.
+              router.replace('/');
+            } catch (err) {
+              console.error('Failed to sign out or delete account:', err);
+              Alert.alert('Error', 'Could not complete account deletion. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -42,8 +62,8 @@ export default function DeleteAccountScreen() {
 
       <Text style={styles.title}>Confirm Account Deletion</Text>
 
-      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-        <Text style={styles.deleteButtonText}>Delete Account</Text>
+      <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={isSubmitting}>
+        <Text style={styles.deleteButtonText}>{isSubmitting ? 'Deleting…' : 'Delete Account'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
