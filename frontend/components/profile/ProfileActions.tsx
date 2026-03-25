@@ -7,7 +7,7 @@ type Status = 'SELF' | 'FRIEND' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'STRANGE
 interface ProfileActionsProps {
     status: Status;
     loading: boolean;
-    userName: string;
+    userName?: string | null;
     onAction: (action: string) => void;
 }
 
@@ -17,8 +17,10 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
     const renderPrimaryButton = () => {
         if (loading) return <ActivityIndicator color="white" />;
 
+        const firstName = (userName ?? '').trim().split(' ')[0] || 'Friend';
+
         switch (status) {
-            case 'FRIEND': return <Text style={styles.primaryText}>Poke {userName.split(' ')[0]}</Text>;
+            case 'FRIEND': return <Text style={styles.primaryText}>Poke {firstName}</Text>;
             case 'STRANGER': return <Text style={styles.primaryText}>Add Friend</Text>;
             case 'PENDING_SENT': return <Text style={styles.primaryText}>Request Sent</Text>;
             case 'PENDING_RECEIVED': return <Text style={styles.primaryText}>Respond to Request</Text>;

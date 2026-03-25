@@ -317,11 +317,11 @@ export default function FriendProfileScreen() {
                     </View>
                 )}
 
-                {!isMe && (
+        {!isMe && (
                     <ProfileActions
                         status={status as any}
                         loading={actionLoading}
-                        userName={user.name}
+            userName={user?.name ?? undefined}
                         onAction={handleAction}
                     />
                 )}
