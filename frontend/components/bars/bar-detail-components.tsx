@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, } from 'react-native';
+import { View, Text, Image, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Dimensions, } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/utils/bar-assets';
@@ -20,52 +20,73 @@ interface BarMapModalProps {
   visible: boolean;
   onClose: () => void;
   onOpenInMaps: () => void;
+  onOpenInAppleMaps: () => void;
   mapData: any;
   barName?: string;
 }
 
-export const BarMapModal = ({ visible, onClose, onOpenInMaps, mapData, barName }: BarMapModalProps) => (
-  <Modal visible={visible} transparent animationType="fade">
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        {mapData ? (
-          <>
-            <MapView
-              style={styles.overlayMap}
-              showsPointsOfInterest={false}
-              initialRegion={{
-                latitude: mapData.latitude,
-                longitude: mapData.longitude,
-                latitudeDelta: 0.005,
-                longitudeDelta: 0.005,
-              }}
+export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <TouchableWithoutFeedback onPress={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={() => { }}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeIconBtn}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Marker coordinate={{ latitude: mapData.latitude, longitude: mapData.longitude }}>
-                <View style={styles.customPinContainer}>
-                  <Image source={mapData.logo} style={styles.customPinImage} />
+              <FontAwesome name="close" size={16} color="white" />
+            </TouchableOpacity>
+
+            {mapData && Number.isFinite(mapData.latitude) && Number.isFinite(mapData.longitude) ? (
+              <>
+                <MapView
+                  style={styles.overlayMap}
+                  showsPointsOfInterest={false}
+                  initialRegion={{
+                    latitude: mapData.latitude,
+                    longitude: mapData.longitude,
+                    latitudeDelta: 0.005,
+                    longitudeDelta: 0.005,
+                  }}
+                >
+                  <Marker coordinate={{ latitude: mapData.latitude, longitude: mapData.longitude }}>
+                    <View style={styles.customPinContainer}>
+                      <Image source={mapData.logo} style={styles.customPinImage} />
+                    </View>
+                  </Marker>
+                </MapView>
+
+                <View style={styles.overlayFooter}>
+                  <View style={styles.primaryActionsRow}>
+                    <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
+                      <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
+                      <Text style={styles.openInMapsText}>In-App Map</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.openInAppleMapsBtn} onPress={onOpenInAppleMaps}>
+                      <FontAwesome name="location-arrow" size={18} color="white" style={{ marginRight: 8 }} />
+                      <Text style={styles.openInMapsText}>Apple Maps</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </Marker>
-            </MapView>
-
-            <View style={styles.overlayFooter}>
-              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                <Text style={styles.closeBtnText}>Close</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
-                <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
-                <Text style={styles.openInMapsText}>Open</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Theme.dark.primary} />
-            <Text style={styles.loadingText}>Locating {barName}...</Text>
+              </>
+            ) : mapData ? (
+              <View style={styles.loadingContainer}>
+                <FontAwesome name="map-marker" size={28} color={Theme.dark.error} />
+                <Text style={styles.loadingText}>Location unavailable for {barName}.</Text>
+              </View>
+            ) : (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Theme.dark.primary} />
+                <Text style={styles.loadingText}>Locating {barName}...</Text>
+              </View>
+            )}
           </View>
-        )}
+        </TouchableWithoutFeedback>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   </Modal>
 );
 
@@ -80,27 +101,11 @@ export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) 
         <View style={[
           styles.statusPill,
           { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
-          // { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
         ]}>
           <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
         </View>
       </View>
     </View>
-  </View>
-);
-
-// export const BarStats = ({ bar }: { bar: any }) => (
-//   <View style={styles.statsRow}>
-//     <StatItem number={bar.visits ?? 0} label="Visits" />
-//     <StatItem number={bar.friends ?? 0} label="Friends" />
-//     <StatItem number={bar.favorites ?? 0} label="Favorites" />
-//   </View>
-// );
-
-const StatItem = ({ number, label }: { number: number | string, label: string }) => (
-  <View style={styles.statBox}>
-    <Text style={styles.statNumber}>{number}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
 
@@ -240,28 +245,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
+  closeIconBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 5,
+  },
   overlayMap: {
     flex: 1,
   },
   overlayFooter: {
-    flexDirection: 'row',
     padding: 15,
-    justifyContent: 'space-between',
     backgroundColor: Theme.container.background,
   },
-  closeBtn: {
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Theme.dark.error,
+  primaryActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  closeBtnText: { color: 'white' },
   openInMapsBtn: {
     backgroundColor: Theme.dark.primary,
     paddingVertical: 10,
-    paddingHorizontal: (width / 2) - 100,
+    paddingHorizontal: 12,
     borderRadius: 8,
     flexDirection: 'row',
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openInAppleMapsBtn: {
+    backgroundColor: Theme.dark.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },

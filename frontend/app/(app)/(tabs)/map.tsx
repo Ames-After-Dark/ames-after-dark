@@ -35,7 +35,7 @@ export default function MapScreen() {
     const [currentDelta, setCurrentDelta] = useState(0.1);
     const [hasPermission, setHasPermission] = useState(false);
 
-    const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
+    const { selectedId, focusToken } = useLocalSearchParams<{ selectedId?: string; focusToken?: string }>();
     const [mapReady, setMapReady] = useState(false);
     const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
@@ -107,19 +107,24 @@ export default function MapScreen() {
 
     // handle navigation to a specific bar from deep link/params
     useEffect(() => {
-        if (!isLoading && locations.length > 0 && selectedId) {
-            const target = locations.find(loc => String(loc.id) === selectedId);
-            if (target) {
-                setSelectedLocation(target);
-                mapRef.current?.animateToRegion({
-                    latitude: target.latitude - 0.001,
-                    longitude: target.longitude,
-                    latitudeDelta: 0.005,
-                    longitudeDelta: 0.005,
-                }, 1000);
-            }
-        }
-    }, [selectedId, isLoading, locations]);
+        if (!selectedId || isLoading || locations.length === 0) return;
+
+        const target = locations.find(loc => String(loc.id) === selectedId);
+        if (!target) return;
+
+        // Always select target first so the bottom sheet opens immediately.
+        setSelectedLocation(target);
+
+        // Camera animations can fail if fired before the map is ready.
+        if (!mapReady) return;
+
+        mapRef.current?.animateToRegion({
+            latitude: target.latitude - 0.001,
+            longitude: target.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+        }, 1000);
+    }, [selectedId, focusToken, isLoading, locations, mapReady]);
 
     if (isLoading) return <MapSkeleton />;
 

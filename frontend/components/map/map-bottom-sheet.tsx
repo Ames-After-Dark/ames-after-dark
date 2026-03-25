@@ -88,7 +88,6 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                         <ScrollView
                             showsVerticalScrollIndicator={false}
                             style={{ maxHeight: 200 }}
-                            // This ensures the ScrollView doesn't fight with the PanResponder
                             nestedScrollEnabled={true}
                         >
                             {location.friends.map((f) => (
@@ -122,7 +121,9 @@ export const MapBottomSheet = ({ location, onClose, onViewDetails, onSelectLocat
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity style={styles.button} onPress={onViewDetails}>
-                        <Text style={styles.buttonText}>View Bar Details</Text>
+                        <Text style={styles.barDetailsButtonText}>
+                            View <Text style={styles.barNameText}>{location?.name ?? 'Bar'}</Text> Details
+                        </Text>
                     </TouchableOpacity>
                 )}
 
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingHorizontal: 20,
-        paddingBottom: 34, // Extra padding for the iOS home indicator
+        paddingBottom: 34,
         paddingTop: 8,
         elevation: 20,
         shadowColor: '#000',
@@ -243,6 +244,14 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    barDetailsButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    barNameText: {
+        fontWeight: '800',
     },
     closeButton: {
         backgroundColor: '#222',

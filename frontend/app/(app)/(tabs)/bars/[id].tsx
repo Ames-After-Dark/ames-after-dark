@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -46,15 +46,14 @@ export default function BarProfile() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // 1. Refresh bar details (Open/Closed status, stats, etc.)
+
       if (refetch) {
         await refetch();
       }
 
-      // 2. Refresh map data
       if (id) {
         const data = await fetchLocationById(id);
-        setMapData(data); // This is the function causing the error
+        setMapData(data);
       }
 
       console.log("Bar page refreshed");
@@ -63,7 +62,7 @@ export default function BarProfile() {
     } finally {
       setRefreshing(false);
     }
-    // Add ALL external variables used inside the function to this array
+
   }, [id, refetch, setMapData]);
 
   const ProfileSkeleton = () => (
@@ -81,13 +80,6 @@ export default function BarProfile() {
         </View>
       </View>
 
-      {/* Stats Row */}
-      {/* <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-      </View> */}
-
       {/* Section Blocks */}
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <Skeleton width="100%" height={100} borderRadius={12} />
@@ -104,8 +96,35 @@ export default function BarProfile() {
 
     router.push({
       pathname: "/(app)/(tabs)/map",
-      params: { selectedId: id }
+      params: { selectedId: id, focusToken: String(Date.now()) }
     });
+  };
+
+  const openInAppleMaps = async () => {
+    if (!mapData?.latitude || !mapData?.longitude) {
+      Alert.alert("Location unavailable", "We couldn't find coordinates for this location yet.");
+      return;
+    }
+
+    const lat = mapData.latitude;
+    const lng = mapData.longitude;
+    const query = encodeURIComponent(bar?.name ?? "Bar");
+    const appleMapsUrl = `https://maps.apple.com/?ll=${lat},${lng}&q=${query}`;
+
+    try {
+      await Linking.openURL(appleMapsUrl);
+    } catch {
+      Alert.alert("Unable to open Apple Maps", "Please try again in a moment.");
+    }
+  };
+
+  const openLocationModal = () => {
+    if (!mapData || !Number.isFinite(mapData.latitude) || !Number.isFinite(mapData.longitude)) {
+      Alert.alert("Location unavailable", "This location does not have map coordinates yet.");
+      return;
+    }
+
+    setIsMapVisible(true);
   };
 
   useEffect(() => {
@@ -197,7 +216,7 @@ export default function BarProfile() {
           <BottomCard
             title="Location"
             image={assets.map}
-            onPress={() => setIsMapVisible(true)}
+            onPress={openLocationModal}
           />
           <BottomCard
             title="Gallery"
@@ -211,6 +230,7 @@ export default function BarProfile() {
         visible={isMapVisible}
         onClose={toggleMapOverlay}
         onOpenInMaps={navigateToInternalMap}
+        onOpenInAppleMaps={openInAppleMaps}
         mapData={mapData}
         barName={bar?.name}
       />
