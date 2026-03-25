@@ -117,8 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await refreshUserStatus()
         await fetchUsername()
       }
-    } catch (e) {
-      console.error("Login error:", e)
+    } catch (e: any) {
+      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+        console.log("User cancelled login")
+      } else {
+        console.error("Login error:", e)
+      }
     }
   }
 
@@ -143,8 +147,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsSwitching(false)
         setIsLoading(false)
       }
-    } catch (e) {
-      console.error("Logout error:", e)
+    } catch (e: any) {
+      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+        console.log("User cancelled logout")
+      } else {
+        console.error("Logout error:", e)
+      }
       // If force flag is set, clear local state even on error
       if (forceClearLocal) {
         setIsAuthenticated(false)

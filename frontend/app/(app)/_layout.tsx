@@ -5,7 +5,7 @@ import { Stack, useSegments, useRouter, Redirect } from 'expo-router'
 import { useEffect, useState } from 'react'
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, userStatus} = useAuth()
+  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, userStatus } = useAuth()
   const segments = useSegments()
   const router = useRouter()
   const colorScheme = useColorScheme()
@@ -38,7 +38,7 @@ export default function AppLayout() {
         console.log("Redirecting to registration")
         router.navigate("/(app)/(auth)/register")
         setIsSwitching(false)
-      } 
+      }
       // If profile complete and not on tabs, go to tabs
       else if (userStatus.profileComplete && !inTabsGroup) {
         console.log("Switching to (tabs) screen")
@@ -48,7 +48,7 @@ export default function AppLayout() {
     }
   }, [isAuthenticated, isLoading, segments, userStatus])
 
-  if (isLoading){
+  if (isLoading) {
     return (
       <View style={{
         flex: 1,
@@ -62,12 +62,12 @@ export default function AppLayout() {
   }
 
   return (
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="index" options={{ headerShown: false}}/>
-        </Stack>
-      </ThemeProvider>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ gestureEnabled: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+      </Stack>
+    </ThemeProvider>
   )
 }
