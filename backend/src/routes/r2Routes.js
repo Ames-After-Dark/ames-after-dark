@@ -201,4 +201,4 @@ router.get('/photos', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
