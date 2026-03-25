@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl } from "react-native";
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -108,6 +108,24 @@ export default function BarProfile() {
     });
   };
 
+  const openInAppleMaps = async () => {
+    if (!mapData?.latitude || !mapData?.longitude) {
+      Alert.alert("Location unavailable", "We couldn't find coordinates for this location yet.");
+      return;
+    }
+
+    const lat = mapData.latitude;
+    const lng = mapData.longitude;
+    const query = encodeURIComponent(bar?.name ?? "Bar");
+    const appleMapsUrl = `https://maps.apple.com/?ll=${lat},${lng}&q=${query}`;
+
+    try {
+      await Linking.openURL(appleMapsUrl);
+    } catch {
+      Alert.alert("Unable to open Apple Maps", "Please try again in a moment.");
+    }
+  };
+
   useEffect(() => {
     if (id) fetchLocationById(id).then(setMapData);
   }, [id]);
@@ -201,6 +219,7 @@ export default function BarProfile() {
         visible={isMapVisible}
         onClose={toggleMapOverlay}
         onOpenInMaps={navigateToInternalMap}
+        onOpenInAppleMaps={openInAppleMaps}
         mapData={mapData}
         barName={bar?.name}
       />

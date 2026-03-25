@@ -19,14 +19,19 @@ interface BarMapModalProps {
   visible: boolean;
   onClose: () => void;
   onOpenInMaps: () => void;
+  onOpenInAppleMaps: () => void;
   mapData: any;
   barName?: string;
 }
 
-export const BarMapModal = ({ visible, onClose, onOpenInMaps, mapData, barName }: BarMapModalProps) => (
+export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
   <Modal visible={visible} transparent animationType="fade">
     <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
+        <TouchableOpacity style={styles.closeIconBtn} onPress={onClose}>
+          <FontAwesome name="close" size={16} color="white" />
+        </TouchableOpacity>
+
         {mapData ? (
           <>
             <MapView
@@ -47,14 +52,17 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, mapData, barName }
             </MapView>
 
             <View style={styles.overlayFooter}>
-              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                <Text style={styles.closeBtnText}>Close</Text>
-              </TouchableOpacity>
+              <View style={styles.primaryActionsRow}>
+                <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
+                  <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
+                  <Text style={styles.openInMapsText}>In-App Map</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenInMaps}>
-                <FontAwesome name="map" size={18} color="white" style={{ marginRight: 8 }} />
-                <Text style={styles.openInMapsText}>Open</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.openInAppleMapsBtn} onPress={onOpenInAppleMaps}>
+                  <FontAwesome name="location-arrow" size={18} color="white" style={{ marginRight: 8 }} />
+                  <Text style={styles.openInMapsText}>Apple Maps</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </>
         ) : (
@@ -238,28 +246,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
   },
+  closeIconBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 5,
+  },
   overlayMap: {
     flex: 1,
   },
   overlayFooter: {
-    flexDirection: 'row',
     padding: 15,
-    justifyContent: 'space-between',
     backgroundColor: Theme.container.background,
   },
-  closeBtn: {
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Theme.dark.error,
+  primaryActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  closeBtnText: { color: 'white' },
   openInMapsBtn: {
     backgroundColor: Theme.dark.primary,
     paddingVertical: 10,
-    paddingHorizontal: (width / 2) - 100,
+    paddingHorizontal: 12,
     borderRadius: 8,
     flexDirection: 'row',
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openInAppleMapsBtn: {
+    backgroundColor: Theme.dark.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
