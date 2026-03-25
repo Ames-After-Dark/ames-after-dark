@@ -391,17 +391,19 @@ export async function getBars(): Promise<Bar[]> {
 export async function getBarById(id: string): Promise<Bar | null> {
   try {
     // Fetch location details
-    const location = await apiFetch(`/locations/${id}`) as LocationApiResponse;
-
-    if (!location) return null;
+    // const location = await apiFetch(`/locations/${id}`) as LocationApiResponse;
 
     // Fetch events, deals, and menu items for this location
-    const [events, deals, menuItems, menuItemTypes] = await Promise.all([
+    const [location, events, deals, menuItems, menuItemTypes, hoursResponse] = await Promise.all([
+      apiFetch(`/locations/${id}`) as Promise<LocationApiResponse>,
       apiFetch("/events") as Promise<EventApiResponse[]>,
       apiFetch("/deals") as Promise<DealApiResponse[]>,
       apiFetch(`/menuitems/location/${id}`) as Promise<MenuItemApiResponse[]>,
       apiFetch("/menuitems/types") as Promise<MenuItemTypeApiResponse[]>,
+      apiFetch(`/locationhours/${id}`) as Promise<LocationHoursApiResponse>,
     ]);
+
+    if (!location) return null;
 
     const locationEvents = events.filter(
       (e: EventApiResponse) => Number(e.location_id) === Number(location.id)
@@ -416,6 +418,15 @@ export async function getBarById(id: string): Promise<Bar | null> {
 
     const dealsScheduled: ScheduledDeal[] = locationDeals.flatMap((deal) =>
       mapDealToScheduled(deal, location.id)
+    );
+
+    const schedule = (Array.isArray(hoursResponse?.location_hours)
+      ? hoursResponse.location_hours
+      : []) as LocationHourRow[];
+
+    const { openingTime, closingTime } = deriveDisplayHours(
+      schedule,
+      hoursResponse?.timezone || "America/Chicago"
     );
 
     const groupedMenuItems = new Map<string, { id: string; name: string; desc?: string; price?: string; isAvailable: boolean }[]>();
@@ -445,17 +456,54 @@ export async function getBarById(id: string): Promise<Bar | null> {
       items,
     }));
 
+    // return {
+    //   id: String(location.id),
+    //   name: location.name,
+    //   description: location.description,
+    //   open: location.open,
+    //   dealsScheduled,
+    //   eventsScheduled,
+    //   openingTime,
+    //   closingTime,
+    //   location_hours: schedule,
+    //   menu: {
+    //     sections: menuSections,
+    //   },
+    //   location_type_id: location.location_type_id,
+    // } as Bar;
+    // src/services/barsService.ts
+
     return {
+      // 1. Basic Info
       id: String(location.id),
       name: location.name,
-      description: location.description,
-      open: location.open,
-      dealsScheduled,
-      eventsScheduled,
-      menu: {
-        sections: menuSections,
-      },
+      description: location.description || "",
       location_type_id: location.location_type_id,
+
+      // 2. The mapped hours (Fixes the incompatible type error)
+      location_hours: schedule.map((hour) => ({
+        id: Number(hour.id) || 0,
+        location_id: Number(location.id),
+        weekday_id: Number(hour.weekday_id),
+        open_time: hour.open_time || "00:00",
+        close_time: hour.close_time || "00:00",
+      })),
+
+      // 3. Overrides and Timezone
+      location_hours_overrides: hoursResponse?.location_hours_overrides || [],
+      timezone: hoursResponse?.timezone || "America/Chicago",
+
+      // 4. Content (Make sure these variables are defined above in your function)
+      dealsScheduled: dealsScheduled || [],
+      eventsScheduled: eventsScheduled || [],
+      menu: {
+        sections: menuSections || [],
+      },
+
+      // 5. Derived legacy strings (if your Bar type still requires them)
+      openingTime: openingTime,
+      closingTime: closingTime,
+      open: location.open,
     } as Bar;
   } catch (error) {
     console.error(`Failed to fetch bar ${id}:`, error);

@@ -48,6 +48,32 @@ export type BarMenu = {
 };
 
 // ---------- Bar ----------
+
+export type LocationHour = {
+  id: number;
+  weekday_id: number;
+  location_id: number;
+  open_time: string; // "HH:mm"
+  close_time: string; // "HH:mm"
+};
+
+export type LocationOverride = {
+  id: number;
+  location_id: number;
+  start_time_utc: string;
+  end_time_utc: string;
+  reason: string;
+  is_open: boolean;
+};
+
+export interface BarHours {
+  id: number;
+  location_id: number;
+  day_id: number; // 1-7 (Mon-Sun)
+  open_time: string; // e.g., "00:00:00"
+  close_time: string; // e.g., "23:59:00"
+}
+
 export type Bar = {
   id: BarId;
   name: string;
@@ -66,6 +92,11 @@ export type Bar = {
   eventsScheduled?: ScheduledEvent[];
 
   location_type_id: number; // 1=Bar, 2=Restaurant, etc.
+
+  location_hours: LocationHour[];
+  location_hours_overrides: LocationOverride[];
+
+  hours?: BarHours[]; // Optional: Only for detailed view, not in list (to save bandwidth)
 
   // Local mock image assets
   logo?: any;

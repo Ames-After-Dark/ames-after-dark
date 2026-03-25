@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, } from 're
 import { FontAwesome } from "@expo/vector-icons";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/utils/bar-assets';
+import { formatTime } from '@/utils/schedule';
 
 import MapView, { Marker } from "react-native-maps";
 import { Modal, ActivityIndicator } from "react-native";
@@ -13,6 +14,10 @@ interface BarHeaderProps {
   bar: Bar;
   assets: any;
   openNow: boolean;
+  closingTime?: string | null;
+  overrideTime?: string | null;
+  currentOpeningTime?: string | null;
+  currentClosingTime?: string | null;
 }
 
 interface BarMapModalProps {
@@ -68,24 +73,118 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, mapData, barName }
   </Modal>
 );
 
-export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
-  <View>
-    <Image source={assets.cover} style={styles.coverPhoto} resizeMode="cover" />
-    <View style={styles.headerRow}>
-      <Image source={assets.logo} style={styles.barImage} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.barName}>{bar.name}</Text>
-        <Text style={styles.barDescription}>{bar.description}</Text>
-        <View style={[
-          styles.statusPill,
-          { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
-        ]}>
-          <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
+// export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
+//   <View>
+//     <Image source={assets.cover} style={styles.coverPhoto} resizeMode="cover" />
+//     <View style={styles.headerRow}>
+//       <Image source={assets.logo} style={styles.barImage} />
+//       <View style={{ flex: 1 }}>
+//         <Text style={styles.barName}>{bar.name}</Text>
+//         <Text style={styles.barDescription}>{bar.description}</Text>
+//         <View style={[
+//           styles.statusPill,
+//           { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
+//         ]}>
+//           <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
+//         </View>
+//       </View>
+//     </View>
+//   </View>
+// );
+
+// export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => {
+//   // Determine which raw time string to use from your data
+//   const rawTime = openNow ? bar?.closeTime : bar?.openTime;
+//   const displayTime = formatTime(rawTime);
+
+//   return (
+//     <View>
+//       {/* 1. The Cover Photo */}
+//       <Image source={assets.cover} style={styles.coverPhoto} />
+
+//       {/* 2. The Info Row (Logo + Text) */}
+//       <View style={styles.headerRow}>
+//         <Image source={assets.logo} style={styles.barImage} />
+
+//         <View style={{ flex: 1 }}>
+//           <Text style={styles.barName}>{bar.name}</Text>
+//           <Text style={styles.barDescription}>{bar.description}</Text>
+
+//           {/* 3. The Branded Status Row */}
+//           <View style={styles.statusRow}>
+//             <View style={[
+//               styles.statusPill,
+//               { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
+//             ]}>
+//               <Text style={styles.statusPillText}>
+//                 {openNow ? "OPEN" : "CLOSED"}
+//               </Text>
+//             </View>
+
+//             {rawTime && (
+//               <Text style={styles.hoursText}>
+//                 {openNow ? "Closes at " : "Opens at "}
+//                 {displayTime}
+//               </Text>
+//             )}
+//           </View>
+//         </View>
+//       </View>
+//     </View>
+//   );
+// };
+
+export const BarHeader = ({
+  bar,
+  assets,
+  openNow,
+  currentOpeningTime,
+  currentClosingTime
+}: BarHeaderProps) => {
+
+  console.log(`[BarHeader] Rendering for: ${bar?.name}`);
+  console.log(`[BarHeader] Raw bar.openTime:`, bar?.openTime);
+  console.log(`[BarHeader] Raw bar.closeTime:`, bar?.closeTime);
+  console.log(`[BarHeader] openNow status:`, openNow);
+
+  // Logic: If open, show when it closes. If closed, show when it opens.
+  const displayTime = openNow ? currentClosingTime : currentOpeningTime;
+
+  return (
+    <View>
+      <Image source={assets.cover} style={styles.coverPhoto} />
+
+      <View style={styles.headerRow}>
+        <Image source={assets.logo} style={styles.barImage} />
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.barName}>{bar?.name}</Text>
+          <Text style={styles.barDescription}>{bar?.description}</Text>
+
+          <View style={styles.statusRow}>
+            {/* Status Pill */}
+            <View style={[
+              styles.statusPill,
+              { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
+            ]}>
+              <Text style={styles.statusPillText}>
+                {openNow ? "OPEN" : "CLOSED"}
+              </Text>
+            </View>
+
+            {/* Hours Text - Only shows if displayTime is not null */}
+            {!!displayTime && (
+              <Text style={styles.hoursText}>
+                {openNow ? "•  Closes at " : "•  Opens at "}
+                {displayTime}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 // export const BarStats = ({ bar }: { bar: any }) => (
 //   <View style={styles.statsRow}>
@@ -95,12 +194,12 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
 //   </View>
 // );
 
-const StatItem = ({ number, label }: { number: number | string, label: string }) => (
-  <View style={styles.statBox}>
-    <Text style={styles.statNumber}>{number}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
+// const StatItem = ({ number, label }: { number: number | string, label: string }) => (
+//   <View style={styles.statBox}>
+//     <Text style={styles.statNumber}>{number}</Text>
+//     <Text style={styles.statLabel}>{label}</Text>
+//   </View>
+// );
 
 export const InfoSection = ({ title, items, emptyText }: { title: string, items: any[], emptyText: string }) => (
   <View style={styles.sectionContainer}>
@@ -150,18 +249,18 @@ const styles = StyleSheet.create({
     color: Theme.container.titleText,
     fontSize: 14
   },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-    marginTop: 6
-  },
-  statusPillText: {
-    color: Theme.container.background,
-    fontSize: 10,
-    fontWeight: "800"
-  },
+  // statusPill: {
+  //   paddingHorizontal: 8,
+  //   paddingVertical: 2,
+  //   borderRadius: 999,
+  //   alignSelf: "flex-start",
+  //   marginTop: 6
+  // },
+  // statusPillText: {
+  //   color: Theme.container.background,
+  //   fontSize: 10,
+  //   fontWeight: "800"
+  // },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -295,5 +394,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     fontWeight: '500',
+  },
+  // statusRow: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   marginTop: 6,
+  //   gap: 8
+  // },
+  // closingText: {
+  //   color: Theme.container.titleText,
+  //   fontSize: 12,
+  //   opacity: 0.8,
+  //   fontWeight: '500'
+  // },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8, // Space between pill and text
+  },
+  closingText: {
+    color: Theme.container.titleText,
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: 0.9,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 10, // Use gap for clean spacing
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6, // Slightly less "rounded" looks more modern
+  },
+  statusPillText: {
+    color: Theme.container.background,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: 'uppercase', // "OPEN" instead of "Open"
+  },
+  hoursText: {
+    color: Theme.container.titleText, // Or a secondary gray like #888
+    fontSize: 13,
+    opacity: 0.7, // This is the secret to "clean" design—lower the contrast for secondary info
+    fontWeight: "500",
   },
 });

@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { fetchLocationById, MapLocation } from "@/services/locationService";
-import { getNow, isActive } from "@/utils/schedule";
+import { formatTime, getNow, isActive, isBarOpen } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
+import { getBarStatus } from "@/utils/schedule";
 
 import {
   BarHeader,
@@ -34,6 +35,57 @@ export default function BarProfile() {
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
   // const [mapData, setMapData] = useState<MapLocation | null>(null);
+
+  // const closingTime = bar ? getClosingTime(bar) : null;
+  // const status = useMemo(() => getBarStatus(bar), [bar]);
+
+  console.log("DEBUG: Component Rendered. Bar Data exists:", !!bar);
+
+  // const status = useMemo(() => {
+  //   console.log("INTERNAL MEMO CHECK - bar name:", bar?.name);
+
+  //   if (!bar || !bar.location_hours) {
+  //     console.log("MEMO EXIT: Bar data or hours missing", {
+  //       hasBar: !!bar,
+  //       hasHours: !!bar?.location_hours
+  //     });
+  //     return { isOpen: false, closingTime: null };
+  //   }
+
+  //   // 3. CALL THE FUNCTION
+  //   const result = getBarStatus(bar);
+  //   console.log("MEMO RESULT:", result);
+  //   return result;
+  // }, [bar]);
+
+  // The logic to extract current status and times dynamically
+  const scheduleStatus = useMemo(() => {
+    // 1. Safety check for loading state
+    if (!bar || !bar.hours) {
+      return { closingTime: null, openingTime: null, isOpen: false };
+    }
+
+    const now = getNow();
+    // JS getDay(): 0=Sun, 1=Mon... 2=Tue. 
+    // If your DB uses 1=Mon... 7=Sun, we adjust:
+    const currentDayId = now.getDay() === 0 ? 7 : now.getDay();
+
+    // 2. Find today's specific schedule entry
+    const todayHours = bar.hours.find((h: any) => h.day_id === currentDayId);
+
+    if (!todayHours) {
+      return { closingTime: null, openingTime: null, isOpen: false };
+    }
+
+    // 3. Use your existing utility to check status
+    const isOpen = isBarOpen(bar, now);
+
+    // 4. Format the raw strings (e.g., "23:59:00") into "11:59 PM"
+    const closingTime = formatTime(todayHours.close_time);
+    const openingTime = formatTime(todayHours.open_time);
+
+    return { closingTime, openingTime, isOpen };
+  }, [bar]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -121,7 +173,7 @@ export default function BarProfile() {
   const activeDeals = bar.dealsScheduled?.filter(d => isActive(d.rule, now)) ?? [];
   const activeEvents = bar.eventsScheduled?.filter(e => isActive(e.rule, now)) ?? [];
 
-  const openNow = bar.open ?? false;
+  // const openNow = bar.open ?? false;
 
   const handleBack = () => {
     if (backTo === "home") router.replace("/(app)/(tabs)/tonight");
@@ -169,7 +221,13 @@ export default function BarProfile() {
           />
         }
       >
-        <BarHeader bar={bar} assets={assets} openNow={openNow} />
+        <BarHeader
+          bar={bar}
+          assets={assets}
+          openNow={scheduleStatus.isOpen}
+          currentOpeningTime={scheduleStatus.openingTime}
+          currentClosingTime={scheduleStatus.closingTime}
+        />
 
         {/* <BarStats bar={bar} /> */}
 
