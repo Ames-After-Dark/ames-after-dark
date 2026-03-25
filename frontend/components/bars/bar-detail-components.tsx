@@ -13,6 +13,7 @@ interface BarHeaderProps {
   bar: Bar;
   assets: any;
   openNow: boolean;
+  statusText?: string;
 }
 
 interface BarMapModalProps {
@@ -68,7 +69,7 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, mapData, barName }
   </Modal>
 );
 
-export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
+export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) => (
   <View>
     <Image source={assets.cover} style={styles.coverPhoto} resizeMode="cover" />
     <View style={styles.headerRow}>
@@ -78,9 +79,10 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
         <Text style={styles.barDescription}>{bar.description}</Text>
         <View style={[
           styles.statusPill,
-          { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
+          { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
+          // { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
         ]}>
-          <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
+          <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
         </View>
       </View>
     </View>
