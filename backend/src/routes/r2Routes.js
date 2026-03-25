@@ -1,5 +1,5 @@
 const express = require('express');
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const router = express.Router();
@@ -78,7 +78,7 @@ function parseDateStr(dateStr) {
   if (!dateStr) return null;
   const parts = dateStr.split('-');
   if (parts.length !== 2) return null;
-  
+
   const month = parseInt(parts[0], 10) - 1;
   const day = parseInt(parts[1], 10);
   if (isNaN(month) || isNaN(day)) return null;
@@ -133,7 +133,7 @@ router.get('/albums', async (req, res) => {
       folderMeta[folderName] = { displayName, dateStr, date };
     }
 
-    const allDates = Object.values(folderMeta).map(m=>m.date).filter(Boolean).map(d=>d.getTime());
+    const allDates = Object.values(folderMeta).map(m => m.date).filter(Boolean).map(d => d.getTime());
     if (!allDates.length) return res.json([]);
     const latestTime = Math.max(...allDates);
 
@@ -143,22 +143,22 @@ router.get('/albums', async (req, res) => {
         const meta = folderMeta[folderName];
         return meta.date && meta.date.getTime() === latestTime;
       })
-      .map(async ([folderName, objects]) => {
-        const meta = folderMeta[folderName];
-        // Pick most recently modified photo as cover
-        const cover = objects.reduce((a, b) =>
-          new Date(b.LastModified) > new Date(a.LastModified) ? b : a);
-        const coverUrl = await signedUrlForKey(cover.Key);
+        .map(async ([folderName, objects]) => {
+          const meta = folderMeta[folderName];
+          // Pick most recently modified photo as cover
+          const cover = objects.reduce((a, b) =>
+            new Date(b.LastModified) > new Date(a.LastModified) ? b : a);
+          const coverUrl = await signedUrlForKey(cover.Key);
 
-        return {
-          id: folderName,
-          name: meta.displayName,
-          barName: meta.displayName,
-          date: formatDateStr(meta.dateStr),
-          coverUrl,
-          albumUri: `${folderName}/`,
-        };
-      })
+          return {
+            id: folderName,
+            name: meta.displayName,
+            barName: meta.displayName,
+            date: formatDateStr(meta.dateStr),
+            coverUrl,
+            albumUri: `${folderName}/`,
+          };
+        })
     );
     albums.sort((a, b) => a.barName.localeCompare(b.barName));
     res.json(albums);
