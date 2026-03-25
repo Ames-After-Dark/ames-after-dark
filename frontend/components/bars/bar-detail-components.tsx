@@ -99,11 +99,7 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
         <Text style={styles.barDescription}>{bar.description}</Text>
         <View style={[
           styles.statusPill,
-<<<<<<< HEAD
           { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
-=======
-          { backgroundColor: openNow ? Theme.dark.success : Theme.container.inactiveText }
->>>>>>> parent of fe14904 (Merge pull request #190 from Ames-After-Dark/bar-status)
         ]}>
           <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
         </View>
