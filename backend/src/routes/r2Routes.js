@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
@@ -201,4 +201,4 @@ router.get('/photos', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
