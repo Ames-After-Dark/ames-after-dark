@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View, Text, Image, StyleSheet, TouchableOpacity,
-    Modal, FlatList, TouchableWithoutFeedback, Animated, Alert
+    Modal, FlatList, TouchableWithoutFeedback, Animated
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
@@ -137,6 +137,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
     const [isPickerVisible, setPickerVisible] = useState(false);
+    const [isEditPromptVisible, setEditPromptVisible] = useState(false);
 
     // Wiggle animation
     const wiggle = useRef(new Animated.Value(0)).current;
@@ -209,14 +210,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
                             if (isEditing) {
                                 setPickerVisible(true);
                             } else {
-                                Alert.alert(
-                                    'Edit Profile',
-                                    'Would you like to edit your profile?',
-                                    [
-                                        { text: 'Cancel', style: 'cancel' },
-                                        { text: 'Yes', onPress: () => onRequestEdit?.() },
-                                    ]
-                                );
+                                setEditPromptVisible(true);
                             }
                         }}
                         style={styles.avatarWrapper}
@@ -285,6 +279,29 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
                     onClose={() => setPickerVisible(false)}
                 />
             )}
+
+            {/* Custom edit prompt — replaces native Alert */}
+            <Modal visible={isEditPromptVisible} transparent animationType="fade" onRequestClose={() => setEditPromptVisible(false)}>
+                <TouchableWithoutFeedback onPress={() => setEditPromptVisible(false)}>
+                    <View style={styles.promptOverlay}>
+                        <TouchableWithoutFeedback onPress={() => {}}>
+                            <View style={styles.promptCard}>
+                                <Text style={styles.promptTitle}>Edit Profile</Text>
+                                <Text style={styles.promptSubtitle}>Would you like to edit your profile?</Text>
+                                <TouchableOpacity
+                                    style={styles.promptConfirm}
+                                    onPress={() => { setEditPromptVisible(false); onRequestEdit?.(); }}
+                                >
+                                    <Text style={styles.promptConfirmText}>Yes, Edit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setEditPromptVisible(false)}>
+                                    <Text style={styles.promptCancel}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </View>
     );
 };
@@ -292,7 +309,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 4,
-        marginBottom: 10,
+        marginBottom: 4,
     },
     sidePadding: {
         paddingHorizontal: 0,
@@ -300,7 +317,7 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginVertical: 16,
+        marginVertical: 8,
     },
     avatarWrapper: {
         position: 'relative',
@@ -431,5 +448,51 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 8,
         right: 8,
+    },
+    promptOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    promptCard: {
+        width: '78%',
+        backgroundColor: Theme.container.background,
+        borderRadius: 24,
+        padding: 28,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    promptTitle: {
+        color: Theme.dark.white,
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    promptSubtitle: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    promptConfirm: {
+        backgroundColor: Theme.dark.primary,
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 14,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    promptConfirmText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    promptCancel: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

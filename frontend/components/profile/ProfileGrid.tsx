@@ -7,6 +7,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
 import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
+import { router } from 'expo-router';
 
 import { DRINK_OPTIONS, getDrinkById, ProfileAsset } from '@/constants/profileAssets';
 import { getBarAssets } from '@/utils/bar-assets';
@@ -15,30 +16,18 @@ import { apiFetch } from '@/services/apiClient';
 // Default bar when favorite_profile_location_id is null
 const DEFAULT_BAR_NAME = "Cy's Roost";
 
-// All available bars for the picker — name must match bar-assets.ts keys
-const BAR_OPTIONS = [
-    { id: 1,  name: "AJ's Ultralounge" },
-    { id: 2,  name: "BNC Fieldhouse" },
-    { id: 3,  name: "Cy's Roost" },
-    { id: 4,  name: "Welch Ave Station" },
-    { id: 5,  name: "The Blue Owl Bar" },
-    { id: 6,  name: "Paddy's Irish Pub" },
-    { id: 7,  name: "Sips" },
-    { id: 8,  name: "Mickey's Irish Pub" },
-    { id: 9,  name: "Outlaws" },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
 // BAR PICKER MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 type BarPickerModalProps = {
     visible: boolean;
     selectedName: string;
+    bars: { id: number; name: string }[];
     onSelect: (bar: { id: number; name: string }) => void;
     onClose: () => void;
 };
 
-function BarPickerModal({ visible, selectedName, onSelect, onClose }: BarPickerModalProps) {
+function BarPickerModal({ visible, selectedName, bars, onSelect, onClose }: BarPickerModalProps) {
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
@@ -52,7 +41,7 @@ function BarPickerModal({ visible, selectedName, onSelect, onClose }: BarPickerM
                                 </TouchableOpacity>
                             </View>
                             <FlatList
-                                data={BAR_OPTIONS}
+                                data={bars}
                                 keyExtractor={(item) => item.id.toString()}
                                 contentContainerStyle={{ paddingBottom: 20 }}
                                 renderItem={({ item }) => {
@@ -184,6 +173,147 @@ const pickerStyles = StyleSheet.create({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ZOOM MODAL — drink or streak zoomed-in view
+// ─────────────────────────────────────────────────────────────────────────────
+type ZoomModalProps = {
+    visible: boolean;
+    type: 'drink' | 'streak' | null;
+    drinkSource?: any;
+    streakCount?: number;
+    isMe?: boolean;
+    onChangeDrink: () => void;
+    onClose: () => void;
+};
+
+function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrink, onClose }: ZoomModalProps) {
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={zoomStyles.overlay}>
+                    <TouchableWithoutFeedback onPress={() => {}}>
+                        <View style={zoomStyles.card}>
+                            {/* Pink X close button */}
+                            <TouchableOpacity style={zoomStyles.closeBtn} onPress={onClose}>
+                                <View style={zoomStyles.closeBtnCircle}>
+                                    <FontAwesome name="times" size={14} color="#fff" />
+                                </View>
+                            </TouchableOpacity>
+
+                            <Text style={zoomStyles.label}>
+                                {type === 'drink' ? 'Favorite Drink' : 'Streak'}
+                            </Text>
+
+                            {type === 'drink' && drinkSource ? (
+                                <>
+                                    <Image source={drinkSource} style={zoomStyles.drinkImage} />
+                                    {isMe && (
+                                        <TouchableOpacity
+                                            style={zoomStyles.changeDrinkBtn}
+                                            onPress={() => { onClose(); setTimeout(onChangeDrink, 300); }}
+                                        >
+                                            <Text style={zoomStyles.changeDrinkText}>Change Drink</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </>
+                            ) : (
+                                <View style={zoomStyles.streakZoom}>
+                                    <Text style={zoomStyles.streakEmoji}>🔥</Text>
+                                    <Text style={zoomStyles.streakBig}>{streakCount ?? 0}</Text>
+                                    <Text style={zoomStyles.streakSub}>weekends out in a row</Text>
+                                </View>
+                            )}
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+}
+
+const zoomStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.88)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    card: {
+        width: '80%',
+        backgroundColor: Theme.container.background,
+        borderRadius: 24,
+        padding: 28,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        position: 'relative',
+        maxHeight: '70%',
+    },
+    closeBtn: {
+        position: 'absolute',
+        top: -12,
+        right: -12,
+        zIndex: 10,
+    },
+    closeBtnCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FF2D78',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: Theme.dark.background,
+    },
+    label: {
+        color: Theme.dark.white,
+        fontSize: 16,
+        fontWeight: '700',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    drinkImage: {
+        width: '100%',
+        height: 220,
+        borderRadius: 16,
+        marginBottom: 24,
+        resizeMode: 'contain',
+    },
+    changeDrinkBtn: {
+        backgroundColor: '#FF2D78',
+        paddingVertical: 14,
+        paddingHorizontal: 40,
+        borderRadius: 14,
+        width: '100%',
+        alignItems: 'center',
+    },
+    changeDrinkText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    streakZoom: {
+        alignItems: 'center',
+        paddingVertical: 16,
+    },
+    streakEmoji: {
+        fontSize: 56,
+        marginBottom: 8,
+    },
+    streakBig: {
+        color: Theme.dark.tertiary,
+        fontSize: 72,
+        fontWeight: 'bold',
+        lineHeight: 80,
+    },
+    streakSub: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PROFILE GRID
 // ─────────────────────────────────────────────────────────────────────────────
 export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boolean; isEditing?: boolean }) => {
@@ -191,6 +321,7 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
 
     const [selectedDrink, setSelectedDrink] = useState<ProfileAsset>(() => getDrinkById(user?.favorite_drink_id));
     const [isDrinkPickerVisible, setDrinkPickerVisible] = useState(false);
+    const [zoomModal, setZoomModal] = useState<'drink' | 'streak' | null>(null);
 
     // Wiggle animation
     const wiggle = useRef(new Animated.Value(0)).current;
@@ -218,10 +349,23 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
 
     // ── Fav bar ───────────────────────────────────────────────────────────────
     const [favBarName, setFavBarName] = useState<string>(DEFAULT_BAR_NAME);
+    const [favBarLocationId, setFavBarLocationId] = useState<number>(user?.favorite_profile_location_id ?? 3);
     const [isBarPickerVisible, setBarPickerVisible] = useState(false);
+    const [barOptions, setBarOptions] = useState<{ id: number; name: string }[]>([]);
+
+    useEffect(() => {
+        apiFetch('/locations')
+            .then((data: any) => {
+                if (Array.isArray(data)) {
+                    setBarOptions(data.map((loc: any) => ({ id: loc.id, name: loc.name })));
+                }
+            })
+            .catch((err: any) => console.error('Failed to fetch bar list:', err));
+    }, []);
 
     const handleBarSelect = async (bar: { id: number; name: string }) => {
         setFavBarName(bar.name);
+        setFavBarLocationId(bar.id);
         if (!userStatus?.userId) return;
         try {
             await updateUser(userStatus.userId, { favorite_profile_location_id: bar.id } as any);
@@ -230,15 +374,26 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         }
     };
 
+    const handleBarPress = () => {
+        if (isMe && isEditing) {
+            setBarPickerVisible(true);
+        } else {
+            const barId = favBarLocationId ?? user?.favorite_profile_location_id ?? 3;
+            router.push(`/bars/${barId}` as any);
+        }
+    };
+
     useEffect(() => {
         const fetchFavBar = async () => {
             if (!user?.favorite_profile_location_id) {
                 setFavBarName(DEFAULT_BAR_NAME);
+                setFavBarLocationId(3);
                 return;
             }
             try {
                 const location = await apiFetch(`/locations/${user.favorite_profile_location_id}`);
                 if (location?.name) setFavBarName(location.name);
+                setFavBarLocationId(user.favorite_profile_location_id);
             } catch (err) {
                 console.error('Failed to fetch fav bar:', err);
                 setFavBarName(DEFAULT_BAR_NAME);
@@ -262,68 +417,34 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
     return (
         <View style={styles.container}>
             <View style={styles.gridRow}>
-                {/* Favorite Drink */}
-                {isMe ? (
-                    <Animated.View style={[{ flex: 1 }, isEditing && wiggleStyle]}>
-                        <TouchableOpacity
-                            style={styles.featureCard}
-                            onPress={() => isEditing && setDrinkPickerVisible(true)}
-                        >
-                            <Text style={styles.featureTitle}>Favorite Drink</Text>
-                            <View style={styles.drinkImageWrapper}>
-                                <Image source={selectedDrink.source} style={styles.drinkImage} />
-                                {isEditing && (
-                                    <View style={styles.drinkEditBadge}>
-                                        <FontAwesome name="pencil" size={10} color="#fff" />
-                                    </View>
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                ) : (
-                    <View style={styles.featureCard}>
+                {/* Favorite Drink — tappable on all pages */}
+                <Animated.View style={[{ flex: 1 }, isMe && isEditing && wiggleStyle]}>
+                    <TouchableOpacity style={[styles.featureCard, { flex: 1 }]} onPress={() => setZoomModal('drink')}>
                         <Text style={styles.featureTitle}>Favorite Drink</Text>
                         <View style={styles.drinkImageWrapper}>
                             <Image source={selectedDrink.source} style={styles.drinkImage} />
-                        </View>
-                    </View>
-                )}
-
-                {/* Streak */}
-                <View style={styles.featureCard}>
-                    <Text style={styles.featureTitle}>Streak</Text>
-                    <View style={styles.streakContent}>
-                        <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
-                        <Text style={styles.statLabel}>weekends out in a row</Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Favorite Bar */}
-            {isMe ? (
-                <Animated.View style={[isEditing && wiggleStyle]}>
-                    <TouchableOpacity
-                        style={styles.largeCard}
-                        onPress={() => isEditing && setBarPickerVisible(true)}
-                    >
-                        <Text style={styles.featureTitle}>Favorite Bar</Text>
-                        <View style={styles.favBarImageWrapper}>
-                            <Image source={favBarAssets.cover} style={styles.favBarCover} />
-                            <View style={styles.favBarOverlay} />
-                            <View style={styles.favBarInfo}>
-                                <Image source={favBarAssets.logo} style={styles.favBarLogo} />
-                                <Text style={styles.favBarName}>{favBarName}</Text>
-                            </View>
-                            {isEditing && (
-                                <View style={styles.favBarEditBadge}>
+                            {isMe && isEditing && (
+                                <View style={styles.drinkEditBadge}>
                                     <FontAwesome name="pencil" size={10} color="#fff" />
                                 </View>
                             )}
                         </View>
                     </TouchableOpacity>
                 </Animated.View>
-            ) : (
-                <View style={styles.largeCard}>
+
+                {/* Streak — tappable on all pages */}
+                <TouchableOpacity style={styles.featureCard} onPress={() => setZoomModal('streak')}>
+                    <Text style={styles.featureTitle}>Streak</Text>
+                    <View style={styles.streakContent}>
+                        <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
+                        <Text style={styles.statLabel}>weekends out in a row</Text>
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            {/* Favorite Bar — tappable on all pages */}
+            <Animated.View style={[isMe && isEditing && wiggleStyle]}>
+                <TouchableOpacity style={styles.largeCard} onPress={handleBarPress}>
                     <Text style={styles.featureTitle}>Favorite Bar</Text>
                     <View style={styles.favBarImageWrapper}>
                         <Image source={favBarAssets.cover} style={styles.favBarCover} />
@@ -332,14 +453,36 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
                             <Image source={favBarAssets.logo} style={styles.favBarLogo} />
                             <Text style={styles.favBarName}>{favBarName}</Text>
                         </View>
+                        {isMe && isEditing && (
+                            <View style={styles.favBarEditBadge}>
+                                <FontAwesome name="pencil" size={10} color="#fff" />
+                            </View>
+                        )}
+                        {!isMe && (
+                            <View style={styles.favBarVisitBadge}>
+                                <FontAwesome name="chevron-right" size={11} color="#fff" />
+                            </View>
+                        )}
                     </View>
-                </View>
-            )}
+                </TouchableOpacity>
+            </Animated.View>
+
+            {/* Zoom Modal */}
+            <ZoomModal
+                visible={zoomModal !== null}
+                type={zoomModal}
+                drinkSource={selectedDrink.source}
+                streakCount={user?.streak || 0}
+                isMe={isMe}
+                onChangeDrink={() => setDrinkPickerVisible(true)}
+                onClose={() => setZoomModal(null)}
+            />
 
             {isMe && (
                 <BarPickerModal
                     visible={isBarPickerVisible}
                     selectedName={favBarName}
+                    bars={barOptions}
                     onSelect={handleBarSelect}
                     onClose={() => setBarPickerVisible(false)}
                 />
@@ -361,12 +504,13 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        gap: 15,
     },
     gridRow: {
-        marginBottom: 15,
         flexDirection: 'row',
         width: '100%',
         justifyContent: 'space-between',
+        height: 180,
         gap: 15,
     },
     featureCard: {
@@ -374,7 +518,6 @@ const styles = StyleSheet.create({
         backgroundColor: Theme.container.background,
         borderRadius: 16,
         padding: 10,
-        minHeight: 145,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
     },
@@ -389,8 +532,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'hidden',
         marginTop: 2,
-        aspectRatio: 1,
-        alignSelf: 'stretch',
         position: 'relative',
     },
     drinkImage: {
@@ -435,7 +576,6 @@ const styles = StyleSheet.create({
         height: 180,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
-        marginBottom: 15,
     },
     favBarImageWrapper: {
         flex: 1,
@@ -480,6 +620,17 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: Theme.dark.background,
     },
+    favBarVisitBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: 999,
+        width: 22,
+        height: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     favBarName: {
         color: '#fff',
         fontSize: 15,
@@ -516,4 +667,3 @@ const barPickerStyles = {
         fontWeight: '600',
     } as const,
 };
-

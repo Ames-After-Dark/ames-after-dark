@@ -16,6 +16,7 @@ import {
     getMutualFriends,
     getRecommendedFriends,
     getPendingFriendRequests,
+    updateBioByAuth,
 } from '@/services/userService';
 import { apiFetch } from '@/services/apiClient';
 
@@ -28,7 +29,7 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
-    const { currentUser, userStatus } = useAuth();
+    const { currentUser, userStatus, getAccessToken } = useAuth();
 
     const isMe = useMemo(() => {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
@@ -295,8 +296,19 @@ export default function FriendProfileScreen() {
                     isEditing={isEditing}
                     onRequestEdit={() => setIsEditing(true)}
                     onSave={() => setIsEditing(false)}
+                    friendCount={friends.length}
+                    mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
+                    onPressFriends={() => setModalConfig({
+                        visible: true,
+                        title: 'Friends',
+                        data: friends
+                    })}
+                    onPressMutuals={() => setModalConfig({
+                        visible: true,
+                        title: isMe ? 'Pending Requests' : 'Mutual Friends',
+                        data: isMe ? pendingRequests : mutualFriends
+                    })}
                 />
-
 
 
                 <ProfileHeader
@@ -392,7 +404,9 @@ export default function FriendProfileScreen() {
                                         style={[styles.responseBtn, styles.acceptBtn]}
                                         onPress={async () => {
                                             try {
-                                                await apiFetch('/users/auth/bio', { method: 'PUT', body: JSON.stringify({ bio: bioText }) });
+                                                const accessToken = await getAccessToken();
+                                                if (!accessToken) throw new Error('No access token');
+                                                await updateBioByAuth(accessToken, bioText);
                                                 setUser((prev: any) => ({ ...prev, bio: bioText }));
                                                 setIsBioModalVisible(false);
                                                 triggerToast('Bio updated!');
