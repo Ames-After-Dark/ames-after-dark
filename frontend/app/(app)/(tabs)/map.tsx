@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Image } from 'react-native';
+import { StyleSheet, View, Image, Pressable } from 'react-native';
 import MapView from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -14,6 +14,8 @@ import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { calculateDistance } from '@/utils/location-utils';
+import { apiFetch } from '@/services/apiClient';
+import { getUserFriends } from '@/services/userService';
 
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
@@ -34,6 +36,8 @@ export default function MapScreen() {
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
     const [currentDelta, setCurrentDelta] = useState(0.1);
     const [hasPermission, setHasPermission] = useState(false);
+    const [isGhostModeEnabled, setIsGhostModeEnabled] = useState(false);
+    const [isGhostModeLoading, setIsGhostModeLoading] = useState(false);
 
     const { selectedId, focusToken } = useLocalSearchParams<{ selectedId?: string; focusToken?: string }>();
     const [mapReady, setMapReady] = useState(false);
@@ -42,7 +46,9 @@ export default function MapScreen() {
     const currentUserId = user?.id;
 
     useLocationTracker(currentUserId, hasPermission);
-    const { friends } = useFriendsLocations(currentUserId);
+    // const { friends } = useFriendsLocations(currentUserId);
+
+    const { friends, loading, refetch: refetchFriends } = useFriendsLocations(currentUserId);
 
     // handle permissions
     useEffect(() => {
@@ -141,6 +147,9 @@ export default function MapScreen() {
     };
 
     const activeFriends = friends.filter(friend => {
+
+        // if (friend.location_enabled === false) return false;
+
         const friendLoc = friend.user_locations;
         if (!friendLoc) return false;
 
@@ -161,6 +170,79 @@ export default function MapScreen() {
             return distance <= GEOFENCE_RADIUS_METERS;
         });
     });
+
+    const getUserBarName = () => {
+        if (!userLocation) {
+            return undefined;
+        }
+
+        const nearbyBar = locations.find((bar) => {
+            const distance = calculateDistance(
+                userLocation.latitude,
+                userLocation.longitude,
+                bar.latitude,
+                bar.longitude
+            );
+            return distance <= GEOFENCE_RADIUS_METERS;
+        });
+
+        return nearbyBar?.name;
+    };
+
+    const handleSelectSelf = () => {
+        if (!currentUserId) {
+            return;
+        }
+
+        setSelectedLocation({
+            id: currentUserId,
+            name: user?.name || 'You',
+            profile_pic_url: user?.profile_pic_url,
+            isSelf: true,
+            atBarName: getUserBarName(),
+        });
+    };
+
+    const handleToggleGhostMode = async () => {
+        if (!currentUserId || isGhostModeLoading) {
+            return;
+        }
+
+        setIsGhostModeLoading(true);
+        const nextEnabled = !isGhostModeEnabled;
+
+        try {
+            const allFriends = await getUserFriends(currentUserId);
+
+            await Promise.all(
+                allFriends.map((friend) =>
+                    apiFetch(`/userlocations/permissions/${friend.id}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ownerId: currentUserId,
+                            enabled: !nextEnabled,
+                        }),
+                    })
+                )
+            );
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            await refetchFriends();
+
+            setIsGhostModeEnabled(nextEnabled);
+            if (selectedLocation?.isSelf) {
+                setSelectedLocation((prev: any) => prev ? { ...prev, atBarName: getUserBarName() } : prev);
+            }
+        } catch (err) {
+            console.error('Failed to update ghost mode', err);
+        } finally {
+            setIsGhostModeLoading(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -199,6 +281,29 @@ export default function MapScreen() {
                         onSelectFriend={setSelectedLocation}
                     />
 
+                    {/* {userLocation && (
+                        <Marker
+                            key="me"
+                            coordinate={{
+                                latitude: userLocation.latitude,
+                                longitude: userLocation.longitude,
+                            }}
+                            zIndex={999}
+                            onPress={handleSelectSelf}
+                            tracksViewChanges={false}
+                        >
+                            <Pressable onPress={handleSelectSelf} hitSlop={12}>
+                                <View style={[styles.userMarkerContainer]}>
+                                    <Image
+                                        source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
+                                        style={styles.userAvatar}
+                                    />
+                                    <View style={[styles.userMarkerPulse]} />
+                                </View>
+                            </Pressable>
+                        </Marker>
+                    )} */}
+
                     {userLocation && (
                         <Marker
                             key="me"
@@ -207,13 +312,20 @@ export default function MapScreen() {
                                 longitude: userLocation.longitude,
                             }}
                             zIndex={999}
+                            // Use the Marker's onPress directly
+                            onPress={(e) => {
+                                // Stop propagation prevents the map's onPress from firing and closing the sheet immediately
+                                e.stopPropagation();
+                                handleSelectSelf();
+                            }}
                         >
-                            <View style={[styles.userMarkerContainer]}>
+                            {/* Remove Pressable from here */}
+                            <View style={styles.userMarkerContainer} pointerEvents="none">
                                 <Image
                                     source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
                                     style={styles.userAvatar}
                                 />
-                                <View style={[styles.userMarkerPulse]} />
+                                <View style={styles.userMarkerPulse} />
                             </View>
                         </Marker>
                     )}
@@ -225,6 +337,9 @@ export default function MapScreen() {
                 onClose={() => setSelectedLocation(null)}
                 onViewDetails={handleGoToBarPage}
                 onSelectLocation={setSelectedLocation}
+                isGhostModeEnabled={isGhostModeEnabled}
+                isGhostModeLoading={isGhostModeLoading}
+                onToggleGhostMode={handleToggleGhostMode}
             />
         </View>
     );

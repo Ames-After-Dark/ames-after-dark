@@ -11,14 +11,13 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         let subscription: Location.LocationSubscription | null = null;
 
         const startTracking = async () => {
+
             if (!isMounted) return;
 
             try {
-
                 const initial = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
-
                 if (!isMounted) {
                     return;
                 }
@@ -31,12 +30,12 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                 subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.Balanced,
-
                         // move 5 meters to trigger
                         distanceInterval: 5,
                         // update every 1 minute (60,000ms) to keep data accurate
                         timeInterval: 60000,
                     },
+
                     async (location) => {
                         try {
                             await UserLocationService.updateLocation(userId, {
@@ -56,7 +55,6 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         startTracking();
 
         return () => {
-
             // stop initial sync if unmounting
             isMounted = false;
             subscription?.remove();
@@ -74,9 +72,11 @@ export function useFriendsLocations(userId: number | undefined) {
             setLoading(false);
             return;
         }
-
         try {
             const data = await FriendLocationService.getFriendsLocations(userId);
+
+            console.log("Fetched friends count:", data.length);
+
             setFriends(data);
         } catch (err) {
             console.error("Error fetching friend locations:", err);
@@ -86,19 +86,14 @@ export function useFriendsLocations(userId: number | undefined) {
     };
 
     useEffect(() => {
-        if (userId === undefined) {
-            setFriends([]);
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
+        // Initial fetch
         fetchFriends();
 
-        // Polling: Update friend positions every 60 seconds (1 minute)
-        const interval = setInterval(fetchFriends, 60000);
+        // Single interval
+        const interval = setInterval(fetchFriends, 15000);
+
         return () => clearInterval(interval);
-    }, [userId]);
+    }, [userId]); // Only depend on userId
 
     return { friends, loading, refetch: fetchFriends };
 }
