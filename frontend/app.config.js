@@ -7,7 +7,7 @@ export default {
     slug: "Ames-After-Dark",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/aad_icon.png",
     scheme: "com.amesafterdark.app",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -23,7 +23,7 @@ export default {
 
     ios: { supportsTablet: true,
            bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
-     	   buildNumber: "3", //increment this from last successful upload
+     	   buildNumber: "4", //increment this from last successful upload
       	   infoPlist: {
              ITSAppUsesNonExemptEncryption: false
      	    }
