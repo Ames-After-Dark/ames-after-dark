@@ -31,9 +31,9 @@ export const BarCard = ({ item, isFav, onToggleFav, onPress }: BarCardProps) => 
                 </View>
                 <TouchableOpacity onPress={() => onToggleFav(String(item.id))}>
                     <FontAwesome
-                        name="star"
-                        size={22}
-                        color={isFav ? Theme.dark.tertiary : Theme.container.inactiveText}
+                        name={isFav ? "star" : "star-o"}
+                        size={20}
+                        color={isFav ? Theme.dark.tertiary : Theme.dark.secondary}
                     />
                 </TouchableOpacity>
             </View>

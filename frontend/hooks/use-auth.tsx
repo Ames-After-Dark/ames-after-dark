@@ -7,7 +7,7 @@ import { config } from "@/auth0.config"
 // Define the shape of our auth context
 type AuthContextType = {
   signIn: () => Promise<void>
-  signOut: () => Promise<void>
+  signOut: (forceClearLocal?: boolean) => Promise<void>
   isAuthenticated: boolean
   isLoading: boolean
   isSwitching: boolean,
@@ -28,7 +28,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 // Provider component that wraps the app
 //isSwitching will be used in future to prevent screen flashes
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { authorize, clearSession, user, error, getCredentials } = useAuth0()
+  const { authorize, clearSession, clearCredentials, user, error, getCredentials } = useAuth0()
   //set this to false to enable and uncomment user conditional in
   //useEffect below to enable auth
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -117,17 +117,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await refreshUserStatus()
         await fetchUsername()
       }
-    } catch (e) {
-      console.error("Login error:", e)
+    } catch (e: any) {
+      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+        console.log("User cancelled login")
+      } else {
+        console.error("Login error:", e)
+      }
     }
   }
 
-  const signOut = async () => {
+  const signOut = async (forceClearLocal = false) => {
     try {
-      await clearSession()
-      setUsername(null)
-    } catch (e) {
-      console.error("Logout error:", e)
+      if (forceClearLocal) {
+        if (clearCredentials) {
+          await clearCredentials();
+        }
+        setIsAuthenticated(false)
+        setUserStatus(null)
+        setUsername(null)
+        setCurrentUser(null)
+        setIsSwitching(false)
+        setIsLoading(false)
+      } else {
+        await clearSession({ federated: false })
+        setIsAuthenticated(false)
+        setUserStatus(null)
+        setUsername(null)
+        setCurrentUser(null)
+        setIsSwitching(false)
+        setIsLoading(false)
+      }
+    } catch (e: any) {
+      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+        console.log("User cancelled logout")
+      } else {
+        console.error("Logout error:", e)
+      }
+      // If force flag is set, clear local state even on error
+      if (forceClearLocal) {
+        setIsAuthenticated(false)
+        setUserStatus(null)
+        setUsername(null)
+        setCurrentUser(null)
+        setIsSwitching(false)
+        setIsLoading(false)
+      }
     }
   }
 

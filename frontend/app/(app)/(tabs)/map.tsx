@@ -1,50 +1,61 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Image } from 'react-native';
-import MapView from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import { Marker } from 'react-native-maps';
 
+// Context & Services
 import { useUser } from '@/context/user-context';
+import { apiFetch } from '@/services/apiClient';
+import { getUserFriends } from '@/services/userService';
 
+// Hooks
 import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
-
 import { useMapLocations } from '@/hooks/useMapLocations';
+import { useGeofence, GEOFENCE_RADIUS_METERS } from '@/hooks/useGeofence';
+
+// UI Components & Constants
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
-import { shouldForceErrorPage } from '@/utils/dev-error-pages';
-import { calculateDistance } from '@/utils/location-utils';
-
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
-import { FriendMarkers, GEOFENCE_RADIUS_METERS } from '@/components/map/friend-markers';
+import { FriendMarkers } from '@/components/map/friend-markers';
+import { calculateDistance } from '@/utils/location-utils';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 const ZOOM_THRESHOLD = 0.005;
 
 export default function MapScreen() {
-
-    // get global user data from context (for user ID and auth token)
-    const { user, isLoading: isUserLoading } = useUser();
-
+    const { user } = useUser();
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
-    const { locations, isLoading, error } = useMapLocations();
+    const { selectedId } = useLocalSearchParams<{ selectedId?: string }>();
 
+    // --- State ---
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
     const [currentDelta, setCurrentDelta] = useState(0.1);
     const [hasPermission, setHasPermission] = useState(false);
-
-    const { selectedId } = useLocalSearchParams<{ selectedId: string }>();
+    const [isGhostModeEnabled, setIsGhostModeEnabled] = useState(false);
+    const [isGhostModeLoading, setIsGhostModeLoading] = useState(false);
     const [mapReady, setMapReady] = useState(false);
     const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
     const currentUserId = user?.id;
 
-    useLocationTracker(currentUserId, hasPermission);
-    const { friends } = useFriendsLocations(currentUserId);
+    // --- Data Hooks ---
+    const { locations, isLoading, error } = useMapLocations();
+    const { friends, refetch: refetchFriends } = useFriendsLocations(currentUserId);
 
-    // handle permissions
+    // Track user location globally (updates DB)
+    useLocationTracker(currentUserId, hasPermission);
+
+    // --- Logic Hooks ---
+    const activeFriends = useGeofence(friends, locations);
+
+    // --- Effects ---
+
+    // 1. Request Permissions
     useEffect(() => {
         (async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
@@ -52,110 +63,122 @@ export default function MapScreen() {
         })();
     }, []);
 
-    // handle camera animation
-    useEffect(() => {
-
-        // only fly to user if: map is ready, we have permission, no bar is selected
-        if (!mapReady || !hasPermission || selectedId) return;
-
-        (async () => {
-            try {
-                const location = await Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced
-                });
-
-                setUserLocation(location.coords);
-
-                mapRef.current?.animateToRegion({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
-            } catch (err) {
-                console.error("Could not get initial location", err);
-            }
-        })();
-    }, [mapReady, hasPermission, selectedId]);
-
-    // keep userLocation in sync with the device position so any user marker stays accurate
+    // 2. Initial Map Focus & User Location Sync
     useEffect(() => {
         if (!hasPermission) return;
 
         let subscription: Location.LocationSubscription | null = null;
 
         (async () => {
-            try {
-                subscription = await Location.watchPositionAsync(
-                    {
-                        accuracy: Location.Accuracy.Balanced,
-                        distanceInterval: 5,
-                    },
-                    (location) => {
-                        setUserLocation(location.coords);
-                    }
-                );
-            } catch (err) {
-                console.error("Error watching user location", err);
-            }
-        })();
 
-        return () => {
-            subscription?.remove();
-        };
-    }, [hasPermission]);
+            // Get current pos once for initial zoom
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            setUserLocation(pos.coords);
 
-    // handle navigation to a specific bar from deep link/params
-    useEffect(() => {
-        if (!isLoading && locations.length > 0 && selectedId) {
-            const target = locations.find(loc => String(loc.id) === selectedId);
-            if (target) {
-                setSelectedLocation(target);
+            if (mapReady && !selectedId) {
                 mapRef.current?.animateToRegion({
-                    latitude: target.latitude - 0.001,
-                    longitude: target.longitude,
-                    latitudeDelta: 0.005,
-                    longitudeDelta: 0.005,
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
                 }, 1000);
             }
+
+            // Watch for movement
+            subscription = await Location.watchPositionAsync(
+                { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
+                (loc) => setUserLocation(loc.coords)
+            );
+        })();
+
+        return () => subscription?.remove();
+    }, [hasPermission, mapReady]);
+
+    // --- Helpers ---
+
+    const getUserBarName = () => {
+        if (!userLocation || !locations.length) return undefined;
+        const nearbyBar = locations.find((bar) => {
+            const distance = calculateDistance(
+                userLocation.latitude, userLocation.longitude,
+                bar.latitude, bar.longitude
+            );
+            return distance <= GEOFENCE_RADIUS_METERS;
+        });
+        return nearbyBar?.name;
+    };
+
+    const handleSelectSelf = () => {
+        if (!currentUserId || !userLocation) {
+            return;
         }
-    }, [selectedId, isLoading, locations]);
 
-    if (isLoading) return <MapSkeleton />;
+        // 1. Update the selection state for the Bottom Sheet
+        setSelectedLocation({
+            id: currentUserId,
+            name: user?.name || 'You',
+            profile_pic_url: user?.profile_pic_url,
+            isSelf: true,
+            atBarName: getUserBarName(),
+        });
 
-    if (error || shouldForceErrorPage('map')) {
-        return <ErrorState title="Unable to load map" subtitle={error || 'Please try again later.'} />;
-    }
+        // 2. Animate the map to the user's current location
+        mapRef.current?.animateToRegion({
+            latitude: userLocation.latitude - 0.001,
+            longitude: userLocation.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+        }, 1000);
+    };
+
+    const handleToggleGhostMode = async () => {
+        if (!currentUserId || isGhostModeLoading) return;
+
+        setIsGhostModeLoading(true);
+        const nextGhostValue = !isGhostModeEnabled;
+
+        try {
+            const allFriends = await getUserFriends(currentUserId);
+
+            await Promise.all(
+                allFriends.map((friend) =>
+                    apiFetch(`/userlocations/permissions/${friend.id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ownerId: currentUserId,
+                            enabled: !nextGhostValue, // If GhostMode true, Enabled is false
+                        }),
+                    })
+                )
+            );
+
+            // Give DB a moment to catch up
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await refetchFriends();
+
+            setIsGhostModeEnabled(nextGhostValue);
+
+            if (selectedLocation?.isSelf) {
+                setSelectedLocation((prev: any) => prev ? { ...prev, atBarName: getUserBarName() } : prev);
+            }
+        } catch (err) {
+            console.error('Failed to update ghost mode', err);
+        } finally {
+            setIsGhostModeLoading(false);
+        }
+    };
 
     const handleGoToBarPage = () => {
-
         if (!selectedLocation) return;
-
         router.push({ pathname: "/bars/[id]", params: { id: String(selectedLocation.id), backTo: "map" } });
         setSelectedLocation(null);
     };
 
-    const activeFriends = friends.filter(friend => {
-        const friendLoc = friend.user_locations;
-        if (!friendLoc) return false;
-
-        const friendLat = Number(friendLoc.latitude);
-        const friendLng = Number(friendLoc.longitude);
-        if (Number.isNaN(friendLat) || Number.isNaN(friendLng)) {
-            return false;
-        }
-
-        // check if the friend is within the radius of any bar
-        return locations.some(bar => {
-            const distance = calculateDistance(
-                friendLat,
-                friendLng,
-                bar.latitude,
-                bar.longitude
-            );
-            return distance <= GEOFENCE_RADIUS_METERS;
-        });
-    });
+    if (isLoading) return <MapSkeleton />;
+    if (error || shouldForceErrorPage('map')) {
+        return <ErrorState title="Unable to load map" subtitle={error || 'Please try again later.'} />;
+    }
 
     return (
         <View style={styles.container}>
@@ -164,18 +187,14 @@ export default function MapScreen() {
                     ref={mapRef}
                     style={styles.map}
                     onMapReady={() => setMapReady(true)}
-                    // showsUserLocation={hasPermission}
                     showsMyLocationButton={true}
                     showsPointsOfInterest={false}
-
-                    // Ames, IA
                     initialRegion={{
                         latitude: 42.03,
                         longitude: -93.63,
                         latitudeDelta: 0.1,
                         longitudeDelta: 0.05,
                     }}
-
                     onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
                     onPress={() => setSelectedLocation(null)}
                 >
@@ -189,6 +208,7 @@ export default function MapScreen() {
                     />
 
                     <FriendMarkers
+                        key={`friends-${activeFriends.length}`}
                         friends={activeFriends}
                         locations={locations}
                         onSelectFriend={setSelectedLocation}
@@ -202,13 +222,17 @@ export default function MapScreen() {
                                 longitude: userLocation.longitude,
                             }}
                             zIndex={999}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                handleSelectSelf();
+                            }}
                         >
-                            <View style={[styles.userMarkerContainer]}>
+                            <View style={styles.userMarkerContainer} pointerEvents="none">
                                 <Image
                                     source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
                                     style={styles.userAvatar}
                                 />
-                                <View style={[styles.userMarkerPulse]} />
+                                <View style={styles.userMarkerPulse} />
                             </View>
                         </Marker>
                     )}
@@ -220,6 +244,9 @@ export default function MapScreen() {
                 onClose={() => setSelectedLocation(null)}
                 onViewDetails={handleGoToBarPage}
                 onSelectLocation={setSelectedLocation}
+                isGhostModeEnabled={isGhostModeEnabled}
+                isGhostModeLoading={isGhostModeLoading}
+                onToggleGhostMode={handleToggleGhostMode}
             />
         </View>
     );

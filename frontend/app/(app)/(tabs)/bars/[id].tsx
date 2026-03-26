@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -11,25 +11,63 @@ import ErrorState from "@/components/ui/error-state";
 
 import {
   BarHeader,
-  BarStats, InfoSection, BottomCard, BarMapModal
+  // BarStats, 
+  InfoSection,
+  BottomCard,
+  BarMapModal
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFavorites } from '@/context/FavoritesContext';
 
 export default function BarProfile() {
   const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: string }>();
   const router = useRouter();
-  const { bar, loading } = useBarDetail(id);
+  // const { bar, loading } = useBarDetail(id);
 
   const [mapData, setMapData] = useState<MapLocation | null>(null);
   const [isMapVisible, setIsMapVisible] = useState(false);
 
   const toggleMapOverlay = () => setIsMapVisible(!isMapVisible);
 
-  // Inside app/bars/[id].tsx
+
+  const { bar, loading, refetch } = useBarDetail(id);
+  const [refreshing, setRefreshing] = useState(false);
+  // const [mapData, setMapData] = useState<MapLocation | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (refetch) refetch();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+
+      if (refetch) {
+        await refetch();
+      }
+
+      if (id) {
+        const data = await fetchLocationById(id);
+        setMapData(data);
+      }
+
+      console.log("Bar page refreshed");
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      setRefreshing(false);
+    }
+
+  }, [id, refetch, setMapData]);
 
   const ProfileSkeleton = () => (
     <View style={styles.container}>
+
       {/* Cover Photo */}
       <Skeleton width="100%" height={180} borderRadius={0} />
 
@@ -42,13 +80,6 @@ export default function BarProfile() {
         </View>
       </View>
 
-      {/* Stats Row */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 20 }}>
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-        <Skeleton width={80} height={40} />
-      </View>
-
       {/* Section Blocks */}
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <Skeleton width="100%" height={100} borderRadius={12} />
@@ -57,13 +88,43 @@ export default function BarProfile() {
     </View>
   );
 
+  const { isFavorited, toggleFavorite } = useFavorites();
+  const barIdNumeric = Number(id);
+
   const navigateToInternalMap = () => {
     setIsMapVisible(false);
 
     router.push({
       pathname: "/(app)/(tabs)/map",
-      params: { selectedId: id }
+      params: { selectedId: id, focusToken: String(Date.now()) }
     });
+  };
+
+  const openInAppleMaps = async () => {
+    if (!mapData?.latitude || !mapData?.longitude) {
+      Alert.alert("Location unavailable", "We couldn't find coordinates for this location yet.");
+      return;
+    }
+
+    const lat = mapData.latitude;
+    const lng = mapData.longitude;
+    const query = encodeURIComponent(bar?.name ?? "Bar");
+    const appleMapsUrl = `https://maps.apple.com/?ll=${lat},${lng}&q=${query}`;
+
+    try {
+      await Linking.openURL(appleMapsUrl);
+    } catch {
+      Alert.alert("Unable to open Apple Maps", "Please try again in a moment.");
+    }
+  };
+
+  const openLocationModal = () => {
+    if (!mapData || !Number.isFinite(mapData.latitude) || !Number.isFinite(mapData.longitude)) {
+      Alert.alert("Location unavailable", "This location does not have map coordinates yet.");
+      return;
+    }
+
+    setIsMapVisible(true);
   };
 
   useEffect(() => {
@@ -99,13 +160,37 @@ export default function BarProfile() {
           <TouchableOpacity onPress={handleBack} style={{ paddingHorizontal: 12 }}>
             <FontAwesome name="chevron-left" size={20} color={Theme.dark.secondary} />
           </TouchableOpacity>
+        ),
+
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => toggleFavorite(barIdNumeric)}
+            style={{ paddingHorizontal: 16 }}
+          >
+            <FontAwesome
+              name={isFavorited(barIdNumeric) ? "star" : "star-o"}
+              size={22}
+              color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
+            />
+          </TouchableOpacity>
         )
       }} />
 
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Theme.dark.primary}
+            colors={[Theme.dark.primary]}
+          />
+        }
+      >
         <BarHeader bar={bar} assets={assets} openNow={openNow} />
 
-        <BarStats bar={bar} />
+        {/* <BarStats bar={bar} /> */}
 
         <TouchableOpacity
           style={styles.menuButton}
@@ -121,7 +206,7 @@ export default function BarProfile() {
           <BottomCard
             title="Location"
             image={assets.map}
-            onPress={() => setIsMapVisible(true)}
+            onPress={openLocationModal}
           />
           <BottomCard
             title="Gallery"
@@ -135,6 +220,7 @@ export default function BarProfile() {
         visible={isMapVisible}
         onClose={toggleMapOverlay}
         onOpenInMaps={navigateToInternalMap}
+        onOpenInAppleMaps={openInAppleMaps}
         mapData={mapData}
         barName={bar?.name}
       />
