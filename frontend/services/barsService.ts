@@ -396,12 +396,11 @@ export async function getBarById(id: string): Promise<Bar | null> {
     if (!location) return null;
 
     // Fetch events, deals, and menu items for this location
-    const [events, deals, menuItems, menuItemTypes, hoursResponse] = await Promise.all([
+    const [events, deals, menuItems, menuItemTypes] = await Promise.all([
       apiFetch("/events") as Promise<EventApiResponse[]>,
       apiFetch("/deals") as Promise<DealApiResponse[]>,
       apiFetch(`/menuitems/location/${id}`) as Promise<MenuItemApiResponse[]>,
       apiFetch("/menuitems/types") as Promise<MenuItemTypeApiResponse[]>,
-      apiFetch(`/locationhours/${id}`) as Promise<LocationHoursApiResponse>,
     ]);
 
     const locationEvents = events.filter(
@@ -446,26 +445,11 @@ export async function getBarById(id: string): Promise<Bar | null> {
       items,
     }));
 
-    const schedule = (
-      Array.isArray(hoursResponse?.location_hours) && hoursResponse.location_hours.length
-        ? hoursResponse.location_hours
-        : Array.isArray((location as any).location_hours)
-          ? ((location as any).location_hours as LocationHourRow[])
-          : []
-    ) as LocationHourRow[];
-
-    const { openingTime, closingTime } = deriveDisplayHours(
-      schedule,
-      hoursResponse?.timezone || "America/Chicago"
-    );
-
     return {
       id: String(location.id),
       name: location.name,
       description: location.description,
       open: location.open,
-      openingTime,
-      closingTime,
       dealsScheduled,
       eventsScheduled,
       menu: {

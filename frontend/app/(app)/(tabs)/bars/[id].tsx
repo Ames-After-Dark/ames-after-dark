@@ -5,7 +5,7 @@ import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { fetchLocationById, MapLocation } from "@/services/locationService";
-import { getNow, isActive, isBarOpen } from "@/utils/schedule";
+import { getNow, isActive } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
 
@@ -140,17 +140,7 @@ export default function BarProfile() {
   const activeDeals = bar.dealsScheduled?.filter(d => isActive(d.rule, now)) ?? [];
   const activeEvents = bar.eventsScheduled?.filter(e => isActive(e.rule, now)) ?? [];
 
-  const openNow = isBarOpen(
-    {
-      openingTime: bar.openingTime,
-      closingTime: bar.closingTime,
-      status: bar.status ?? (bar.open ? "Open" : "Closed"),
-    },
-    now
-  );
-  const statusText = openNow
-    ? (bar.closingTime ? `Open • Closes at ${bar.closingTime}` : "Open")
-    : (bar.openingTime ? `Closed • Opens at ${bar.openingTime}` : "Closed");
+  const openNow = bar.open ?? false;
 
   const handleBack = () => {
     if (backTo === "home") router.replace("/(app)/(tabs)/tonight");
@@ -198,7 +188,7 @@ export default function BarProfile() {
           />
         }
       >
-        <BarHeader bar={bar} assets={assets} openNow={openNow} statusText={statusText} />
+        <BarHeader bar={bar} assets={assets} openNow={openNow} />
 
         {/* <BarStats bar={bar} /> */}
 

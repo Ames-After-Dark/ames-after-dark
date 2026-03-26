@@ -343,3 +343,20 @@ export async function deleteAccount(accessToken: string): Promise<{ message: str
     throw error;
   }
 }
+
+export const toggleGhostMode = async (currentUserId: number, isGhostModeNow: boolean) => {
+  const allFriends = await getUserFriends(currentUserId);
+  const nextVisibility = !isGhostModeNow;
+
+  return Promise.all(
+    allFriends.map((friend) =>
+      apiFetch(`/userlocations/permissions/${friend.id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ownerId: currentUserId,
+          enabled: nextVisibility,
+        }),
+      })
+    )
+  );
+}
