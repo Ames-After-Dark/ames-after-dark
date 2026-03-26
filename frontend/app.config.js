@@ -38,7 +38,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.anonymous.amesafterdark"
+      package: "com.amesafterdark.app"
     },
 
     web: {
@@ -48,16 +48,17 @@ export default {
 
     plugins: [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          image: "./assets/images/splash-icon.png",
-          imageWidth: 200,
-          resizeMode: "contain",
-          backgroundColor: "#ffffff",
-          dark: { backgroundColor: "#000000" }
-        }
-      ],
+
+      ["react-native-auth0",{
+        domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN
+      }],
+      ["expo-splash-screen",{
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#ffffff",
+        dark: { backgroundColor: "#000000" }
+      }],
       "expo-web-browser"
     ],
 
