@@ -320,90 +320,10 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
 
   // Check if role name is strictly equal to "admin" or "Admin"
   const isAdmin = user.roles?.name?.toLowerCase() === 'admin';
-  const manageableLocations = user.location_admins.map(la => la.locations);
+  const manageableLocations = user.location_admins.map(la => la.locations.id);
 
   return {
-    isAdmin,
-    manageableLocations
-  };
-};
-
-exports.getUserProfileFavoriteDrinkOptions = async () => {
-  return await prisma.drinks.findMany({
-    select: {
-      id: true,
-      name: true,
-      image_url: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-};
-
-exports.getUserProfileFavoriteDrinkOptionsById = async (id) => {
-  return await prisma.drinks.findUnique({
-    where: { id: Number(id) },
-    select: {
-      id: true,
-      name: true,
-      image_url: true,
-    }
-  });
-};
-
-exports.getUserProfilePhotoOptions = async () => {
-  return await prisma.user_profile_photos.findMany({
-    select: {
-      id: true,
-      name: true,
-      image_url: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
-};
-
-exports.getUserProfilePhotoOptionsById = async (id) => {
-  return await prisma.user_profile_photos.findUnique({
-    where: { id: Number(id) },
-    select: {
-      id: true,
-      name: true,
-      image_url: true,
-    }
-  });
-};
-
-/**
- * Get the roles and admin status for a user based on their Auth0 ID
- * @param {string} auth0Id - The Auth0 user ID (sub claim from JWT)
- * @returns {Promise<Object>} An object containing user roles, an isAdmin boolean, and manageable locations
- */
-exports.getUserRolesByAuth0Id = async (auth0Id) => {
-  const user = await prisma.users.findUnique({
-    where: { uid: auth0Id },
-    include: {
-      roles: true,
-      location_admins: {
-        include: {
-          locations: true
-        }
-      }
-    }
-  });
-
-  if (!user) {
-    return null;
-  }
-
-  // Check if role name is strictly equal to "admin" or "Admin"
-  const isAdmin = user.roles?.name?.toLowerCase() === 'admin';
-  const manageableLocations = user.location_admins.map(la => la.locations);
-
-  return {
-    isAdmin,
-    manageableLocations
+    role: isAdmin,
+    location_ids: manageableLocations
   };
 };
