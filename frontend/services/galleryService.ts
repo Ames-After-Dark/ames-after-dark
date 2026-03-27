@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import { getLatestWeekendAlbums as fetchSmugmugAlbums, getPhotosByAlbumUri as fetchSmugmugPhotos, Photo, Album } from "@/services/photosService";
 
-const BACKEND_URL = Constants.expoConfig?.extra?.BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 if (!BACKEND_URL) {
   console.warn("Missing BACKEND_URL in app config — gallery will not load");
@@ -17,7 +17,7 @@ export { Photo, Album };
 export async function getLatestWeekendAlbums(): Promise<Album[]> {
   // Code below is used for Cloudflare R2 fetch, but currently disabled until Cloudflare is ready.
   try {
-    const url = `${BACKEND_URL}/api/r2/albums`;
+    const url = `${BACKEND_URL}/r2/albums`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
     });
@@ -37,7 +37,7 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
  */
 export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
   try {
-    const url = `${BACKEND_URL}/api/r2/photos?prefix=${encodeURIComponent(albumUri)}`;
+    const url = `${BACKEND_URL}/r2/photos?prefix=${encodeURIComponent(albumUri)}`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
     });
