@@ -14,7 +14,8 @@ import {
   // BarStats, 
   InfoSection,
   BottomCard,
-  BarMapModal
+  BarMapModal,
+  BarGalleryModal
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,12 @@ export default function BarProfile() {
 
   const toggleMapOverlay = () => setIsMapVisible(!isMapVisible);
 
+  const [isGalleryVisible, setIsGalleryVisible] = useState(false);
+  const toggleGalleryOverlay = () => setIsGalleryVisible(!isGalleryVisible);
+  const navigateToGallery = () => {
+    setIsGalleryVisible(false);
+    router.push("/gallery");
+  }
 
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
@@ -211,7 +218,7 @@ export default function BarProfile() {
           <BottomCard
             title="Gallery"
             image={assets.gallery}
-            onPress={() => router.push("/gallery")}
+            onPress={() => setIsGalleryVisible(true)}
           />
         </View>
       </ScrollView>
@@ -222,6 +229,14 @@ export default function BarProfile() {
         onOpenInMaps={navigateToInternalMap}
         onOpenInAppleMaps={openInAppleMaps}
         mapData={mapData}
+        barName={bar?.name}
+      />
+
+      <BarGalleryModal
+        visible={isGalleryVisible}
+        onClose={toggleGalleryOverlay}
+        onOpenGallery={navigateToGallery}
+        assets={assets}
         barName={bar?.name}
       />
 

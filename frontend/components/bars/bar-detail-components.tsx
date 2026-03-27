@@ -24,6 +24,14 @@ interface BarMapModalProps {
   barName?: string;
 }
 
+interface BarGalleryModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onOpenGallery: () => void;
+  assets: any;
+  barName?: string;
+}
+
 export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <TouchableWithoutFeedback onPress={onClose}>
@@ -82,6 +90,39 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps,
                 <Text style={styles.loadingText}>Locating {barName}...</Text>
               </View>
             )}
+          </View>
+        </TouchableWithoutFeedback>
+      </View>
+    </TouchableWithoutFeedback>
+  </Modal>
+);
+
+export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barName }: BarGalleryModalProps) => (
+  <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <TouchableWithoutFeedback onPress={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={() => { }}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.closeIconBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <FontAwesome name="close" size={16} color="white" />
+            </TouchableOpacity>
+
+            <Image source={assets?.gallery || assets?.cover} style={styles.galleryPreviewImage} />
+
+            <View style={styles.overlayFooter}>
+              <Text style={styles.galleryModalTitle}>{barName} Gallery</Text>
+              <Text style={styles.galleryModalText}>
+                Check out the latest photos of {barName}! Tap below to explore the full gallery.
+              </Text>
+
+              <View style={styles.primaryActionsRow}>
+                <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenGallery}>
+                  <FontAwesome name="image" size={18} color="white" style={{ marginRight: 8 }} />
+                  <Text style={styles.openInMapsText}>Enter Gallery</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
           </View>
         </TouchableWithoutFeedback>
       </View>
@@ -321,5 +362,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     fontWeight: '500',
+  },
+  galleryPreviewImage: {
+    flex: 1,
+    width: '100%',
+    resizeMode: 'cover',
+  },
+  galleryModalTitle: {
+    color: Theme.container.titleText,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  galleryModalText: {
+    color: Theme.container.titleText,
+    fontSize: 14,
+    opacity: 0.8,
+    marginBottom: 15,
   },
 });
