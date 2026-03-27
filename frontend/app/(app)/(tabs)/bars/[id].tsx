@@ -8,13 +8,15 @@ import { fetchLocationById, MapLocation } from "@/services/locationService";
 import { getNow, isActive } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
+import { getLatestWeekendAlbums, Album } from "@/services/galleryService";
 
 import {
   BarHeader,
   // BarStats, 
   InfoSection,
   BottomCard,
-  BarMapModal
+  BarMapModal,
+  BarGalleryModal
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,10 +32,55 @@ export default function BarProfile() {
 
   const toggleMapOverlay = () => setIsMapVisible(!isMapVisible);
 
+  const [isGalleryVisible, setIsGalleryVisible] = useState(false);
+  const toggleGalleryOverlay = () => setIsGalleryVisible(!isGalleryVisible);
+  const [latestGalleryImage, setLatestGalleryImage] = useState<string | null>(null);
+  const [specificAlbum, setSpecificAlbum] = useState<Album | null>(null);
+  const navigateToGallery = () => {
+    setIsGalleryVisible(false);
+    if (specificAlbum) {
+      router.push(`/gallery/${id}?albumUri=${encodeURIComponent(specificAlbum.albumUri)}&barName=${encodeURIComponent(bar?.name || '')}`);
+    } else {
+      router.push("/gallery");
+    }
+  }
 
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
   // const [mapData, setMapData] = useState<MapLocation | null>(null);
+
+  useEffect(() => {
+    const fetchLatestGalleryImage = async () => {
+      try {
+        const albums = await getLatestWeekendAlbums();
+
+        if (albums && albums.length > 0) {
+          const nameMap: Record<string, string> = {
+            "Cy's Roost": "Cy's",
+            "Outlaws": "Outlaw's",
+            "Sips": "Sip's",
+            "Paddy's Irish Pub": "Paddy's"
+          };
+          const searchName = nameMap[bar?.name || ""] || bar?.name;
+          const matchingAlbum = albums.find(a => a.barName === searchName);
+
+          if (matchingAlbum) {
+            setSpecificAlbum(matchingAlbum);
+            setLatestGalleryImage(matchingAlbum.coverUrl);
+          } else {
+            setSpecificAlbum(null);
+            setLatestGalleryImage(null);
+          }
+        }
+      } catch (err) {
+        console.log("Could not fetch latest gallery image, falling back to bar cover.");
+      }
+    };
+    
+    if (bar?.name) {
+      fetchLatestGalleryImage();
+    }
+  }, [bar?.name]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -211,7 +258,7 @@ export default function BarProfile() {
           <BottomCard
             title="Gallery"
             image={assets.gallery}
-            onPress={() => router.push("/gallery")}
+            onPress={() => setIsGalleryVisible(true)}
           />
         </View>
       </ScrollView>
@@ -223,6 +270,16 @@ export default function BarProfile() {
         onOpenInAppleMaps={openInAppleMaps}
         mapData={mapData}
         barName={bar?.name}
+      />
+
+      <BarGalleryModal
+        visible={isGalleryVisible}
+        onClose={toggleGalleryOverlay}
+        onOpenGallery={navigateToGallery}
+        assets={assets}
+        barName={bar?.name}
+        latestImage={latestGalleryImage}
+        hasSpecificAlbum={!!specificAlbum}
       />
 
     </>
