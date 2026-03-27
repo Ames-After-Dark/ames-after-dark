@@ -1,86 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    Image,
-    TouchableOpacity,
-    ScrollView,
-    StyleSheet,
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    TextInput,
-    TouchableWithoutFeedback,
-    Animated,
-    Alert
-} from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { useAuth } from '@/hooks/use-auth';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 
+import { useAuth } from '@/hooks/use-auth';
+import { Theme } from '@/constants/theme';
+import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+
+import { useProfileActions } from '@/hooks/useProfileActions';
 import {
-    acceptFriendRequest,
-    blockFriend,
-    declineFriendRequest,
     getUserById,
     getUserFriends,
     getMutualFriends,
-    removeFriend,
-    sendFriendRequest
+    getRecommendedFriends,
+    getPendingFriendRequests,
+    updateBioByAuth,
 } from '@/services/userService';
-import { shouldForceErrorPage } from '@/utils/dev-error-pages';
-import ErrorState from '@/components/ui/error-state';
-import { Theme } from '@/constants/theme';
+import { apiFetch } from '@/services/apiClient';
+
+import { ProfileHeader } from '@/components/profile/ProfileHeader';
+import { ProfileGrid } from '@/components/profile/ProfileGrid';
+import { ProfileActions } from '@/components/profile/ProfileActions';
+import { ProfileListModal } from '@/components/profile/ProfileListModal';
+import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 
 export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { userStatus } = useAuth();
-    const [user, setUser] = useState<any | null>(null);
+
+    const { currentUser, userStatus, getAccessToken } = useAuth();
+
+    const isMe = useMemo(() => {
+        return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
+    }, [id, currentUser, userStatus]);
+
+    const toastTranslateY = useRef(new Animated.Value(-20)).current;
+    const toastOpacity = useRef(new Animated.Value(0)).current;
+
+    const [user, setUser] = useState<any>(null);
     const [friends, setFriends] = useState<Friend[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
-
-    // Modal State
-    const [isModalVisible, setModalVisible] = useState(false);
-    const [modalTitle, setModalTitle] = useState('');
-    const [friendsToShow, setFriendsToShow] = useState<Friend[]>([]);
     const [mutualFriends, setMutualFriends] = useState<Friend[]>([]);
-    const [modalSearchQuery, setModalSearchQuery] = useState('');
-
-    // Animations
-    const scaleAnim = useState(new Animated.Value(1))[0];
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
-    const toastOpacity = useState(new Animated.Value(0))[0];
-    const toastTranslateY = useState(new Animated.Value(-20))[0];
-
-    const [isFriend, setIsFriend] = useState(false);
-    const [requestSent, setRequestSent] = useState(false);
-    const [hasIncomingRequest, setHasIncomingRequest] = useState(false);
-    const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
-    const [isBlocked, setIsBlocked] = useState(false);
-    const [friendActionLoading, setFriendActionLoading] = useState(false);
-
     const [toastMessage, setToastMessage] = useState('');
-    const [toastIcon, setToastIcon] = useState('check'); // Default icon name
+    const [toastIcon, setToastIcon] = useState('check');
+    const [isRespondModalVisible, setIsRespondModalVisible] = useState(false);
+
+    const [recommendedFriends, setRecommendedFriends] = useState<Friend[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+
+    const [relationship, setRelationship] = useState({
+        isFriend: false,
+        isBlocked: false,
+        sentRequest: false,
+        receivedRequest: false,
+    });
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [isBioModalVisible, setIsBioModalVisible] = useState(false);
+    const [bioText, setBioText] = useState('');
+
+    const [modalConfig, setModalConfig] = useState({
+        visible: false,
+        title: '',
+        data: [] as any[]
+    });
 
     const triggerToast = (message: string, icon: string = 'check') => {
-
         setToastMessage(message);
         setToastIcon(icon);
         setShowToast(true);
-
-        // Reset position just in case
         toastTranslateY.setValue(-20);
 
-        // Animate In
         Animated.parallel([
             Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
             Animated.spring(toastTranslateY, { toValue: 50, friction: 5, useNativeDriver: true }),
         ]).start();
 
-        // Animate Out after delay
         setTimeout(() => {
             Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
                 setShowToast(false);
@@ -88,608 +86,363 @@ export default function FriendProfileScreen() {
         }, 2500);
     };
 
-    const handlePoke = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const {
+        handlePoke,
+        handleAdd,
+        handleConfirmBlock,
+        handleUnblock,
+        handlePendingDecision,
+        handleRemove,
+        handleCancelRequest,
+        loading: actionLoading
+    } = useProfileActions(triggerToast);
 
-        Animated.sequence([
-            Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-            Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-        ]).start();
+    const fetchProfile = async () => {
 
-        // Trigger the dynamic toast
-        triggerToast(`You poked ${user?.name?.split(' ')[0]}!`, 'hand-o-right');
-    };
+        if (!id || !userStatus?.userId) {
 
-    const handleAddFriend = async () => {
-        try {
-            const friendId = Number(id);
-            if (!friendId || Number.isNaN(friendId)) {
-                Alert.alert("Error", "Invalid friend ID.");
-                return;
-            }
-
-            if (!userStatus?.userId) {
-                Alert.alert("Error", "You must be logged in to add friends.");
-                return;
-            }
-
-            if (friendId === userStatus.userId) {
-                Alert.alert("Error", "You can't add yourself as a friend.");
-                return;
-            }
-
-            await sendFriendRequest(userStatus.userId, friendId);
-
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            Animated.sequence([
-                Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-                Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-            ]).start();
-
-            setRequestSent(true);
-
-            // Use the toast instead of Alert
-            triggerToast("Friend Request Sent!", 'check');
-
-        } catch (err) {
-            console.error("Failed to add friend:", err);
-            // Keep Alert for errors only
-            Alert.alert("Error", "Could not send friend request.");
-        }
-    };
-
-    const handleRemoveFriend = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid friend ID.");
+            setLoading(false);
             return;
         }
 
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Remove friend",
-            `Remove ${user?.name || 'this user'} from your friends list?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Remove",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await removeFriend(userStatus.userId!, friendId);
-                            setIsFriend(false);
-                            triggerToast("Friend removed", "user-times");
-                        } catch (err) {
-                            console.error("Failed to remove friend:", err);
-                            Alert.alert("Error", "Could not remove friend.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleBlockFriend = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid friend ID.");
-            return;
-        }
-
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Block user",
-            `Block ${user?.name || 'this user'}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Block",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await blockFriend(userStatus.userId!, friendId);
-                            setIsFriend(false);
-                            setIsBlocked(true);
-                            setRequestSent(false);
-                            triggerToast("User blocked", "ban");
-                        } catch (err) {
-                            console.error("Failed to block user:", err);
-                            Alert.alert("Error", "Could not block user.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleUnblockUser = async () => {
-        const friendId = Number(id);
-        if (!friendId || Number.isNaN(friendId)) {
-            Alert.alert("Error", "Invalid user ID.");
-            return;
-        }
-
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
-
-        Alert.alert(
-            "Unblock user",
-            `Unblock ${user?.name || 'this user'}?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Unblock",
-                    onPress: async () => {
-                        try {
-                            setFriendActionLoading(true);
-                            await removeFriend(userStatus.userId!, friendId);
-                            setIsBlocked(false);
-                            setRequestSent(false);
-                            triggerToast("User unblocked", "unlock");
-                        } catch (err) {
-                            console.error("Failed to unblock user:", err);
-                            Alert.alert("Error", "Could not unblock user.");
-                        } finally {
-                            setFriendActionLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handlePendingDecision = async (friendId: number, action: 'accept' | 'decline' | 'block') => {
-        if (!userStatus?.userId) {
-            Alert.alert("Error", "You must be logged in.");
-            return;
-        }
+        setLoading(true);
+        setError(null);
 
         try {
-            setFriendActionLoading(true);
 
-            if (action === 'accept') {
-                await acceptFriendRequest(userStatus.userId, friendId);
-                setIsFriend(true);
-                triggerToast('Request accepted', 'check');
-            } else if (action === 'decline') {
-                await declineFriendRequest(userStatus.userId, friendId);
-                triggerToast('Request declined', 'times');
+            const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
+                getUserById(id),
+                getUserFriends(id),
+                isMe ? Promise.resolve([]) : getMutualFriends(userStatus.userId, id),
+                isMe ? getPendingFriendRequests(userStatus.userId) : Promise.resolve([]),
+            ]);
+
+            const formattedPending = (pendingRequestsData || []).map(req => {
+                const isOutgoing = req.user_id_1 === userStatus.userId;
+                const friend = isOutgoing
+                    ? req.users_friendships_user_id_2Tousers
+                    : req.users_friendships_user_id_1Tousers;
+
+                return {
+                    id: friend?.id,
+                    name: friend?.name || 'Unknown User',
+                    username: friend?.username || 'unknown',
+                    avatar: friend?.avatar,
+                    type: isOutgoing ? 'SENT' : 'RECEIVED'
+                };
+            });
+
+            setUser(userData);
+            setFriends(friendsData || []);
+            setMutualFriends(mutualData || []);
+            setPendingRequests(formattedPending);
+
+            if (isMe) {
+
+                const recs = await getRecommendedFriends(userStatus.userId);
+                setRecommendedFriends(recs || []);
+
+                setRelationship({
+                    isFriend: true,
+                    isBlocked: false,
+                    sentRequest: false,
+                    receivedRequest: false,
+                });
             } else {
-                await blockFriend(userStatus.userId, friendId);
-                setIsBlocked(true);
-                triggerToast('User blocked', 'ban');
-            }
+                const myFriends = await getUserFriends(userStatus.userId);
+                const isFriend = myFriends.some(f => f.id.toString() === id);
+                const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
+                const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
 
-            setHasIncomingRequest(false);
-            setRequestSent(false);
+                setRelationship({
+                    isFriend,
+                    isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
+                    sentRequest: Boolean(incoming?.friendship_status_id === 1),
+                    receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
+                });
+            }
         } catch (err) {
-            console.error(`Failed to ${action} friend request:`, err);
-            Alert.alert('Error', `Could not ${action} request.`);
+            console.error(err);
+            setError('Unable to load account and friends right now.');
         } finally {
-            setFriendActionLoading(false);
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (id && userStatus?.userId) {
-            const userId = Number(id);
+        fetchProfile();
+    }, [id, isMe]);
 
-            // Redirect to account page if viewing own profile
-            if (userId === userStatus.userId) {
-                router.push('./account');
-                return;
+    useEffect(() => {
+        if (!modalConfig.visible) return;
+
+        if (modalConfig.title === 'Friends') {
+            setModalConfig(prev => ({ ...prev, data: friends }));
+            return;
+        }
+
+        if (modalConfig.title === 'Pending Requests') {
+            setModalConfig(prev => ({ ...prev, data: pendingRequests }));
+            return;
+        }
+
+        if (modalConfig.title === 'Mutual Friends') {
+            setModalConfig(prev => ({ ...prev, data: mutualFriends }));
+        }
+    }, [modalConfig.visible, modalConfig.title, friends, pendingRequests, mutualFriends]);
+
+    const status = useMemo(() => {
+        if (isMe) return 'SELF';
+        if (relationship.isBlocked) return 'BLOCKED';
+        if (relationship.isFriend) return 'FRIEND';
+        if (relationship.sentRequest) return 'PENDING_SENT';
+        if (relationship.receivedRequest) return 'PENDING_RECEIVED';
+        return 'STRANGER';
+    }, [relationship, isMe]);
+
+    const hasForcedError = shouldForceErrorPage(isMe ? 'account' : 'friendProfile');
+
+    const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
+        const friendId = targetId || Number(id);
+        const myId = userStatus!.userId!;
+        const isRecommendedAdd = type === 'primary' && typeof targetId === 'number' && isMe;
+
+        const targetName = targetNameFromModal || user?.name || "this user";
+
+        if (type === 'poke') {
+            handlePoke(user.name);
+        } else if (type === 'primary') {
+
+            if (status === 'STRANGER' || isRecommendedAdd) {
+
+                await handleAdd(
+                    myId,
+                    friendId,
+                    () => {
+                        triggerToast(`Friend request sent to ${targetName}`);
+                    },
+                    fetchProfile
+                );
             }
 
-            const fetchUserData = async () => {
-                setLoading(true);
-                try {
-                    // Check if already friends locally first
-                    const myFriends = await getUserFriends(userStatus.userId!);
-                    const isAlreadyFriend = myFriends.some(f => f.id.toString() === id);
-                    setIsFriend(isAlreadyFriend);
+            if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
 
-                    // Fetch profile data
-                    const [userData, friendsData, mutualData] = await Promise.all([
-                        getUserById(id),
-                        getUserFriends(id),
-                        getMutualFriends(userStatus.userId!, id)
-                    ]);
+            if (status === 'BLOCKED') {
+                await handleUnblock(myId, friendId, fetchProfile);
+            }
+        } else if (type === 'respond') {
+            setIsRespondModalVisible(true);
+        } else if (type === 'accept' || type === 'decline') {
+            await handlePendingDecision(myId, friendId, type, fetchProfile);
+            setIsRespondModalVisible(false);
+        } else if (type === 'block') {
+            handleConfirmBlock(myId, friendId, user.name, fetchProfile);
+            setIsRespondModalVisible(false);
+        } else if (type === 'remove') {
+            handleRemove(myId, friendId, targetName, fetchProfile);
+        } else if (type === 'cancel') {
+            Alert.alert(
+                "Cancel Request",
+                `Are you sure you want to cancel your request to ${targetName}?`,
+                [
+                    { text: "Back", style: "cancel" },
+                    {
+                        text: "Yes",
+                        style: "destructive",
+                        onPress: async () => {
+                            setPendingRequests(prev => prev.filter(req => req.id !== friendId));
+                            setModalConfig(prev => {
+                                if (prev.title !== 'Pending Requests') return prev;
+                                return {
+                                    ...prev,
+                                    data: prev.data.filter((req: any) => req.id !== friendId)
+                                };
+                            });
 
-                    const outgoingRelation = userData?.friendships_friendships_user_id_1Tousers?.find(
-                        (relation: any) => relation.user_id_2 === userStatus.userId
-                    );
-                    const incomingRelation = userData?.friendships_friendships_user_id_2Tousers?.find(
-                        (relation: any) => relation.user_id_1 === userStatus.userId
-                    );
-                    const relation = outgoingRelation || incomingRelation;
-                    const isOutgoingPending = outgoingRelation?.friendship_status_id === 1;
-                    const isIncomingPending = incomingRelation?.friendship_status_id === 1;
-
-                    setIsBlocked(relation?.friendship_status_id === 4);
-                    setRequestSent(Boolean(isOutgoingPending));
-                    setHasIncomingRequest(Boolean(isIncomingPending));
-
-                    console.log('User data fetched:', {
-                        id: userData?.id,
-                        username: userData?.username,
-                        bio: userData?.bio,
-                        hasBio: !!userData?.bio
-                    });
-
-                    setUser(userData);
-                    setFriends(friendsData || []);
-                    setMutualFriends(mutualData || []);
-                } catch (err) {
-                    setError(err instanceof Error ? err : new Error('Failed to fetch user data'));
-                } finally {
-                    setLoading(false);
-                }
-            };
-            fetchUserData();
+                            await handleCancelRequest(myId, friendId, targetName, fetchProfile);
+                        }
+                    }
+                ]
+            );
         }
-    }, [id, userStatus?.userId]);
+    };
 
-    // Show loading if userStatus hasn't loaded yet
-    if (loading || !userStatus?.userId) return (
-        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={Theme.dark.secondary || 'white'} />
-        </View>
-    );
+    if (loading) {
+        return <ProfileSkeleton />;
+    }
 
-    if (error || shouldForceErrorPage('friendProfile')) {
-        return (
-            <View style={styles.container}>
-                <ErrorState title="Unable to load friend profile" subtitle="Please try again later." />
-            </View>
-        );
+    if (!user || hasForcedError) {
+        return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
+    }
+
+    if (error || hasForcedError) {
+        return <ErrorState title="Unable to load account" subtitle={error || 'Please try again later.'} />;
     }
 
     return (
         <View style={styles.container}>
-            {/* Custom Toast Notification */}
-            {showToast && (
-                <Animated.View style={[
-                    styles.toastContainer,
-                    { opacity: toastOpacity, transform: [{ translateY: toastTranslateY }] }
-                ]}>
-                    {/* Dynamic Icon */}
-                    <FontAwesome name={toastIcon as any} size={16} color={Theme.dark.white} />
 
-                    {/* Dynamic Message */}
+            <Stack.Screen
+                options={{
+                    headerShown: !isMe,
+                    headerShadowVisible: false,
+                }}
+            />
+
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ProfileHeader
+                    user={user}
+                    isMe={isMe}
+                    isEditing={isEditing}
+                    onRequestEdit={() => setIsEditing(true)}
+                    onSave={() => setIsEditing(false)}
+                    friendCount={friends.length}
+                    mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
+                    onPressFriends={() => setModalConfig({
+                        visible: true,
+                        title: 'Friends',
+                        data: friends
+                    })}
+                    onPressMutuals={() => setModalConfig({
+                        visible: true,
+                        title: isMe ? 'Pending Requests' : 'Mutual Friends',
+                        data: isMe ? pendingRequests : mutualFriends
+                    })}
+                />
+
+
+                <ProfileHeader
+                    user={user}
+                    showBio={true}
+                    onlyBio={true}
+                    isMe={isMe}
+                    isEditing={isEditing}
+                    onEditBio={() => {
+                        setBioText(user?.bio || '');
+                        setIsBioModalVisible(true);
+                    }}
+                />
+
+                {relationship.isFriend ? (
+                    <ProfileGrid user={user} isMe={isMe} isEditing={isEditing} />
+                ) : (
+                    <View style={styles.lockedContainer}>
+                        <Text style={styles.lockedText}>Add {user.name} to see their weekend stats!</Text>
+                    </View>
+                )}
+
+        {!isMe && (
+                    <ProfileActions
+                        status={status as any}
+                        loading={actionLoading}
+            userName={user?.name ?? undefined}
+                        onAction={handleAction}
+                    />
+                )}
+
+            </ScrollView>
+
+            <ProfileListModal
+                visible={modalConfig.visible}
+                title={modalConfig.title}
+                data={modalConfig.data}
+                recommendedData={recommendedFriends}
+                onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
+                currentUserId={userStatus?.userId || null}
+
+                onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
+                onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
+                onDeclineRequest={(targetId, targetName) => handleAction('decline', targetId, targetName)}
+
+                onAddRecommended={(targetId, targetName) => handleAction('primary', targetId, targetName)}
+
+                actionLoadingId={null}
+            />
+
+            <Modal visible={isRespondModalVisible} transparent animationType="fade">
+                <TouchableWithoutFeedback onPress={() => setIsRespondModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.responseCard}>
+                            <Text style={styles.responseTitle}>Respond to {user?.name}</Text>
+                            <TouchableOpacity style={[styles.responseBtn, styles.acceptBtn]} onPress={() => handleAction('accept')}>
+                                <Text style={styles.btnText}>Accept Friend Request</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.responseBtn, styles.declineBtn]} onPress={() => handleAction('decline')}>
+                                <Text style={styles.btnText}>Decline</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.responseBtn, styles.blockBtn]} onPress={() => handleAction('block')}>
+                                <Text style={[styles.btnText, { color: Theme.dark.error }]}>Block User</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsRespondModalVisible(false)}>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+
+            {/* Bio Edit Modal */}
+            <Modal visible={isBioModalVisible} transparent animationType="fade">
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                    <TouchableWithoutFeedback onPress={() => setIsBioModalVisible(false)}>
+                        <View style={styles.modalOverlay}>
+                            <TouchableWithoutFeedback>
+                                <View style={styles.responseCard}>
+                                    <Text style={styles.responseTitle}>Edit Bio</Text>
+                                    <TextInput
+                                        style={styles.bioInput}
+                                        value={bioText}
+                                        onChangeText={setBioText}
+                                        placeholder="Tell people about yourself..."
+                                        placeholderTextColor={Theme.container.inactiveText}
+                                        multiline
+                                        maxLength={200}
+                                        autoFocus
+                                    />
+                                    <Text style={styles.bioCharCount}>{bioText.length}/200</Text>
+                                    <TouchableOpacity
+                                        style={[styles.responseBtn, styles.acceptBtn]}
+                                        onPress={async () => {
+                                            try {
+                                                const accessToken = await getAccessToken();
+                                                if (!accessToken) throw new Error('No access token');
+                                                await updateBioByAuth(accessToken, bioText);
+                                                setUser((prev: any) => ({ ...prev, bio: bioText }));
+                                                setIsBioModalVisible(false);
+                                                triggerToast('Bio updated!');
+                                            } catch {
+                                                triggerToast('Failed to save bio');
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.btnText}>Save Bio</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsBioModalVisible(false)}>
+                                        <Text style={styles.cancelText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {showToast && (
+                <Animated.View
+                    style={[
+                        styles.toastContainer,
+                        {
+                            opacity: toastOpacity,
+                            transform: [{ translateY: toastTranslateY }],
+                        },
+                    ]}
+                >
+                    <View style={styles.toastIconWrap}>
+                        <FontAwesome name={toastIcon as any} size={14} color={Theme.dark.primary} />
+                    </View>
                     <Text style={styles.toastText}>{toastMessage}</Text>
                 </Animated.View>
             )}
-
-            <ScrollView contentContainerStyle={styles.content}>
-
-                {/* --- SHARED HEADER (Used for both Friend & Stranger) --- */}
-                {/* 1. HEADER ROW (Just Profile Pic & Name now) */}
-                <View style={styles.headerRow}>
-                    <Image
-                        source={user?.avatar || require('../../../../assets/images/Logo.png')}
-                        style={styles.profileImage}
-                    />
-                    <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>{user?.name}</Text>
-                        <Text style={styles.usernameText}>@{user?.username}</Text>
-                    </View>
-                </View>
-
-                {/* 2. NEW STATS ROW (Moved here, below header) */}
-                <View style={styles.statsRow}>
-                    <TouchableOpacity
-                        style={styles.statButton}
-                        onPress={() => {
-                            setModalTitle("Mutual Friends");
-                            setFriendsToShow(mutualFriends);
-                            setModalVisible(true);
-                        }}
-                    >
-                        <Text style={styles.statNumber}>{mutualFriends.length}</Text>
-                        <Text style={styles.statLabelSmall}>mutual</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.statButton}
-                        onPress={() => {
-                            setModalTitle("Total Friends");
-                            setFriendsToShow(friends);
-                            setModalVisible(true);
-                        }}
-                    >
-                        <Text style={styles.statNumber}>{friends.length}</Text>
-                        <Text style={styles.statLabelSmall}>total</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* --- CONDITIONAL BODY CONTENT --- */}
-                {isFriend ? (
-                    /* FRIEND VIEW */
-                    <View>
-                        {/* Bio Section */}
-                        <View style={styles.bioContainer}>
-                            <Text style={styles.bioText}>
-                                {user?.bio || "This user hasn't added a bio yet. They're a mystery! 🕵️‍♂️"}
-                            </Text>
-                        </View>
-
-                        {/* Middle Grid (Drink / Streak) */}
-                        <View style={styles.gridRow}>
-                            <View style={styles.featureCard}>
-                                <Text style={styles.featureTitle}>fav. drink</Text>
-                                <View style={styles.placeholderPhoto}>
-                                    <FontAwesome name="glass" size={24} color={Theme.dark.secondary} />
-                                </View>
-                            </View>
-
-                            <View style={styles.featureCard}>
-                                <Text style={styles.featureTitle}>streak</Text>
-                                <View style={styles.streakContent}>
-                                    <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
-                                    <Text style={styles.statLabel}>weekends out in a row</Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Favorite Bar Card */}
-                        <View style={styles.largeCard}>
-                            <Text style={styles.featureTitle}>fav. bar w/ official photo</Text>
-                            <View style={styles.largePlaceholder}>
-                                <FontAwesome name="map-marker" size={40} color={Theme.dark.muted} />
-                            </View>
-                        </View>
-
-                        {/* Poke Button */}
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={handlePoke}
-                            style={{ marginTop: 10 }}
-                        >
-                            <Animated.View style={[
-                                styles.pokeButton,
-                                { transform: [{ scale: scaleAnim }] }
-                            ]}>
-                                <Text style={styles.pokeText}>
-                                    poke {user?.name?.split(' ')[0] || '??'}
-                                </Text>
-                            </Animated.View>
-                        </TouchableOpacity>
-
-                        <View style={styles.friendActionRow}>
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleRemoveFriend}
-                                disabled={friendActionLoading}
-                                style={styles.friendActionButton}
-                            >
-                                <Text style={styles.friendActionText}>remove friend</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleBlockFriend}
-                                disabled={friendActionLoading}
-                                style={[styles.friendActionButton, styles.blockActionButton]}
-                            >
-                                <Text style={styles.friendActionText}>block</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                ) : (
-                    /* STRANGER VIEW */
-                    <View style={styles.verticalListContainer}>
-                        {/* Locked Content */}
-                        <View style={styles.wideFeatureCard}>
-                            <View>
-                                <Text style={styles.featureTitle}>fav drink</Text>
-                                <Text style={styles.lockSubtext}>Add friend to view details!</Text>
-                            </View>
-                            <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
-                        </View>
-
-                        <View style={styles.wideFeatureCard}>
-                            <View>
-                                <Text style={styles.featureTitle}>fav bar</Text>
-                                <Text style={styles.lockSubtext}>Add friend to view details!</Text>
-                            </View>
-                            <FontAwesome name="lock" size={20} color={Theme.container.inactiveText} />
-                        </View>
-
-                        {hasIncomingRequest && !isBlocked && (
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={() => setIsRespondModalVisible(true)}
-                                disabled={friendActionLoading}
-                            >
-                                <Animated.View style={[
-                                    styles.addFriendButton,
-                                    { transform: [{ scale: scaleAnim }] }
-                                ]}>
-                                    <Text style={styles.addFriendText}>Respond to Request</Text>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        )}
-
-                        {/* Add Friend / Unblock Button */}
-                        {!hasIncomingRequest && (
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={() => {
-                                    if (isBlocked) {
-                                        handleUnblockUser();
-                                    } else {
-                                        handleAddFriend();
-                                        console.log("attempt to add friend with ID:", id);
-                                    }
-                                }}
-                                disabled={(requestSent && !isBlocked) || friendActionLoading}
-                            >
-                                <Animated.View style={[
-                                    styles.addFriendButton,
-                                    {
-                                        transform: [{ scale: scaleAnim }],
-                                        backgroundColor: requestSent
-                                            ? Theme.container.inactiveText
-                                            : isBlocked
-                                                ? Theme.dark.secondary
-                                                : Theme.dark.primary
-                                    }
-                                ]}>
-                                    <Text style={styles.addFriendText}>
-                                        {isBlocked ? "Unblock User" : requestSent ? "Request Sent" : "Add Friend"}
-                                    </Text>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* --- MODAL (Kept outside ScrollView) --- */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isModalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPressOut={() => setModalVisible(false)}
-                >
-                    <TouchableWithoutFeedback>
-                        <View style={styles.floatingModalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{modalTitle}</Text>
-                                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                    <FontAwesome
-                                        name="times-circle"
-                                        size={26}
-                                        color={Theme.container.inactiveText}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.modalSearchContainer}>
-                                <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
-                                <TextInput
-                                    style={styles.modalSearchBar}
-                                    placeholder="Search..."
-                                    placeholderTextColor={Theme.search.inactiveInput}
-                                    value={modalSearchQuery}
-                                    onChangeText={setModalSearchQuery}
-                                />
-                            </View>
-
-                            <FlatList
-                                data={friendsToShow.filter(f =>
-                                    (f.name ?? '').toLowerCase().includes(modalSearchQuery.toLowerCase())
-                                )}
-                                keyExtractor={(item) => item.id.toString()}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={styles.modalFriendRow}
-                                        onPress={() => {
-                                            setModalVisible(false);
-                                            router.push(`/account/${item.id}`);
-                                        }}
-                                    >
-                                        <Image
-                                            source={item.avatar || require('../../../../assets/images/Logo.png')}
-                                            style={styles.modalAvatar}
-                                        />
-                                        <View>
-                                            <Text style={styles.modalFriendName}>{item.name}</Text>
-                                            <Text style={styles.modalFriendUsername}>@{item.username}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                )}
-                                ListEmptyComponent={<Text style={styles.emptyText}>No matches found</Text>}
-                            />
-                        </View>
-                    </TouchableWithoutFeedback>
-                </TouchableOpacity>
-            </Modal>
-
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isRespondModalVisible}
-                onRequestClose={() => setIsRespondModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPressOut={() => setIsRespondModalVisible(false)}
-                >
-                    <TouchableWithoutFeedback>
-                        <View style={styles.floatingModalContent}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>{"friend request from: \n" + user?.name}</Text>
-                                <TouchableOpacity onPress={() => setIsRespondModalVisible(false)}>
-                                    <FontAwesome
-                                        name="times-circle"
-                                        size={26}
-                                        color={Theme.container.inactiveText}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            <View style={styles.requestActionsRow}>
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.acceptButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'accept');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Accept</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.declineButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'decline');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Decline</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.requestActionButton, styles.blockButton]}
-                                    disabled={friendActionLoading}
-                                    onPress={() => {
-                                        setIsRespondModalVisible(false);
-                                        handlePendingDecision(Number(id), 'block');
-                                    }}
-                                >
-                                    <Text style={styles.requestActionText}>Block</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </TouchableOpacity>
-            </Modal>
         </View>
     );
 }
@@ -697,352 +450,147 @@ export default function FriendProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Theme.dark.background,
+        backgroundColor: Theme.dark.background
     },
-    content: {
-        padding: 20,
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: 0,
         paddingBottom: 40,
+        gap: 15
     },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-    },
-    profileImage: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        marginRight: 12,
-        borderWidth: 2,
-        borderColor: Theme.container.mainBorder,
-    },
-    profileName: {
-        color: Theme.dark.white,
-        fontSize: 22,
-        fontWeight: 'bold',
-    },
-    usernameText: {
-        color: Theme.container.inactiveText,
-        fontSize: 14,
-    },
-    sideStatsContainer: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    sideStatBox: {
-        backgroundColor: Theme.container.background,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
-        minWidth: 70,
-    },
-    bioContainer: {
-        backgroundColor: Theme.container.background,
-        padding: 14,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        marginBottom: 15,
-    },
-    bioText: {
-        color: Theme.container.titleText,
-        fontSize: 14,
-        fontStyle: 'italic',
-        lineHeight: 20,
-    },
-    gridRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 15,
-        gap: 15,
-    },
-    featureCard: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        minHeight: 130,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    featureTitle: {
-        color: Theme.dark.white,
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    placeholderPhoto: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 5,
-    },
-    streakContent: {
+    center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: Theme.dark.background
     },
-    streakNumber: {
-        color: Theme.dark.tertiary,
-        fontSize: 32,
-        fontWeight: 'bold',
-    },
-    statLabel: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    largeCard: {
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        padding: 15,
-        height: 160,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-    },
-    largePlaceholder: {
-        flex: 1,
-        backgroundColor: Theme.search.background,
-        borderRadius: 8,
-        justifyContent: 'center',
+    lockedContainer: {
+        padding: 30,
         alignItems: 'center',
-    },
-    verticalListContainer: {
-        marginTop: 10,
-        gap: 12,
-    },
-    wideFeatureCard: {
         backgroundColor: Theme.container.background,
-        borderRadius: 16,
-        padding: 22,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    lockSubtext: {
-        color: Theme.container.inactiveText,
-        fontSize: 12,
-        fontStyle: 'italic',
-        marginTop: 2,
-    },
-    addFriendButton: {
-        backgroundColor: Theme.dark.primary,
-        paddingVertical: 18,
         borderRadius: 20,
-        alignItems: 'center',
-        marginTop: 20,
-        shadowColor: Theme.dark.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        elevation: 6,
+        borderStyle: 'dashed',
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder
     },
-    addFriendText: {
+    lockedText: {
+        color: Theme.container.inactiveText,
+        textAlign: 'center',
+        fontSize: 14
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    responseCard: {
+        width: '85%',
+        backgroundColor: Theme.container.background,
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        alignItems: 'center'
+    },
+    responseTitle: {
         color: Theme.dark.white,
         fontSize: 18,
-        fontWeight: '800',
-        letterSpacing: 1,
-    },
-    pokeButton: {
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
-        borderColor: Theme.dark.primary,
-        borderRadius: 16,
-        padding: 16,
-        alignItems: 'center',
-    },
-    pokeText: {
-        color: Theme.dark.primary,
-        fontSize: 16,
         fontWeight: '700',
-        letterSpacing: 1,
-        textTransform: 'lowercase',
+        marginBottom: 20
     },
-    friendActionRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginTop: 12,
-    },
-    friendActionButton: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: Theme.container.inactiveBorder,
-        backgroundColor: Theme.container.background,
-        borderRadius: 12,
-        paddingVertical: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    requestActionsRow: {
-        flexDirection: 'column',
-        // flexDirection: 'row',
-        gap: 8,
-        marginTop: 4,
-    },
-    requestActionButton: {
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        borderWidth: 1,
-        alignSelf: 'stretch',
+    responseBtn: {
         width: '100%',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginBottom: 10
     },
-    acceptButton: {
-        backgroundColor: Theme.dark.primary,
-        borderColor: Theme.dark.primary,
+    acceptBtn: {
+        backgroundColor: Theme.dark.primary
     },
-    declineButton: {
-        backgroundColor: Theme.container.inactiveBorder,
-        borderColor: Theme.container.inactiveBorder,
+    declineBtn: {
+        backgroundColor: Theme.container.mainBorder
     },
-    blockButton: {
-        backgroundColor: Theme.dark.error,
+    blockBtn: {
+        backgroundColor: 'transparent',
+        borderWidth: 1,
         borderColor: Theme.dark.error,
     },
-    requestActionText: {
+    btnText: {
         color: Theme.dark.white,
         fontWeight: '700',
+        fontSize: 15
+    },
+    cancelBtn: {
+        marginTop: 10
+    },
+    cancelText: {
+        color: Theme.container.inactiveText,
         fontSize: 14,
-        textTransform: 'none',
-    },
-    blockActionButton: {
-        borderColor: Theme.dark.error,
-    },
-    friendActionText: {
-        color: Theme.container.titleText,
-        fontSize: 13,
-        fontWeight: '700',
-        textTransform: 'lowercase',
+        fontWeight: '600'
     },
     toastContainer: {
         position: 'absolute',
         top: '1%',
         alignSelf: 'center',
-        backgroundColor: Theme.dark.primary,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        borderRadius: 16,
+        backgroundColor: Theme.container.background,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 14,
         flexDirection: 'row',
-        justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
         zIndex: 999,
         elevation: 10,
     },
+    toastIconWrap: {
+        width: 28,
+        height: 28,
+        borderRadius: 999,
+        backgroundColor: Theme.dark.background,
+        borderWidth: 1,
+        borderColor: Theme.dark.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     toastText: {
         color: Theme.dark.white,
-        fontWeight: '700',
+        fontWeight: '600',
         fontSize: 14,
     },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    floatingModalContent: {
-        width: '90%',
-        maxHeight: '70%',
-        backgroundColor: Theme.container.background,
-        borderRadius: 24,
-        padding: 20,
+    bioInput: {
+        width: '100%',
+        backgroundColor: Theme.dark.background,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
-        elevation: 20,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    modalTitle: {
-        color: Theme.container.titleText,
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    modalSearchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Theme.search.background,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        height: 45,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: Theme.search.border,
-    },
-    modalSearchBar: {
-        flex: 1,
-        marginLeft: 10,
-        color: Theme.search.input,
-        fontSize: 16,
-    },
-    modalFriendRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-    },
-    modalAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 12,
-    },
-    modalFriendName: {
-        color: Theme.container.activeText,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    modalFriendUsername: {
-        color: Theme.container.inactiveText,
-        fontSize: 13,
-    },
-    emptyText: {
-        color: Theme.container.inactiveText,
-        fontSize: 16,
-        textAlign: 'center',
-        paddingVertical: 20,
-    },
-    profileInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    statsRow: {
-        flexDirection: 'row',
-        marginBottom: 15,
-        gap: 12,
-    },
-    statButton: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        paddingVertical: 12,
         borderRadius: 12,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    statNumber: {
+        padding: 12,
         color: Theme.dark.white,
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 14,
+        lineHeight: 20,
+        minHeight: 100,
+        textAlignVertical: 'top',
+        marginBottom: 6,
     },
-    statLabelSmall: {
+    bioCharCount: {
         color: Theme.container.inactiveText,
-        fontSize: 11,
-        fontWeight: '600',
-        // textTransform: 'uppercase',
-        marginTop: 2,
+        fontSize: 12,
+        alignSelf: 'flex-end',
+        marginBottom: 16,
+    },
+    editButton: {
+        backgroundColor: Theme.container.mainBorder,
+        paddingVertical: 14,
+        borderRadius: 16,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    editButtonText: {
+        color: 'white',
+        fontWeight: '700',
+        fontSize: 16,
     },
 });

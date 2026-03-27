@@ -16,5 +16,7 @@ router.post('/:userId/friends/:friendId/block', friendshipController.blockFriend
 router.delete('/:userId/friends/:friendId', friendshipController.removeFriend);
 // Get pending friend requests
 router.get('/:userId/friend-requests', friendshipController.getPendingRequests);
+// Get recommended friends
+router.get('/:userId/recommended-friends', friendshipController.getRecommendedFriends);
 
 module.exports = router;

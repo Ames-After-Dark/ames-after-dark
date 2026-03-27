@@ -16,18 +16,18 @@ export { Photo, Album };
  */
 export async function getLatestWeekendAlbums(): Promise<Album[]> {
   // Code below is used for Cloudflare R2 fetch, but currently disabled until Cloudflare is ready.
-  // try {
-  //   const url = `${BACKEND_URL}/api/r2/albums`;
-  //   const res = await fetch(url, {
-  //     headers: { Accept: "application/json" },
-  //   });
+  try {
+    const url = `${BACKEND_URL}/api/r2/albums`;
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
 
-  //   if (!res.ok) throw new Error(`Albums fetch failed: ${res.statusText}`);
-  //   const albums: Album[] = await res.json();
-  //   if (albums && albums.length > 0) return albums;
-  // } catch (err) {
-  //   console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
-  // }
+    if (!res.ok) throw new Error(`Albums fetch failed: ${res.statusText}`);
+    const albums: Album[] = await res.json();
+    if (albums && albums.length > 0) return albums;
+  } catch (err) {
+    console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
+  }
   return await fetchSmugmugAlbums();
 }
 
@@ -36,5 +36,17 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
  * albumUri is the bar folder prefix (e.g. "Sips/").
  */
 export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
+  try {
+    const url = `${BACKEND_URL}/api/r2/photos?prefix=${encodeURIComponent(albumUri)}`;
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) throw new Error(`Photos fetch failed: ${res.statusText}`);
+    const photos: Photo[] = await res.json();
+    if (photos && photos.length > 0) return photos;
+  } catch (err) {
+    console.warn("Cloudflare photos fetch failed, falling back to SmugMug:", err);
+  }
   return await fetchSmugmugPhotos(albumUri);
 }

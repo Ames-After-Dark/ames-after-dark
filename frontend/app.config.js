@@ -7,7 +7,7 @@ export default {
     slug: "Ames-After-Dark",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/aad_icon.png",
     scheme: "com.amesafterdark.app",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -23,7 +23,7 @@ export default {
 
     ios: { supportsTablet: true,
            bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
-     	   buildNumber: "3", //increment this from last successful upload
+     	   buildNumber: "4", //increment this from last successful upload
       	   infoPlist: {
              ITSAppUsesNonExemptEncryption: false
      	    }
@@ -38,7 +38,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.anonymous.amesafterdark"
+      package: "com.amesafterdark.app"
     },
 
     web: {
@@ -48,16 +48,17 @@ export default {
 
     plugins: [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          image: "./assets/images/splash-icon.png",
-          imageWidth: 200,
-          resizeMode: "contain",
-          backgroundColor: "#ffffff",
-          dark: { backgroundColor: "#000000" }
-        }
-      ],
+
+      ["react-native-auth0",{
+        domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN
+      }],
+      ["expo-splash-screen",{
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#ffffff",
+        dark: { backgroundColor: "#000000" }
+      }],
       "expo-web-browser"
     ],
 

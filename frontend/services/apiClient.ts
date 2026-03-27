@@ -1,23 +1,25 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-const { manifest } = Constants;
+// const { manifest } = Constants;
 
 // Determine base URL based on platform
-const BASE_URL = (() => {
+// const BASE_URL = (() => {
 
-  const publicAPI = "https://api.amesafterdark.com/api";
+//   const publicAPI = "https://api.amesafterdark.com/api";
 
-  if (Platform.OS === "web") {
-      return publicAPI;
-  } else if (Platform.OS === "android") {
-    // Android emulator routes host machine via 10.0.2.2
-      return publicAPI;
-  } else {
-    // iOS simulator or physical device
-      return publicAPI;
-  }
-})();
+//   if (Platform.OS === "web") {
+//       return publicAPI;
+//   } else if (Platform.OS === "android") {
+//     // Android emulator routes host machine via 10.0.2.2
+//       return publicAPI;
+//   } else {
+//     // iOS simulator or physical device
+//       return publicAPI;
+//   }
+// })();
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   try {

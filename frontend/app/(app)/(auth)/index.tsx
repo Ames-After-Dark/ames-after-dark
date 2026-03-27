@@ -5,31 +5,34 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function LoginScreen() {
-    const { signIn, isLoading, error, isAuthenticated, isSwitching} = useAuth()
+  const { signIn, isLoading, error, isAuthenticated, isSwitching } = useAuth()
 
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={{ width: '100%' }}>
-            <ThemedText style={styles.title}>Ames After Dark</ThemedText>
-          </View>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={signIn}
-            disabled={isLoading}
-          >
-              <ThemedText style={styles.buttonText}>Sign In</ThemedText>
-          </TouchableOpacity>
-
-          {error && (
-            <ThemedText style={styles.errorText}>{error.message}</ThemedText>
-          )}
+  return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.content}>
+        <View style={{ width: '100%' }}>
+          <ThemedText type="title" style={styles.title}>Ames After Dark</ThemedText>
         </View>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={signIn}
+          disabled={isLoading}
+        >
+          <ThemedText style={styles.buttonText}>Sign In</ThemedText>
+        </TouchableOpacity>
+
+        {error && (
+          <ThemedText style={styles.errorText}>{error.message}</ThemedText>
+        )}
       </View>
-    )
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -38,6 +41,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
     backgroundColor: "#0a0a0a",
   },
   content: {
@@ -68,7 +72,7 @@ const styles = StyleSheet.create({
     color: "#ccc",
   },
   button: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#ff3399",
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,

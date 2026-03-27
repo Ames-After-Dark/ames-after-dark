@@ -6,7 +6,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-// import { AuthProvider, useAuth } from "@/hooks/use-auth"
+import { useAuth } from '@/hooks/use-auth';
 
 import TopHeader from "@/components/TopHeader";
 
@@ -43,6 +43,12 @@ function withHexOpacity(hexColor: string, opacity: number) {
 }
 
 export default function TabLayout() {
+
+  const { currentUser } = useAuth();
+
+  // get the logged in user's ID 
+  const myId = currentUser?.id;
+
   const insets = useSafeAreaInsets();
 
   const tabBarBackgroundColor =
@@ -55,9 +61,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      initialRouteName="tonight"  
+      initialRouteName="tonight"
       screenOptions={{
-        
+
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
@@ -80,9 +86,9 @@ export default function TabLayout() {
           shadowColor: Theme.dark.black,
           shadowOpacity: 0.2,
           shadowRadius: 14,
-          shadowOffset: { 
-            width: 0, 
-            height: 8 
+          shadowOffset: {
+            width: 0,
+            height: 8
           },
           elevation: 12,
         },
@@ -95,17 +101,36 @@ export default function TabLayout() {
 
         // 🔹 Global header on every tab
         header: () => <TopHeader />,
+
         // If you wanted to hide header on web only, you can swap this back:
         // headerShown: useClientOnlyValue(false, true),
         headerShown: true,
       }}>
-      {/* FRIENDS */}
+      {/* FRIENDS / ACCOUNT */}
       <Tabs.Screen
         name="account"
         options={{
-            title: "Account",
-            tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          title: "Account",
+
+          href: (myId ? `/account/${myId}` : '/account') as any,
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          tabBarIconStyle: {
+            marginTop: 6,
+          }
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (myId) {
+
+              e.preventDefault();
+
+              navigation.navigate('account', {
+                screen: '[id]',
+                params: { id: myId.toString() },
+              });
+            }
+          },
+        })}
       />
 
       {/* MAP */}

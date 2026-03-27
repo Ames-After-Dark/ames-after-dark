@@ -1,13 +1,6 @@
 import { apiFetch } from './apiClient';
-import { Friend } from '@/types/types';
+import { Friend, PendingFriendRequest } from '@/types/types';
 
-export interface PendingFriendRequest {
-  user_id_1: number;
-  user_id_2: number;
-  friendship_status_id: number;
-  users_friendships_user_id_1Tousers?: Friend;
-  users_friendships_user_id_2Tousers?: Friend;
-}
 
 export async function sendFriendRequest(userId: string | number, friendId: string | number) {
   try {
@@ -26,6 +19,16 @@ export async function getPendingFriendRequests(userId: string | number): Promise
     return Array.isArray(requests) ? requests : [];
   } catch (error) {
     console.error(`Failed to fetch pending friend requests for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function getRecommendedFriends(userId: string | number, limit: number = 5): Promise<Friend[]> {
+  try {
+    const recommendations = await apiFetch(`/friendships/${userId}/recommended-friends?limit=${limit}`);
+    return Array.isArray(recommendations) ? recommendations : [];
+  } catch (error) {
+    console.error(`Failed to fetch recommended friends for user ${userId}:`, error);
     throw error;
   }
 }
@@ -324,4 +327,36 @@ export async function updateBioByAuth(accessToken: string, bio: string): Promise
     console.error('Failed to update bio:', error);
     throw error;
   }
+}
+
+export async function deleteAccount(accessToken: string): Promise<{ message: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to delete account:', error);
+    throw error;
+  }
+}
+
+export const toggleGhostMode = async (currentUserId: number, isGhostModeNow: boolean) => {
+  const allFriends = await getUserFriends(currentUserId);
+  const nextVisibility = !isGhostModeNow;
+
+  return Promise.all(
+    allFriends.map((friend) =>
+      apiFetch(`/userlocations/permissions/${friend.id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ownerId: currentUserId,
+          enabled: nextVisibility,
+        }),
+      })
+    )
+  );
 }

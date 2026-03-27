@@ -5,7 +5,7 @@ export default function AccountStackLayout() {
     return (
         <Stack>
             <Stack.Screen
-                name="account"
+                name="index"
                 options={{ headerShown: false }} // Hides header on your profile
             />
 
@@ -30,6 +30,7 @@ export default function AccountStackLayout() {
                     headerTintColor: 'white',
                     headerBackTitle: 'Back',
                     title: '',
+                    // headerShown: false,
                 }}
             />
         </Stack>

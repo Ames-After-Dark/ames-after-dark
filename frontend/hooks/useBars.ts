@@ -1,5 +1,5 @@
 // src/hooks/useBars.ts
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Bar } from "@/types/bars";
 import { getNow, isBarOpen } from "@/utils/schedule";
 import { getBars } from "@/services/barsService";
@@ -7,39 +7,49 @@ import { getBars } from "@/services/barsService";
 export type BarsFilters = {
   open?: boolean;
   hasDeals?: boolean;
-  liveMusic?: boolean;   // 👈 include this
+  liveMusic?: boolean;
   q?: string;
 };
 
 export function useBars(filters?: BarsFilters) {
   const [bars, setBars] = useState<Bar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const now = getNow();                         //compute now here
+  const [error, setError] = useState<any>(null);
+  const now = getNow();
 
-  useEffect(() => {
-    let cancelled = false;
+  // 1. Create a stable, reusable fetch function
+  const loadData = useCallback(async (showLoadingState = true) => {
+    if (showLoadingState) setLoading(true);
+    setError(null);
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getBars();
-        if (!cancelled) setBars(data);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    try {
+      // Use your actual service here
+      const data = await getBars();
+      setBars(data);
+    } catch (err) {
+      console.error("Failed to fetch bars:", err);
+      setError(err);
+    } finally {
+      setLoading(false);
     }
+  }, []); // Add filters to dependency if getBars(filters) is implemented
 
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  // 2. Initial load on mount
+  useEffect(() => {
+    loadData(true);
+  }, [loadData]);
 
-  // derive open flag client-side (works for mock + API)
   const withOpenFlag = useMemo(
     () => bars.map(b => ({ ...b, __openNow: isBarOpen(b, now) })),
     [bars, now]
   );
 
-  return { bars: withOpenFlag, loading, error, now }; // 👈 return now
+  // 3. Return refetch so the Index page can use it
+  return {
+    bars: withOpenFlag,
+    loading,
+    error,
+    now,
+    refetch: loadData
+  };
 }

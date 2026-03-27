@@ -18,6 +18,14 @@ export interface FriendReference {
     mutualFriends: number;
 }
 
+export interface PendingFriendRequest {
+    user_id_1: number;
+    user_id_2: number;
+    friendship_status_id: number;
+    users_friendships_user_id_1Tousers?: Friend;
+    users_friendships_user_id_2Tousers?: Friend;
+}
+
 export interface UserProfile {
     name: string;
     email: string;
@@ -32,16 +40,16 @@ export type UserDatabase = {
 
 // added here from bars
 export type TimeRule =
-    |   {
-            kind: "one-time";
-            start: string;
-            end: string;
-            tz: string;
-        }
-    |   {
-            kind: "weekly";
-            tz: string;
-            daysOfWeek: number[];
-            startLocalTime: string;
-            endLocalTime: string;
-        };
+    | {
+        kind: "one-time";
+        start: string;
+        end: string;
+        tz: string;
+    }
+    | {
+        kind: "weekly";
+        tz: string;
+        daysOfWeek: number[];
+        startLocalTime: string;
+        endLocalTime: string;
+    };
