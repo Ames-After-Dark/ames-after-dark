@@ -7,12 +7,12 @@ export default {
     slug: "Ames-After-Dark",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/aad_icon.png",
+    icon: "./assets/images/icon.png",
     scheme: "com.amesafterdark.app",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 
-	//EAS OTA Configuration settings
+    //EAS OTA Configuration settings
     owner: "amesafterdark",
     updates: {
       url: "https://u.expo.dev/3087f40f-3c08-44de-8f1d-b4feaa8bfb6d"
@@ -21,12 +21,13 @@ export default {
       policy: "appVersion"
     },
 
-    ios: { supportsTablet: true,
-           bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
-     	   buildNumber: "4", //increment this from last successful upload
-      	   infoPlist: {
-             ITSAppUsesNonExemptEncryption: false
-     	    }
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
+      buildNumber: "4", //increment this from last successful upload
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
     },
 
     android: {
@@ -49,10 +50,11 @@ export default {
     plugins: [
       "expo-router",
 
-      ["react-native-auth0",{
-        domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN
+      ["react-native-auth0", {
+        domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
+        customScheme: "com.amesafterdark.app",
       }],
-      ["expo-splash-screen",{
+      ["expo-splash-screen", {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
