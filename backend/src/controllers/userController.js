@@ -1,4 +1,3 @@
-
 const userService = require('../services/userService');
 const validationService = require('../services/validationService');
 const authService = require('../services/authService');
@@ -46,7 +45,7 @@ exports.updateUserLimited = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
-  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id} = req.body;
+  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
   const updateData = {};
   if (username !== undefined) updateData.username = username;
   if (email !== undefined) updateData.email = email;
@@ -422,6 +421,39 @@ exports.getUserProfileByAuth = async (req, res) => {
 
   } catch (err) {
     console.error('Error getting user profile:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * GET /api/users/auth/roles
+ * Get the roles and admin properties for the authenticated user
+ * Requires Auth0 JWT authentication
+ */
+exports.getUserRolesByAuth = async (req, res) => {
+  try {
+    // Get Auth0 user ID from the JWT token
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const roleData = await userService.getUserRolesByAuth0Id(auth0Id);
+
+    if (!roleData) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    return res.json(roleData);
+
+  } catch (err) {
+    console.error('Error getting user roles:', err);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined

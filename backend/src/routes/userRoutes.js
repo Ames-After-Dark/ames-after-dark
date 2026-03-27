@@ -11,6 +11,7 @@ router.get('/auth/check-username', userController.checkUsernameAvailability); //
 router.get('/auth/username', checkJwt, userController.getUsernameByAuth); // Get username by auth (requires auth)
 router.put('/auth/username', checkJwt, userController.updateUsernameByAuth); // Update username by auth (requires auth)
 router.get('/auth/profile', checkJwt, userController.getUserProfileByAuth); // Get user profile by auth (requires auth)
+router.get('/auth/roles', checkJwt, userController.getUserRolesByAuth); // Get user roles / admin info by auth (requires auth)
 router.put('/auth/bio', checkJwt, userController.updateBioByAuth); // Update bio by auth (requires auth)
 router.delete('/auth/account', checkJwt, userController.deleteAccount); // Delete authenticated user's account
 
