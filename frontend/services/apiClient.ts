@@ -22,14 +22,17 @@ import { Platform } from "react-native";
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const url = `${BASE_URL}${endpoint}`;
+  console.log(`[apiFetch] Requesting: ${options.method || 'GET'} ${url}`);
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(url, {
       headers: { "Content-Type": "application/json", ...(options.headers || {}) },
       ...options,
     });
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[apiFetch] Error ${response.status}: ${errorText}`);
       throw new Error(`API error: ${response.status} ${errorText}`);
     }
 
@@ -39,8 +42,12 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
 
     const text = await response.text();
     return text ? JSON.parse(text) : null;
-  } catch (error) {
-    console.error("API request failed:", error);
+  } catch (error: any) {
+    console.error(`[apiFetch] Request failed for URL: ${url}`);
+    console.error(`[apiFetch] Error name: ${error?.name}, message: ${error?.message}`);
+    if (error?.cause) {
+      console.error(`[apiFetch] Error cause: ${error.cause}`);
+    }
     throw error;
   }
 }

@@ -190,6 +190,7 @@ export interface CompleteRegistrationResponse {
  */
 export async function checkUserStatus(accessToken: string): Promise<UserStatus> {
   try {
+    console.log(`[checkUserStatus] Using token: Bearer ${accessToken.substring(0, 10)}...${accessToken.slice(-10)}`);
     const status = await apiFetch(`/users/auth/status`, {
       method: 'GET',
       headers: {
