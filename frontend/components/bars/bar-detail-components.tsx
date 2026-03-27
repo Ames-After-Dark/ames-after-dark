@@ -30,6 +30,7 @@ interface BarGalleryModalProps {
   onOpenGallery: () => void;
   assets: any;
   barName?: string;
+  latestImage?: string | null;
 }
 
 export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
@@ -97,7 +98,7 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps,
   </Modal>
 );
 
-export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barName }: BarGalleryModalProps) => (
+export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barName, latestImage }: BarGalleryModalProps) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <TouchableWithoutFeedback onPress={onClose}>
       <View style={styles.modalOverlay}>
@@ -107,12 +108,12 @@ export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barNa
               <FontAwesome name="close" size={16} color="white" />
             </TouchableOpacity>
 
-            <Image source={assets?.gallery || assets?.cover} style={styles.galleryPreviewImage} />
+            <Image source={latestImage ? { uri: latestImage } : assets?.cover} style={styles.galleryPreviewImage} />
 
             <View style={styles.overlayFooter}>
-              <Text style={styles.galleryModalTitle}>{barName} Gallery</Text>
+              <Text style={styles.galleryModalTitle}>Ames After Dark Gallery</Text>
               <Text style={styles.galleryModalText}>
-                Check out the latest photos of {barName}! Tap below to explore the full gallery.
+                Dive into the city's nightlife gallery. Check out the latest photos from around town!
               </Text>
 
               <View style={styles.primaryActionsRow}>

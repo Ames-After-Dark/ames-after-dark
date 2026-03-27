@@ -8,6 +8,7 @@ import { fetchLocationById, MapLocation } from "@/services/locationService";
 import { getNow, isActive } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
+import { getLatestWeekendAlbums } from "@/services/galleryService";
 
 import {
   BarHeader,
@@ -33,6 +34,7 @@ export default function BarProfile() {
 
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
   const toggleGalleryOverlay = () => setIsGalleryVisible(!isGalleryVisible);
+  const [latestGalleryImage, setLatestGalleryImage] = useState<string | null>(null);
   const navigateToGallery = () => {
     setIsGalleryVisible(false);
     router.push("/gallery");
@@ -41,6 +43,21 @@ export default function BarProfile() {
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
   // const [mapData, setMapData] = useState<MapLocation | null>(null);
+
+  useEffect(() => {
+    const fetchLatestGalleryImage = async () => {
+      try {
+        const albums = await getLatestWeekendAlbums();
+
+        if (albums && albums.length > 0 && albums[0].coverUrl) {
+          setLatestGalleryImage(albums[0].coverUrl);
+        }
+      } catch (err) {
+        console.log("Could not fetch latest gallery image, falling back to bar cover.");
+      }
+    };
+    fetchLatestGalleryImage();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -238,6 +255,7 @@ export default function BarProfile() {
         onOpenGallery={navigateToGallery}
         assets={assets}
         barName={bar?.name}
+        latestImage={latestGalleryImage}
       />
 
     </>
