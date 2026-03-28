@@ -2,12 +2,14 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useAuth } from '@/hooks/use-auth';
+import { TopHeaderVisibilityProvider, useTopHeaderVisibility } from '@/context/top-header-visibility';
 
 import TopHeader from "@/components/TopHeader";
 
@@ -46,7 +48,18 @@ function withHexOpacity(hexColor: string, opacity: number) {
 
 export default function TabLayout() {
 
+  return (
+    <TopHeaderVisibilityProvider>
+      <TabLayoutInner />
+    </TopHeaderVisibilityProvider>
+  );
+}
+
+function TabLayoutInner() {
+
   const { currentUser } = useAuth();
+  const pathname = usePathname();
+  const { topHeaderVisible, setTopHeaderVisible } = useTopHeaderVisibility();
 
   // get the logged in user's ID 
   const myId = currentUser?.id;
@@ -61,6 +74,11 @@ export default function TabLayout() {
 
   const tabBarBottom = insets.bottom + TAB_BAR_BOTTOM_OFFSET;
   const tabSceneBottomPadding = TAB_CONTENT_BOTTOM_PADDING;
+
+  React.useEffect(() => {
+    // When navigating between tabs/screens, restore the header by default.
+    setTopHeaderVisible(true);
+  }, [pathname, setTopHeaderVisible]);
 
   React.useEffect(() => {
     if (!__DEV__ || !TAB_BAR_DEBUG_LOGS) {
@@ -122,11 +140,10 @@ export default function TabLayout() {
           marginTop: 0,
         },
 
-        // 🔹 Global header on every tab
-        header: () => <TopHeader />,
+        // Global header stays mounted; TopHeader handles smooth hide/show animation.
+        header: () => <TopHeader visible={topHeaderVisible} />,
 
-        // If you wanted to hide header on web only, you can swap this back:
-        // headerShown: useClientOnlyValue(false, true),
+        // Keep header mounted to avoid jumpy relayout when scrolling.
         headerShown: true,
       }}>
 
