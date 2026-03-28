@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/types/bars';
-import { getBarImageSource, getBarLogoSource } from "@/utils/bar-assets";
+import { getBarLogoSource } from "@/utils/bar-assets";
 
 interface BarCardProps {
     item: Bar & { __openNow?: boolean };
@@ -13,10 +14,12 @@ interface BarCardProps {
 }
 
 export const BarCard = ({ item, isFav, onToggleFav, onPress }: BarCardProps) => {
-    // const imageSource = getBarImageSource(item);
     const logoSource = getBarLogoSource(item);
     const firstDeal = item.dealsScheduled?.[0]?.title ?? item.eventsScheduled?.[0]?.name ?? "No specials tonight";
     const openNow = !!item.__openNow;
+    const statusDetail = openNow
+        ? (item.closingTime ? `Closes at ${item.closingTime}` : "Open now")
+        : (item.openingTime ? `Opens at ${item.openingTime}` : "Closed now");
 
     return (
         <TouchableOpacity onPress={() => onPress(String(item.id))}>
@@ -24,18 +27,21 @@ export const BarCard = ({ item, isFav, onToggleFav, onPress }: BarCardProps) => 
                 <Image source={logoSource} style={styles.barImage} resizeMode="cover" />
                 <View style={styles.barInfo}>
                     <Text style={styles.barName}>{item.name}</Text>
-                    <Text style={styles.barStatus}>
-                        {openNow ? `Open - Until ${item.closingTime ?? ""}` : "Closed"}
-                    </Text>
+                    <Text style={styles.barStatus}>{statusDetail}</Text>
                     <Text style={styles.barSpecials}>{firstDeal}</Text>
                 </View>
-                <TouchableOpacity onPress={() => onToggleFav(String(item.id))}>
-                    <FontAwesome
-                        name={isFav ? "star" : "star-o"}
-                        size={20}
-                        color={isFav ? Theme.dark.tertiary : Theme.dark.secondary}
-                    />
-                </TouchableOpacity>
+                <View style={styles.rightContainer}>
+                    <View style={styles.actionsRow}>
+                        <TouchableOpacity onPress={() => onToggleFav(String(item.id))} style={styles.favoriteButton}>
+                            <FontAwesome
+                                name={isFav ? "star" : "star-o"}
+                                size={20}
+                                color={isFav ? Theme.dark.tertiary : Theme.dark.secondary}
+                            />
+                        </TouchableOpacity>
+                        <Ionicons name="chevron-forward" size={19} color={Theme.search.inactiveInput} />
+                    </View>
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -56,34 +62,52 @@ const styles = StyleSheet.create({
     barCard: {
         flexDirection: "row",
         backgroundColor: Theme.container.background,
-        borderRadius: 16,
-        padding: 12,
-        marginVertical: 6,
-        alignItems: "center"
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: Theme.container.secondaryBorder,
+        paddingHorizontal: 14,
+        paddingVertical: 13,
+        marginVertical: 7,
+        alignItems: "center",
+        gap: 14,
     },
     barImage: {
-        width: 70,
-        height: 70,
+        width: 62,
+        height: 62,
         borderRadius: 12,
-        marginRight: 12
+        borderWidth: 1,
+        borderColor: Theme.container.secondaryBorder,
     },
     barInfo: {
         flex: 1
     },
     barName: {
         color: Theme.container.titleText,
-        fontSize: 18,
-        fontWeight: "600"
+        fontSize: 17,
+        fontWeight: "800"
     },
     barStatus: {
-        color: Theme.container.titleText,
+        color: Theme.container.inactiveText,
+        marginTop: 3,
         fontSize: 14,
-        fontWeight: "500"
     },
     barSpecials: {
-        color: Theme.container.titleText,
-        fontSize: 14,
-        marginVertical: 2
+        color: Theme.container.inactiveText,
+        marginTop: 3,
+        fontSize: 13,
+    },
+    rightContainer: {
+        alignItems: "flex-end",
+        justifyContent: "center",
+        minWidth: 52,
+    },
+    actionsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    favoriteButton: {
+        padding: 1,
     },
     filterButton: {
         borderColor: Theme.container.inactiveBorder,
