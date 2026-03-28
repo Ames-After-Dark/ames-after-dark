@@ -13,6 +13,7 @@ interface BarHeaderProps {
   bar: Bar;
   assets: any;
   openNow: boolean;
+  statusText?: string;
 }
 
 interface BarMapModalProps {
@@ -117,8 +118,8 @@ export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barNa
               </Text>
               <Text style={styles.galleryModalText}>
                 {hasSpecificAlbum
-                ? `Check out the latest photos from ${barName}! Tap below to explore the full album.`
-                : `Dive into the city's nightlife gallery. Check out the latest photos from around town!`}
+                  ? `Check out the latest photos from ${barName}! Tap below to explore the full album.`
+                  : `Dive into the city's nightlife gallery. Check out the latest photos from around town!`}
               </Text>
 
               <View style={styles.primaryActionsRow}>
@@ -136,7 +137,7 @@ export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barNa
   </Modal>
 );
 
-export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
+export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) => (
   <View>
     <Image source={assets.cover} style={styles.coverPhoto} resizeMode="cover" />
     <View style={styles.headerRow}>
@@ -148,7 +149,7 @@ export const BarHeader = ({ bar, assets, openNow }: BarHeaderProps) => (
           styles.statusPill,
           { backgroundColor: openNow ? Theme.dark.success : Theme.dark.error }
         ]}>
-          <Text style={styles.statusPillText}>{openNow ? "Open" : "Closed"}</Text>
+          <Text style={styles.statusPillText}>{statusText ?? (openNow ? "Open" : "Closed")}</Text>
         </View>
       </View>
     </View>
