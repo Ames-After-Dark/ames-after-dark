@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -11,10 +12,11 @@ import { useAuth } from '@/hooks/use-auth';
 import TopHeader from "@/components/TopHeader";
 
 const ICON_OFFSET_Y = -13;
-const TAB_BAR_HORIZONTAL_MARGIN = 5;
-const TAB_BAR_BOTTOM_GAP = 25;
+const TAB_BAR_SIDE_MARGIN = 20;
+const TAB_BAR_BOTTOM_OFFSET = -10;
 const TAB_BAR_HEIGHT = 64;
-const TAB_CONTENT_BOTTOM_PADDING = 12;
+const TAB_CONTENT_BOTTOM_PADDING = -20;
+const TAB_BAR_DEBUG_LOGS = true;
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -30,7 +32,7 @@ function TabBarIcon5(props: {
   return <FontAwesome5 size={26} style={{ marginBottom: ICON_OFFSET_Y }} {...props} />;
 }
 
-const TAB_BAR_BACKGROUND_OPACITY = 0.95;
+const TAB_BAR_BACKGROUND_OPACITY = .95;
 
 function withHexOpacity(hexColor: string, opacity: number) {
   const clampedOpacity = Math.max(0, Math.min(1, opacity));
@@ -50,14 +52,34 @@ export default function TabLayout() {
   const myId = currentUser?.id;
 
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   const tabBarBackgroundColor =
     TAB_BAR_BACKGROUND_OPACITY >= 1
       ? Theme.container.background
       : withHexOpacity(Theme.container.background, TAB_BAR_BACKGROUND_OPACITY);
 
-  const tabBarBottom = Math.max(insets.bottom, TAB_BAR_BOTTOM_GAP);
-  const tabSceneBottomPadding = TAB_BAR_HEIGHT + tabBarBottom + TAB_CONTENT_BOTTOM_PADDING;
+  const tabBarBottom = insets.bottom + TAB_BAR_BOTTOM_OFFSET;
+  const tabSceneBottomPadding = TAB_CONTENT_BOTTOM_PADDING;
+
+  React.useEffect(() => {
+    if (!__DEV__ || !TAB_BAR_DEBUG_LOGS) {
+      return;
+    }
+
+    console.log('[TabBarDebug]', {
+      screenWidth,
+      tabBarSideMargin: TAB_BAR_SIDE_MARGIN,
+      tabBarWidthApprox: screenWidth - TAB_BAR_SIDE_MARGIN * 2,
+      tabBarBottom,
+      tabBarBottomOffset: TAB_BAR_BOTTOM_OFFSET,
+      safeAreaBottom: insets.bottom,
+      tabBarHeight: TAB_BAR_HEIGHT,
+      tabSceneBottomPadding,
+      tabBarBackgroundOpacity: TAB_BAR_BACKGROUND_OPACITY,
+      tabBarBackgroundColor,
+    });
+  }, [insets.bottom, screenWidth, tabBarBackgroundColor, tabBarBottom, tabSceneBottomPadding]);
 
   return (
     <Tabs
@@ -75,8 +97,9 @@ export default function TabLayout() {
 
         tabBarStyle: {
           position: 'absolute',
-          marginLeft: TAB_BAR_HORIZONTAL_MARGIN,
-          marginRight: TAB_BAR_HORIZONTAL_MARGIN,
+          left: 0,
+          right: 0,
+          marginHorizontal: TAB_BAR_SIDE_MARGIN,
           bottom: tabBarBottom,
           height: TAB_BAR_HEIGHT,
           borderRadius: 999,
@@ -106,6 +129,47 @@ export default function TabLayout() {
         // headerShown: useClientOnlyValue(false, true),
         headerShown: true,
       }}>
+
+      {/* order: tonight, map, bars, gallery, account */}
+
+      {/* TONIGHT */}
+      <Tabs.Screen
+        name="tonight"
+        options={{
+          title: "Tonight",
+          tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
+        }}
+      />
+
+      {/* MAP */}
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Map",
+          tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
+        }}
+      />
+
+      {/* BARS */}
+      <Tabs.Screen
+        name="bars"
+        options={{
+          title: "Bars",
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon5 name="glass-martini-alt" color={color} />
+          )
+        }}
+      />
+
+      {/* GALLERY */}
+      <Tabs.Screen
+        name="gallery"
+        options={{
+          title: "Gallery",
+          tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
+        }}
+      />
+
       {/* FRIENDS / ACCOUNT */}
       <Tabs.Screen
         name="account"
@@ -131,44 +195,6 @@ export default function TabLayout() {
             }
           },
         })}
-      />
-
-      {/* MAP */}
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: "Map",
-          tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
-        }}
-      />
-
-      {/* TONIGHT */}
-      <Tabs.Screen
-        name="tonight"
-        options={{
-          title: "Tonight",
-          tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
-        }}
-      />
-
-      {/* BARS */}
-      <Tabs.Screen
-        name="bars"
-        options={{
-          title: "Bars",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon5 name="glass-martini-alt" color={color} />
-          )
-        }}
-      />
-
-      {/* GALLERY */}
-      <Tabs.Screen
-        name="gallery"
-        options={{
-          title: "Gallery",
-          tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
-        }}
       />
     </Tabs>
   );
