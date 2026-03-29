@@ -30,7 +30,7 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 export default function FriendProfileScreen() {
 
     const insets = useSafeAreaInsets();
-    const MAIN_HEADER_HEIGHT = 60;
+    const MAIN_HEADER_HEIGHT = 0;
     const TOTAL_TOP_PADDING = insets.top + MAIN_HEADER_HEIGHT;
     const BOTTOM_TAB_HEIGHT = 60;
     const TOP_OFFSET = insets.top + MAIN_HEADER_HEIGHT;
@@ -44,7 +44,7 @@ export default function FriendProfileScreen() {
     }, [id, currentUser, userStatus]);
 
     const HEADER_HEIGHT = 60;
-    const dynamicTopPadding = isMe ? insets.top + HEADER_HEIGHT : insets.top + HEADER_HEIGHT + 30; // Extra 20 for spacing when viewing others' profiles
+    const dynamicTopPadding = isMe ? insets.top + HEADER_HEIGHT : insets.top + HEADER_HEIGHT; // Extra 20 for spacing when viewing others' profiles
 
     const toastTranslateY = useRef(new Animated.Value(-20)).current;
     const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -642,6 +642,5 @@ const styles = StyleSheet.create({
         padding: 10, // Increases the "Touch Target" (Better UX!)
         backgroundColor: 'rgba(0,0,0,0.3)', // Optional: makes it visible over any background
         borderRadius: 20,
-        paddingTop: 60,
     },
 });

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router'; // Add usePathname
 import { Theme } from "@/constants/theme";
+import { useAuth } from '@/hooks/use-auth';
 
 const HEADER_CONTENT_HEIGHT = 44;
 const HEADER_HEIGHT = 44; // Adjust to your actual header height
@@ -14,6 +15,7 @@ type TopHeaderProps = {
 
 export default function TopHeader({ visible = true }: TopHeaderProps) {
   const pathname = usePathname();
+  const { currentUser } = useAuth();
   const insets = useSafeAreaInsets();
   const animatedVisibility = React.useRef(new Animated.Value(visible ? 1 : 0)).current;
 
@@ -21,6 +23,12 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
 
   // 1. Check if we are on ANY account-related page
   const isAccountPath = pathname.startsWith('/account');
+  const isBarsSubPage = pathname.startsWith('/bars/');
+  const accountIdMatch = pathname.match(/^\/account\/([^/]+)$/);
+  const viewedAccountId = accountIdMatch?.[1];
+  const currentUserId = currentUser?.id != null ? String(currentUser.id) : null;
+  const isFriendProfilePage = Boolean(viewedAccountId && currentUserId && viewedAccountId !== currentUserId);
+  const effectiveVisible = visible && !isBarsSubPage && !isFriendProfilePage;
 
   // 2. Logic: If we are on a sub-page (like a friend's ID), show Back. 
   // If we are on our own ID (isMe check) or the root, show Gear.
@@ -28,12 +36,12 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
 
   React.useEffect(() => {
     Animated.timing(animatedVisibility, {
-      toValue: visible ? 1 : 0,
-      duration: visible ? 240 : 200,
+      toValue: effectiveVisible ? 1 : 0,
+      duration: effectiveVisible ? 240 : 200,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [animatedVisibility, visible]);
+  }, [animatedVisibility, effectiveVisible]);
 
   const expandedHeight = insets.top + HEADER_CONTENT_HEIGHT;
 
@@ -55,11 +63,11 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
   useEffect(() => {
     Animated.timing(slideAnim, {
       // Slide up by the height of the header + status bar height
-      toValue: visible ? 0 : -(HEADER_HEIGHT + insets.top),
+      toValue: effectiveVisible ? 0 : -(HEADER_HEIGHT + insets.top),
       duration: 250,
       useNativeDriver: true,
     }).start();
-  }, [visible, insets.top]);
+  }, [effectiveVisible, insets.top]);
 
   return (
     <Animated.View
@@ -71,7 +79,7 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
           transform: [{ translateY: slideAnim }]
         }
       ]}
-      pointerEvents={visible ? 'auto' : 'none'}
+      pointerEvents={effectiveVisible ? 'auto' : 'none'}
     >
       <View style={styles.content}>
 

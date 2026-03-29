@@ -16,9 +16,6 @@ import { useFavorites } from '@/context/FavoritesContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 
-const EDGE_TRIGGER_PX = 16;
-const EDGE_UNLOCK_PX = 40;
-
 export default function Bars() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -42,7 +39,6 @@ export default function Bars() {
   const lastScrollYRef = useRef(0);
   const headerVisibleRef = useRef(true);
   const lastHeaderToggleTsRef = useRef(0);
-  const edgeLockRef = useRef<'top' | 'bottom' | null>(null);
   const listRef = useRef<FlatList>(null);
 
   const searchBarTop = useRef(new Animated.Value(HEADER_HEIGHT)).current;
@@ -82,31 +78,12 @@ export default function Bars() {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
-    const layoutHeight = event.nativeEvent.layoutMeasurement.height;
-    const contentHeight = event.nativeEvent.contentSize.height;
-    const delta = y - lastScrollYRef.current;
-    const maxY = Math.max(0, contentHeight - layoutHeight);
 
-    // Edge Detection
-    if (y <= EDGE_TRIGGER_PX) {
-      edgeLockRef.current = 'top';
+    // Keep the top app header visible on the Bars page regardless of scroll direction.
+    if (!headerVisibleRef.current) {
       setHeaderVisibility(true);
-    } else if (maxY > 0 && y >= maxY - EDGE_TRIGGER_PX) {
-      edgeLockRef.current = 'bottom';
-    } else if (edgeLockRef.current === 'top' && y > EDGE_UNLOCK_PX) {
-      edgeLockRef.current = null;
-    } else if (edgeLockRef.current === 'bottom' && y < maxY - EDGE_UNLOCK_PX) {
-      edgeLockRef.current = null;
     }
 
-    // Directional Toggle (only if not locked at edges)
-    if (!edgeLockRef.current) {
-      if (delta > 12 && y > 72) {
-        setHeaderVisibility(false);
-      } else if (delta < -12) {
-        setHeaderVisibility(true);
-      }
-    }
     lastScrollYRef.current = y;
   }, [setHeaderVisibility]);
 
