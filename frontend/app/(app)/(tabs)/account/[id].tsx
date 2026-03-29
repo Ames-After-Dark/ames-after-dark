@@ -327,6 +327,7 @@ export default function FriendProfileScreen() {
                 <ProfileHeader
                     user={user}
                     isMe={isMe}
+                    showFriendStats={relationship.isFriend}
                     isEditing={isEditing}
                     onRequestEdit={() => setIsEditing(true)}
                     onSave={() => setIsEditing(false)}
