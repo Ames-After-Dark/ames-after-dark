@@ -3,6 +3,7 @@ import React from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Theme } from '@/constants/theme';
@@ -201,6 +202,10 @@ function TabLayoutInner() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
+            if (process.env.EXPO_OS === 'ios') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+
             if (myId) {
 
               e.preventDefault();
