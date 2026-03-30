@@ -35,7 +35,7 @@ function TabBarIcon5(props: {
   return <FontAwesome5 size={26} style={{ marginBottom: ICON_OFFSET_Y }} {...props} />;
 }
 
-const TAB_BAR_BACKGROUND_OPACITY = .95;
+const TAB_BAR_BACKGROUND_OPACITY = 1.00;
 
 function withHexOpacity(hexColor: string, opacity: number) {
   const clampedOpacity = Math.max(0, Math.min(1, opacity));

@@ -85,7 +85,7 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
 
         <View style={{ width: 24 }} />
 
-        <TouchableOpacity onPress={() => router.push('/tonight' as any)} activeOpacity={0.85}>
+        <TouchableOpacity onPress={() => router.push('/tonight' as any)} activeOpacity={1}>
           <Image
             source={require("../assets/images/LogoTopBar.png")}
             style={{ width: 170, height: 32 }}
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(11, 12, 18, 0.85)',
+    backgroundColor: 'rgba(11, 12, 18, 1)',
     borderBottomWidth: 1,
     borderBottomColor: Theme.container.mainBorder,
     zIndex: 1000,
