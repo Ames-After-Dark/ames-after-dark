@@ -1,20 +1,25 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Theme } from '@/constants/theme';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useAuth } from '@/hooks/use-auth';
+import { TopHeaderVisibilityProvider, useTopHeaderVisibility } from '@/context/top-header-visibility';
 
 import TopHeader from "@/components/TopHeader";
 
 const ICON_OFFSET_Y = -13;
-const TAB_BAR_HORIZONTAL_MARGIN = 5;
-const TAB_BAR_BOTTOM_GAP = 25;
+const TAB_BAR_SIDE_MARGIN = 20;
+const TAB_BAR_BOTTOM_OFFSET = -10;
 const TAB_BAR_HEIGHT = 64;
-const TAB_CONTENT_BOTTOM_PADDING = 12;
+const TAB_CONTENT_BOTTOM_PADDING = -20;
+const TAB_BAR_DEBUG_LOGS = true;
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -30,7 +35,7 @@ function TabBarIcon5(props: {
   return <FontAwesome5 size={26} style={{ marginBottom: ICON_OFFSET_Y }} {...props} />;
 }
 
-const TAB_BAR_BACKGROUND_OPACITY = 0.95;
+const TAB_BAR_BACKGROUND_OPACITY = 1.00;
 
 function withHexOpacity(hexColor: string, opacity: number) {
   const clampedOpacity = Math.max(0, Math.min(1, opacity));
@@ -44,20 +49,56 @@ function withHexOpacity(hexColor: string, opacity: number) {
 
 export default function TabLayout() {
 
+  return (
+    <TopHeaderVisibilityProvider>
+      <TabLayoutInner />
+    </TopHeaderVisibilityProvider>
+  );
+}
+
+function TabLayoutInner() {
+
   const { currentUser } = useAuth();
+  const pathname = usePathname();
+  const { topHeaderVisible, setTopHeaderVisible } = useTopHeaderVisibility();
 
   // get the logged in user's ID 
   const myId = currentUser?.id;
 
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
 
   const tabBarBackgroundColor =
     TAB_BAR_BACKGROUND_OPACITY >= 1
       ? Theme.container.background
       : withHexOpacity(Theme.container.background, TAB_BAR_BACKGROUND_OPACITY);
 
-  const tabBarBottom = Math.max(insets.bottom, TAB_BAR_BOTTOM_GAP);
-  const tabSceneBottomPadding = TAB_BAR_HEIGHT + tabBarBottom + TAB_CONTENT_BOTTOM_PADDING;
+  const tabBarBottom = insets.bottom + TAB_BAR_BOTTOM_OFFSET;
+  const tabSceneBottomPadding = TAB_CONTENT_BOTTOM_PADDING;
+
+  React.useEffect(() => {
+    // When navigating between tabs/screens, restore the header by default.
+    setTopHeaderVisible(true);
+  }, [pathname, setTopHeaderVisible]);
+
+  React.useEffect(() => {
+    if (!__DEV__ || !TAB_BAR_DEBUG_LOGS) {
+      return;
+    }
+
+    console.log('[TabBarDebug]', {
+      screenWidth,
+      tabBarSideMargin: TAB_BAR_SIDE_MARGIN,
+      tabBarWidthApprox: screenWidth - TAB_BAR_SIDE_MARGIN * 2,
+      tabBarBottom,
+      tabBarBottomOffset: TAB_BAR_BOTTOM_OFFSET,
+      safeAreaBottom: insets.bottom,
+      tabBarHeight: TAB_BAR_HEIGHT,
+      tabSceneBottomPadding,
+      tabBarBackgroundOpacity: TAB_BAR_BACKGROUND_OPACITY,
+      tabBarBackgroundColor,
+    });
+  }, [insets.bottom, screenWidth, tabBarBackgroundColor, tabBarBottom, tabSceneBottomPadding]);
 
   return (
     <Tabs
@@ -75,8 +116,9 @@ export default function TabLayout() {
 
         tabBarStyle: {
           position: 'absolute',
-          marginLeft: TAB_BAR_HORIZONTAL_MARGIN,
-          marginRight: TAB_BAR_HORIZONTAL_MARGIN,
+          left: 0,
+          right: 0,
+          marginHorizontal: TAB_BAR_SIDE_MARGIN,
           bottom: tabBarBottom,
           height: TAB_BAR_HEIGHT,
           borderRadius: 999,
@@ -99,38 +141,22 @@ export default function TabLayout() {
           marginTop: 0,
         },
 
-        // 🔹 Global header on every tab
-        header: () => <TopHeader />,
+        // Global header stays mounted; TopHeader handles smooth hide/show animation.
+        header: () => <TopHeader visible={topHeaderVisible} />,
 
-        // If you wanted to hide header on web only, you can swap this back:
-        // headerShown: useClientOnlyValue(false, true),
+        // Keep header mounted to avoid jumpy relayout when scrolling.
         headerShown: true,
       }}>
-      {/* FRIENDS / ACCOUNT */}
+
+      {/* order: tonight, map, bars, gallery, account */}
+
+      {/* TONIGHT */}
       <Tabs.Screen
-        name="account"
+        name="tonight"
         options={{
-          title: "Account",
-
-          href: (myId ? `/account/${myId}` : '/account') as any,
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-          tabBarIconStyle: {
-            marginTop: 6,
-          }
+          title: "Tonight",
+          tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            if (myId) {
-
-              e.preventDefault();
-
-              navigation.navigate('account', {
-                screen: '[id]',
-                params: { id: myId.toString() },
-              });
-            }
-          },
-        })}
       />
 
       {/* MAP */}
@@ -139,15 +165,6 @@ export default function TabLayout() {
         options={{
           title: "Map",
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
-        }}
-      />
-
-      {/* TONIGHT */}
-      <Tabs.Screen
-        name="tonight"
-        options={{
-          title: "Tonight",
-          tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
         }}
       />
 
@@ -169,6 +186,37 @@ export default function TabLayout() {
           title: "Gallery",
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
+      />
+
+      {/* FRIENDS / ACCOUNT */}
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: "Account",
+
+          href: (myId ? `/account/${myId}` : '/account') as any,
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          tabBarIconStyle: {
+            marginTop: 6,
+          }
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (process.env.EXPO_OS === 'ios') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+
+            if (myId) {
+
+              e.preventDefault();
+
+              navigation.navigate('account', {
+                screen: '[id]',
+                params: { id: myId.toString() },
+              });
+            }
+          },
+        })}
       />
     </Tabs>
   );

@@ -3,6 +3,7 @@ import { StyleSheet, View, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
 // Context & Services
 import { useUser } from '@/context/user-context';
@@ -27,6 +28,7 @@ import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 const ZOOM_THRESHOLD = 0.005;
 
 export default function MapScreen() {
+    const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
@@ -181,88 +183,95 @@ export default function MapScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.mapContainer}>
-                <MapView
-                    ref={mapRef}
-                    style={styles.map}
-                    onMapReady={() => setMapReady(true)}
-                    showsMyLocationButton={true}
-                    showsPointsOfInterest={false}
-                    initialRegion={{
-                        latitude: 42.03,
-                        longitude: -93.63,
-                        latitudeDelta: 0.1,
-                        longitudeDelta: 0.05,
-                    }}
-                    onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
-                    onPress={() => setSelectedLocation(null)}
-                >
-                    <MapMarkers
-                        locations={locations}
-                        currentDelta={currentDelta}
-                        zoomThreshold={ZOOM_THRESHOLD}
-                        selectedLocationId={selectedLocation?.id}
-                        onSelect={setSelectedLocation}
-                        mapRef={mapRef}
-                    />
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
+            <View style={styles.container}>
+                <View style={styles.mapContainer}>
+                    <MapView
+                        ref={mapRef}
+                        style={styles.map}
+                        mapPadding={{
+                            top: 100 + insets.top,
+                            bottom: 80 + insets.bottom,
+                            left: 0,
+                            right: 0
+                        }}
+                        onMapReady={() => setMapReady(true)}
+                        showsMyLocationButton={true}
+                        showsPointsOfInterest={false}
+                        initialRegion={{
+                            latitude: 42.03,
+                            longitude: -93.63,
+                            latitudeDelta: 0.1,
+                            longitudeDelta: 0.05,
+                        }}
+                        onRegionChangeComplete={(r) => setCurrentDelta(r.latitudeDelta)}
+                        onPress={() => setSelectedLocation(null)}
+                    >
+                        <MapMarkers
+                            locations={locations}
+                            currentDelta={currentDelta}
+                            zoomThreshold={ZOOM_THRESHOLD}
+                            selectedLocationId={selectedLocation?.id}
+                            onSelect={setSelectedLocation}
+                            mapRef={mapRef}
+                        />
 
-                    <FriendMarkers
-                        key={`friends-${activeFriends.length}`}
-                        friends={activeFriends}
-                        locations={locations}
-                        onSelectFriend={setSelectedLocation}
-                    />
+                        <FriendMarkers
+                            key={`friends-${activeFriends.length}`}
+                            friends={activeFriends}
+                            locations={locations}
+                            onSelectFriend={setSelectedLocation}
+                        />
 
-                    {userLocation && (
-                        <Marker
-                            key="me"
-                            coordinate={{
-                                latitude: userLocation.latitude,
-                                longitude: userLocation.longitude,
-                            }}
-                            zIndex={999}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                handleSelectSelf();
-                            }}
-                        >
-                            <View style={styles.userMarkerContainer} pointerEvents="none">
-                                <Image
-                                    source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
-                                    style={styles.userAvatar}
-                                />
-                                <View style={styles.userMarkerPulse} />
-                            </View>
-                        </Marker>
-                    )}
-                </MapView>
+                        {userLocation && (
+                            <Marker
+                                key="me"
+                                coordinate={{
+                                    latitude: userLocation.latitude,
+                                    longitude: userLocation.longitude,
+                                }}
+                                zIndex={999}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectSelf();
+                                }}
+                            >
+                                <View style={styles.userMarkerContainer} pointerEvents="none">
+                                    <Image
+                                        source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
+                                        style={styles.userAvatar}
+                                    />
+                                    <View style={styles.userMarkerPulse} />
+                                </View>
+                            </Marker>
+                        )}
+                    </MapView>
+                </View>
+
+                <MapBottomSheet
+                    location={selectedLocation}
+                    onClose={() => setSelectedLocation(null)}
+                    onViewDetails={handleGoToBarPage}
+                    onSelectLocation={setSelectedLocation}
+                    isGhostModeEnabled={isGhostModeEnabled}
+                    isGhostModeLoading={isGhostModeLoading}
+                    onToggleGhostMode={handleToggleGhostMode}
+                />
             </View>
-
-            <MapBottomSheet
-                location={selectedLocation}
-                onClose={() => setSelectedLocation(null)}
-                onViewDetails={handleGoToBarPage}
-                onSelectLocation={setSelectedLocation}
-                isGhostModeEnabled={isGhostModeEnabled}
-                isGhostModeLoading={isGhostModeLoading}
-                onToggleGhostMode={handleToggleGhostMode}
-            />
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Theme.dark.background
+        backgroundColor: Theme.dark.background,
     },
     mapContainer: {
         flex: 1,
-        borderRadius: 8,
-        overflow: 'hidden',
-        marginTop: 16,
-        marginHorizontal: 16
+        marginTop: 0,
+        marginHorizontal: 0,
+        borderRadius: 0,
     },
     map: {
         ...StyleSheet.absoluteFillObject

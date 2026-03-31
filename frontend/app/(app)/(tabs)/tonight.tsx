@@ -14,10 +14,14 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useTonightData } from "@/hooks/useTonightData";
 // import { useFriends } from "@/hooks/useFriends";
@@ -37,6 +41,7 @@ import TonightHero from "@/components/tonight/hero-carousel";
 import { TonightSkeleton } from "@/components/tonight/tonight-skeleton";
 
 import { useUpcomingSchedule } from "@/hooks/use-upcoming-data";
+import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
@@ -52,8 +57,23 @@ type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
 const isTabKey = (value: string | undefined): value is TabKey =>
   value === "open" || value === "deals" || value === "friends";
 
+const TOP_FORCE_SHOW_PX = 20;
+const BOTTOM_DEAD_ZONE_PX = 24;
+const HIDE_SCROLL_THRESHOLD_PX = 28;
+const SHOW_SCROLL_THRESHOLD_PX = 20;
+
 export default function Tonight() {
+
+  const insets = useSafeAreaInsets();
+  // const HEADER_HEIGHT = 60 + insets.top;
+
   const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const { setTopHeaderVisible } = useTopHeaderVisibility();
+  const lastScrollYRef = React.useRef(0);
+  const dragStartYRef = React.useRef(0);
+  const headerVisibleRef = React.useRef(true);
+  const viewportHeightRef = React.useRef(0);
+  const contentHeightRef = React.useRef(0);
 
   // Which tab the user is on
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
@@ -65,6 +85,80 @@ export default function Tonight() {
       setActiveTab(tab);
     }
   }, [tab]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      headerVisibleRef.current = true;
+      setTopHeaderVisible(true);
+      dragStartYRef.current = 0;
+      return () => {
+        headerVisibleRef.current = true;
+        setTopHeaderVisible(true);
+        dragStartYRef.current = 0;
+      };
+    }, [setTopHeaderVisible])
+  );
+
+  const setHeaderVisibility = React.useCallback(
+    (nextVisible: boolean) => {
+      if (headerVisibleRef.current === nextVisible) {
+        return;
+      }
+
+      headerVisibleRef.current = nextVisible;
+      setTopHeaderVisible(nextVisible);
+    },
+    [setTopHeaderVisible]
+  );
+
+  const decideHeaderVisibilityAtRest = React.useCallback(
+    (endYRaw: number) => {
+      const maxY = Math.max(0, contentHeightRef.current - viewportHeightRef.current);
+      const endY = Math.max(0, Math.min(endYRaw, maxY));
+      const dragDelta = endY - dragStartYRef.current;
+
+      if (endY <= TOP_FORCE_SHOW_PX) {
+        setHeaderVisibility(true);
+        return;
+      }
+
+      if (maxY > 0 && endY >= maxY - BOTTOM_DEAD_ZONE_PX) {
+        setHeaderVisibility(false);
+        return;
+      }
+
+      if (dragDelta >= HIDE_SCROLL_THRESHOLD_PX && endY > 72) {
+        setHeaderVisibility(false);
+      } else if (dragDelta <= -SHOW_SCROLL_THRESHOLD_PX) {
+        setHeaderVisibility(true);
+      }
+    },
+    [setHeaderVisibility]
+  );
+
+  const handleVerticalScroll = React.useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y;
+      const delta = y - lastScrollYRef.current;
+
+      // 1. Force show when near the very top of the list
+      if (y <= 10) {
+        setHeaderVisibility(true);
+      }
+      // 2. Hide header when scrolling down (positive delta) 
+      // We add a small buffer (y > 50) so it doesn't hide immediately at the start
+      else if (delta > 10 && y > 50) {
+        setHeaderVisibility(false);
+      }
+      // 3. Show header when scrolling up (negative delta)
+      else if (delta < -20) {
+        setHeaderVisibility(true);
+      }
+
+      lastScrollYRef.current = y;
+    },
+    [setHeaderVisibility]
+  );
 
   // Fetch data from database using the custom hook
   const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
@@ -163,15 +257,11 @@ export default function Tonight() {
 
   return (
     <SafeAreaView
-      style={[styles.container, { paddingTop: 5, paddingBottom: 0 }]}
+      style={[styles.container, { paddingTop: 50 + insets.top, paddingBottom: 10 }]}
       edges={["left", "right"]}
     >
       {/* Loading state */}
       {isLoading && (
-        // <View style={styles.loadingContainer}>
-        //   <ActivityIndicator size="large" color={Theme.dark.primary} />
-        //   <Text style={styles.loadingText}>Loading tonight&apos;s events...</Text>
-        // </View>
         <TonightSkeleton />
       )}
 
@@ -186,6 +276,46 @@ export default function Tonight() {
           stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
           contentContainerStyle={{ paddingBottom: 1 }}
           contentInsetAdjustmentBehavior="never"
+          bounces={true}
+          alwaysBounceVertical={true}
+          overScrollMode="never"
+          onLayout={(event) => {
+            viewportHeightRef.current = event.nativeEvent.layout.height;
+          }}
+          onContentSizeChange={(_, contentHeight) => {
+            contentHeightRef.current = contentHeight;
+          }}
+          onScrollBeginDrag={(event) => {
+            const y = event.nativeEvent.contentOffset.y;
+            const maxY = Math.max(0, contentHeightRef.current - viewportHeightRef.current);
+            const clampedY = Math.max(0, Math.min(y, maxY));
+            lastScrollYRef.current = clampedY;
+            dragStartYRef.current = clampedY;
+          }}
+          onScrollEndDrag={(event) => {
+            const velocityY = event.nativeEvent.velocity?.y ?? 0;
+            const hasMomentum = Math.abs(velocityY) > 0.2;
+            if (!hasMomentum) {
+              decideHeaderVisibilityAtRest(event.nativeEvent.contentOffset.y);
+              dragStartYRef.current = lastScrollYRef.current;
+            }
+          }}
+          onMomentumScrollEnd={(event) => {
+            const endYRaw = event.nativeEvent.contentOffset.y;
+            const maxY = Math.max(0, contentHeightRef.current - viewportHeightRef.current);
+            const endY = Math.max(0, Math.min(endYRaw, maxY));
+
+            // Do not hide/show at momentum end; this can override upward reveal
+            // and cause the header to feel stuck. Only force-show near top.
+            if (endY <= TOP_FORCE_SHOW_PX) {
+              setHeaderVisibility(true);
+            }
+
+            lastScrollYRef.current = endY;
+            dragStartYRef.current = endY;
+          }}
+          onScroll={handleVerticalScroll}
+          scrollEventThrottle={16}
         >
           {/* HERO deals carousel */}
           <ScrollView

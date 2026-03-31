@@ -5,6 +5,7 @@ import { formatLastActive } from '@/utils/location-utils';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,6 +42,8 @@ export const MapBottomSheet = ({
 }: Props) => {
     const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
     const router = useRouter();
+
+    const insets = useSafeAreaInsets();
 
     const isFriend = (loc: any): loc is FriendLocation => !!loc && 'username' in loc && !('friends' in loc);
     const isGroup = (loc: any): loc is GroupLocation => !!loc && 'friends' in loc;
@@ -123,7 +126,13 @@ export const MapBottomSheet = ({
     return (
         <Animated.View
             pointerEvents={location ? 'auto' : 'none'}
-            style={[styles.bottomSheet, { transform: [{ translateY: slideAnim }] }]}
+            style={[
+                styles.bottomSheet,
+                {
+                    transform: [{ translateY: slideAnim }],
+                    paddingBottom: insets.bottom + 60
+                }
+            ]}
         >
             <View style={styles.sheetContent}>
 
@@ -254,7 +263,6 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         paddingHorizontal: 20,
-        paddingBottom: 34,
         paddingTop: 8,
         elevation: 20,
         shadowColor: '#000',

@@ -27,7 +27,7 @@ function ImagePickerModal({ visible, options, selectedId, onSelect, onClose }: I
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={pickerStyles.overlay}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={pickerStyles.sheet}>
                             <View style={pickerStyles.header}>
                                 <Text style={pickerStyles.title}>Choose Profile Photo</Text>
@@ -120,6 +120,7 @@ const pickerStyles = {
 interface ProfileHeaderProps {
     user: any;
     isMe?: boolean;
+    showFriendStats?: boolean;
     showBio?: boolean;
     onlyBio?: boolean;
     friendCount?: number;
@@ -132,7 +133,7 @@ interface ProfileHeaderProps {
     onPressMutuals?: () => void;
 }
 
-export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
     const { userStatus } = useAuth();
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
@@ -201,6 +202,8 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
             ? (typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar)
             : require('@/assets/images/Logo.png');
 
+    const shouldShowStats = Boolean(isMe || showFriendStats);
+
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
@@ -242,7 +245,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
                         )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
-                    {isMe && (
+                    {shouldShowStats && (
                         <View style={styles.statsRow}>
                             <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
                                 <Text style={styles.statNumber}>{friendCount ?? 0}</Text>
@@ -250,7 +253,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.statButton} onPress={onPressMutuals}>
                                 <Text style={styles.statNumber}>{mutualCount ?? 0}</Text>
-                                <Text style={styles.statLabel}>pending</Text>
+                                <Text style={styles.statLabel}>{isMe ? 'pending' : 'mutual'}</Text>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -284,7 +287,7 @@ export const ProfileHeader = ({ user, isMe, showBio, onlyBio, friendCount, mutua
             <Modal visible={isEditPromptVisible} transparent animationType="fade" onRequestClose={() => setEditPromptVisible(false)}>
                 <TouchableWithoutFeedback onPress={() => setEditPromptVisible(false)}>
                     <View style={styles.promptOverlay}>
-                        <TouchableWithoutFeedback onPress={() => {}}>
+                        <TouchableWithoutFeedback onPress={() => { }}>
                             <View style={styles.promptCard}>
                                 <Text style={styles.promptTitle}>Edit Profile</Text>
                                 <Text style={styles.promptSubtitle}>Would you like to edit your profile?</Text>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
 import { Theme } from '@/constants/theme';
@@ -27,6 +28,13 @@ import { ProfileListModal } from '@/components/profile/ProfileListModal';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 
 export default function FriendProfileScreen() {
+
+    const insets = useSafeAreaInsets();
+    const MAIN_HEADER_HEIGHT = 0;
+    const TOTAL_TOP_PADDING = insets.top + MAIN_HEADER_HEIGHT;
+    const BOTTOM_TAB_HEIGHT = 60;
+    const TOP_OFFSET = insets.top + MAIN_HEADER_HEIGHT;
+
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
@@ -34,6 +42,9 @@ export default function FriendProfileScreen() {
     const isMe = useMemo(() => {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
     }, [id, currentUser, userStatus]);
+
+    const HEADER_HEIGHT = 60;
+    const dynamicTopPadding = isMe ? insets.top + HEADER_HEIGHT : insets.top + HEADER_HEIGHT; // Extra 20 for spacing when viewing others' profiles
 
     const toastTranslateY = useRef(new Animated.Value(-20)).current;
     const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -282,17 +293,41 @@ export default function FriendProfileScreen() {
     return (
         <View style={styles.container}>
 
+            <Stack.Screen options={{ headerShown: false }} />
+
             <Stack.Screen
+                // options={{
+                //     headerShown: !isMe,
+                //     headerShadowVisible: false,
+                // }}
                 options={{
-                    headerShown: !isMe,
-                    headerShadowVisible: false,
+                    // headerShown: !isMe, // Only show for friends
+                    headerTransparent: true,
+                    headerTitle: "",
+                    headerTintColor: Theme.dark.white, // Ensure back button is white
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={{ marginLeft: 10, marginTop: 10 }} // Adjust for spacing
+                        >
+                            <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
+                        </TouchableOpacity>
+                    ),
                 }}
             />
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={{
+                    paddingTop: dynamicTopPadding,
+                    paddingBottom: BOTTOM_TAB_HEIGHT + insets.bottom + 20, // Extra 20 for breathing room
+                    paddingHorizontal: 20,
+                    gap: 15
+                }}
+            >
                 <ProfileHeader
                     user={user}
                     isMe={isMe}
+                    showFriendStats={relationship.isFriend}
                     isEditing={isEditing}
                     onRequestEdit={() => setIsEditing(true)}
                     onSave={() => setIsEditing(false)}
@@ -309,7 +344,6 @@ export default function FriendProfileScreen() {
                         data: isMe ? pendingRequests : mutualFriends
                     })}
                 />
-
 
                 <ProfileHeader
                     user={user}
@@ -331,16 +365,25 @@ export default function FriendProfileScreen() {
                     </View>
                 )}
 
-        {!isMe && (
+                {!isMe && (
                     <ProfileActions
                         status={status as any}
                         loading={actionLoading}
-            userName={user?.name ?? undefined}
+                        userName={user?.name ?? undefined}
                         onAction={handleAction}
                     />
                 )}
 
             </ScrollView>
+
+            {!isMe && (
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={[styles.backButton, { top: insets.top + 10 }]}
+                >
+                    <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
+                </TouchableOpacity>
+            )}
 
             <ProfileListModal
                 visible={modalConfig.visible}
@@ -592,5 +635,13 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '700',
         fontSize: 16,
+    },
+    backButton: {
+        position: 'absolute',
+        left: 10,
+        zIndex: 99, // Ensures it sits ABOVE the avatar/bio
+        padding: 10, // Increases the "Touch Target" (Better UX!)
+        backgroundColor: 'rgba(0,0,0,0.3)', // Optional: makes it visible over any background
+        borderRadius: 20,
     },
 });

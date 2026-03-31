@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { View, Image, FlatList, ActivityIndicator, 
-  StyleSheet, Dimensions, Alert, TouchableOpacity, } from "react-native";
+import {
+  View, Image, FlatList, ActivityIndicator, Text,
+  StyleSheet, Dimensions, Alert, TouchableOpacity,
+} from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import type { Photo } from "@/services/galleryService.ts";
 import { getPhotosByAlbumUri } from "@/services/galleryService";
 import { Theme } from "@/constants/theme";
 import ImageViewing from "react-native-image-viewing";
 import { FontAwesome } from "@expo/vector-icons";
-import { File, Directory, Paths} from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 import * as MediaLibrary from "expo-media-library";
+
+import { useFocusEffect } from '@react-navigation/native';
+import { useTopHeaderVisibility } from '@/context/top-header-visibility';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const windowWidth = Dimensions.get("window").width;
 const PHOTO_SIZE = windowWidth / 3;
@@ -17,11 +23,25 @@ export default function BarPhotosScreen() {
   const { albumUri, barName } = useLocalSearchParams();
   const router = useRouter();
 
+  const insets = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 70;
+  const HEADER_CONTENT_HEIGHT = 60;
+  const TOTAL_HEADER_HEIGHT = insets.top + HEADER_CONTENT_HEIGHT;
+  const { setTopHeaderVisible } = useTopHeaderVisibility();
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [isViewerVisible, setViewerVisible] = useState(false);
+
+  // Ensure the top header is visible when this screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      setTopHeaderVisible(true);
+      return () => { };
+    }, [setTopHeaderVisible])
+  );
 
   // load album
   useEffect(() => {
@@ -111,26 +131,46 @@ export default function BarPhotosScreen() {
 
   return (
     <View style={styles.container}>
+
+      <Stack.Screen options={{ headerShown: false }} />
+
       {/* Bar name header */}
-      <Stack.Screen options={{
-        title: barName as string ?? "Photos",
-        headerShown: true,
-        headerTintColor: Theme.container.titleText,
-        headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 12 }}>
-            <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
-          </TouchableOpacity>
-        ),
-      }} />
+      <View style={[
+        styles.customHeader,
+        {
+          paddingTop: insets.top,
+          height: TOTAL_HEADER_HEIGHT // Give it an explicit height
+        }
+      ]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {barName as string ?? "Photos"}
+        </Text>
+
+        {/* Empty view to balance the flex space */}
+        <View style={{ width: 40 }} />
+      </View>
+
       {/* Grid of photos */}
       <FlatList
         data={photos}
         keyExtractor={(item) => String(item.id)}
         numColumns={3}
+        contentContainerStyle={{
+          paddingTop: TOTAL_HEADER_HEIGHT + 60,
+          paddingBottom: insets.bottom + TAB_BAR_HEIGHT
+        }}
         renderItem={({ item, index }) => (
           <TouchableOpacity onPress={() => {
-          setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);}}
-          onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
+            setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);
+          }}
+            onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
             <Image source={item.image} style={styles.photo} resizeMode="cover" />
           </TouchableOpacity>
         )}
@@ -150,11 +190,11 @@ export default function BarPhotosScreen() {
           </View>
         )}
         FooterComponent={() => (
-            <View style={styles.viewerFooter}>
-              <TouchableOpacity onPress={handleDownload}>
-                <FontAwesome name="download" style={styles.downloadIcon} />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.viewerFooter}>
+            <TouchableOpacity onPress={handleDownload}>
+              <FontAwesome name="download" style={styles.downloadIcon} />
+            </TouchableOpacity>
+          </View>
         )}
       />
     </View>
@@ -178,7 +218,7 @@ const styles = StyleSheet.create({
   },
   viewerHeader: {
     position: "absolute",
-    top: 50,
+    top: 60,
     left: 0,
     right: 0,
     zIndex: 50,
@@ -194,5 +234,32 @@ const styles = StyleSheet.create({
   downloadIcon: {
     fontSize: 40,
     color: Theme.dark.primary,
+  },
+  customHeader: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    zIndex: 99999,
+    backgroundColor: Theme.dark.background,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  backButton: {
+    width: 50,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
   },
 });

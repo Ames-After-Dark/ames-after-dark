@@ -1,13 +1,21 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { View, Text, FlatList, TouchableOpacity, Image, 
-  TextInput, ActivityIndicator, StyleSheet } from "react-native";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import {
+  View, Text, FlatList, TouchableOpacity, Image,
+  TextInput, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent
+} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native';
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekendAlbums } from "@/services/galleryService";
 import GalleryFallback from "./Galleryfallback";
+import { useTopHeaderVisibility } from '@/context/top-header-visibility';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const EDGE_TRIGGER_PX = 16;
+const EDGE_UNLOCK_PX = 40;
 
 function parseDateToken(token: string): Date | null {
   if (!token) return null;
@@ -27,10 +35,32 @@ function parseDateToken(token: string): Date | null {
 
 export default function GalleryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const MAIN_HEADER_HEIGHT = 64;
+  const TOP_OFFSET = insets.top + MAIN_HEADER_HEIGHT;
+  const SEARCH_BAR_AREA_HEIGHT = 50;
+
+  const { setTopHeaderVisible } = useTopHeaderVisibility();
+  const lastScrollYRef = React.useRef(0);
+  const headerVisibleRef = React.useRef(true);
+  const lastHeaderToggleTsRef = React.useRef(0);
+  const viewportHeightRef = React.useRef(0);
+  const contentHeightRef = React.useRef(0);
+  const edgeLockRef = React.useRef<'top' | 'bottom' | null>(null);
+  const listRef = useRef<FlatList>(null);
+
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [search, setSearch] = useState("");
+
+  // Reset scroll when search changes
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, [search]);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +116,60 @@ export default function GalleryScreen() {
     return entries;
   }, [filteredAlbums]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      headerVisibleRef.current = true;
+      setTopHeaderVisible(true);
+      return () => {
+        headerVisibleRef.current = true;
+        setTopHeaderVisible(true);
+      };
+    }, [setTopHeaderVisible])
+  );
+
+  const setHeaderVisibility = React.useCallback(
+    (nextVisible: boolean) => {
+      if (headerVisibleRef.current === nextVisible) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastHeaderToggleTsRef.current < 160) {
+        return;
+      }
+
+      headerVisibleRef.current = nextVisible;
+      lastHeaderToggleTsRef.current = now;
+      setTopHeaderVisible(nextVisible);
+    },
+    [setTopHeaderVisible]
+  );
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const layoutHeight = event.nativeEvent.layoutMeasurement.height;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const delta = y - lastScrollYRef.current;
+    const maxY = Math.max(0, contentHeight - layoutHeight);
+
+    // Same logic as Bars page
+    if (y <= 16) {
+      edgeLockRef.current = 'top';
+      setHeaderVisibility(true);
+    } else if (maxY > 0 && y >= maxY - 16) {
+      edgeLockRef.current = 'bottom';
+    } else if (delta > 12 && y > 72) {
+      setHeaderVisibility(false);
+    } else if (delta < -12) {
+      setHeaderVisibility(true);
+    }
+    lastScrollYRef.current = y;
+  }, [setHeaderVisibility]);
+
+  if (loading) return (
+    <View style={styles.center}><ActivityIndicator size="large" color={Theme.dark.primary} /></View>
+  );
+
   if (loading)
     return (
       <View style={styles.center}>
@@ -105,7 +189,14 @@ export default function GalleryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchFilterContainer}>
+      <View style={[
+        styles.fixedSearchContainer,
+        {
+          top: 0,
+          paddingTop: TOP_OFFSET + 10,
+          height: TOP_OFFSET + SEARCH_BAR_AREA_HEIGHT
+        }
+      ]}>
         <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} style={styles.searchIcon} />
           <TextInput
@@ -117,9 +208,25 @@ export default function GalleryScreen() {
           />
         </View>
       </View>
+
       <FlatList
+        ref={listRef}
         data={grouped}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        ListHeaderComponent={<View style={{ height: SEARCH_BAR_AREA_HEIGHT + 20 }} />}
+        contentContainerStyle={{
+          paddingHorizontal: 12,
+          paddingTop: TOP_OFFSET, // Ensure the list starts after the main header
+          paddingBottom: 120 + insets.bottom
+        }}
         keyExtractor={(item) => item.date}
+        onLayout={(event) => {
+          viewportHeightRef.current = event.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={(_, contentHeight) => {
+          contentHeightRef.current = contentHeight;
+        }}
         renderItem={({ item }) => {
           const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };
           const weekday = dateObj && !isNaN(dateObj.getTime())
@@ -163,7 +270,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Theme.dark.background,
-    paddingHorizontal: 12,
+  },
+  fixedSearchContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 1000, // Boost this to be safe
+    backgroundColor: Theme.dark.background, // MUST BE SOLID
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   center: {
     flex: 1,
@@ -171,23 +286,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Theme.dark.background,
   },
+  searchBar: {
+    marginHorizontal: 16,
+    backgroundColor: Theme.search.background,
+    borderColor: Theme.search.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   searchFilterContainer: {
     backgroundColor: Theme.dark.background,
     paddingVertical: 12,
     marginBottom: 12,
-  },
-  searchBar: {
-  marginHorizontal: 4,
-  backgroundColor: Theme.search.background,
-  borderColor: Theme.search.border,
-  borderWidth: 1,
-  borderRadius: 12,
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-  marginBottom: 14,
   },
   searchIcon: { marginRight: 8 },
   searchInput: {
