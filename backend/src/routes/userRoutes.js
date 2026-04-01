@@ -14,6 +14,7 @@ router.get('/auth/profile', checkJwt, userController.getUserProfileByAuth); // G
 router.get('/auth/roles', checkJwt, userController.getUserRolesByAuth); // Get user roles / admin info by auth (requires auth)
 router.put('/auth/bio', checkJwt, userController.updateBioByAuth); // Update bio by auth (requires auth)
 router.delete('/auth/account', checkJwt, userController.deleteAccount); // Delete authenticated user's account
+router.delete('/auth/cancel-registration', checkJwt, userController.cancelRegistration); // Delete auth0 account before db user is created
 
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
