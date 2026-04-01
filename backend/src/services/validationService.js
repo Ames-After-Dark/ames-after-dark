@@ -160,18 +160,24 @@ exports.validateDisplayName = (name) => {
  * @param {string | Date} birthday - The birthday to validate
  * @param {string} username - The username to validate (optional)
  * @param {string} name - The display name to validate (optional)
+ * @param {boolean} isUpdating - Whether this is a partial update
  * @returns {Object} { valid: boolean, errors: Object }
  */
-exports.validateUserRegistrationData = (phoneNumber, birthday, username = null, name = null) => {
-  const phoneValidation = exports.validatePhoneNumber(phoneNumber);
-  const birthdayValidation = exports.validateBirthday(birthday);
-
+exports.validateUserRegistrationData = (phoneNumber, birthday, username = null, name = null, isUpdating = false) => {
   const errors = {};
-  if (!phoneValidation.valid) {
-    errors.phoneNumber = phoneValidation.error;
+
+  if (phoneNumber || !isUpdating) {
+    const phoneValidation = exports.validatePhoneNumber(phoneNumber);
+    if (!phoneValidation.valid) {
+      errors.phoneNumber = phoneValidation.error;
+    }
   }
-  if (!birthdayValidation.valid) {
-    errors.birthday = birthdayValidation.error;
+
+  if (birthday || !isUpdating) {
+    const birthdayValidation = exports.validateBirthday(birthday);
+    if (!birthdayValidation.valid) {
+      errors.birthday = birthdayValidation.error;
+    }
   }
 
   // Validate username if provided

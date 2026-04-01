@@ -23,7 +23,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const { user, getAccessToken, refreshUserStatus, refreshUsername, signOut } = useAuth()
+  const { user, getAccessToken, refreshUserStatus, refreshUsername, signOut, userStatus } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
   const [username, setUsername] = useState("")
@@ -170,6 +170,13 @@ export default function RegisterScreen() {
     setShowDatePicker(false)
   }
 
+  // Check what fields need to be completed based on the auth context data
+  const needsName = !userStatus?.user?.hasName;
+  const needsUsername = !userStatus?.user?.hasUsername;
+  const needsPhone = !userStatus?.user?.hasPhoneNumber;
+  const needsBirthday = !userStatus?.user?.hasBirthday;
+  const isExistingUser = userStatus?.registered === true;
+
   const handleGoBack = () => {
     Alert.alert(
       "Cancel Registration",
@@ -207,46 +214,55 @@ export default function RegisterScreen() {
 
   const handleSubmit = async () => {
     // Validate username
-    if (username.length === 0) {
+    if (needsUsername && username.length === 0) {
       Alert.alert("Missing Username", "Please enter a username")
       return
     }
 
-    const formatValidation = validateUsernameFormat(username)
-    if (!formatValidation.valid) {
-      Alert.alert("Invalid Username", formatValidation.error || "Please enter a valid username")
-      return
-    }
+    if (needsUsername) {
+      const formatValidation = validateUsernameFormat(username)
+      if (!formatValidation.valid) {
+        Alert.alert("Invalid Username", formatValidation.error || "Please enter a valid username")
+        return
+      }
 
-    if (usernameStatus !== 'available') {
-      Alert.alert("Username Unavailable", "Please choose an available username")
-      return
+      if (usernameStatus !== 'available') {
+        Alert.alert("Username Unavailable", "Please choose an available username")
+        return
+      }
     }
 
     // Validate phone number
-    const cleanedPhone = phoneNumber.replace(/\D/g, '')
-    if (cleanedPhone.length !== 10) {
-      Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number")
-      return
+    let cleanedPhone = '';
+    if (needsPhone) {
+      cleanedPhone = phoneNumber.replace(/\D/g, '')
+      if (cleanedPhone.length !== 10) {
+        Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number")
+        return
+      }
     }
 
-    const nameValidation = validateNameFormat(name)
-    if (!nameValidation.valid) {
-      Alert.alert("Invalid Name", nameValidation.error!)
-      return
+    if (needsName) {
+      const nameValidation = validateNameFormat(name)
+      if (!nameValidation.valid) {
+        Alert.alert("Invalid Name", nameValidation.error!)
+        return
+      }
     }
 
     // Check age (must be 21+)
-    const today = new Date()
-    const age = today.getFullYear() - birthday.getFullYear()
-    const monthDiff = today.getMonth() - birthday.getMonth()
-    const dayDiff = today.getDate() - birthday.getDate()
+    if (needsBirthday) {
+      const today = new Date()
+      const age = today.getFullYear() - birthday.getFullYear()
+      const monthDiff = today.getMonth() - birthday.getMonth()
+      const dayDiff = today.getDate() - birthday.getDate()
 
-    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age
 
-    if (actualAge < 21) {
-      Alert.alert("Age Restriction", "You must be at least 21 years old to use this app")
-      return
+      if (actualAge < 21) {
+        Alert.alert("Age Restriction", "You must be at least 21 years old to use this app")
+        return
+      }
     }
 
     setIsLoading(true)
@@ -258,12 +274,14 @@ export default function RegisterScreen() {
         throw new Error('No access token available')
       }
 
-      await completeUserRegistration(accessToken, {
-        phoneNumber: cleanedPhone,
-        birthday: formatDate(birthday),
-        username: username,
-        name: name.trim()
-      })
+      // Only submit the fields that the user actually needed to fill out
+      const dataToSubmit: any = {};
+      if (needsPhone) dataToSubmit.phoneNumber = cleanedPhone;
+      if (needsBirthday) dataToSubmit.birthday = formatDate(birthday);
+      if (needsUsername) dataToSubmit.username = username;
+      if (needsName) dataToSubmit.name = name.trim();
+
+      await completeUserRegistration(accessToken, dataToSubmit)
 
       // Refresh user status and username in auth context
       await refreshUserStatus()
@@ -295,90 +313,98 @@ export default function RegisterScreen() {
                 </ThemedText>
               </View>
 
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.label}>Display Name</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. John Doe"
-                  placeholderTextColor="#666"
-                  value={name}
-                  onChangeText={setName}
-                  autoCorrect={false}
-                  editable={!isLoading}
-                  returnKeyType="next"
-                  maxLength={50}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.label}>Username</ThemedText>
-                <View style={{ position: 'relative' }}>
+              {needsName && (
+                <View style={styles.inputContainer}>
+                  <ThemedText style={styles.label}>Display Name</ThemedText>
                   <TextInput
-                    style={[
-                      styles.input,
-                      usernameStatus === 'available' && styles.inputValid,
-                      (usernameStatus === 'taken' || usernameStatus === 'invalid') && styles.inputInvalid
-                    ]}
-                    placeholder="username"
+                    style={styles.input}
+                    placeholder="e.g. John Doe"
                     placeholderTextColor="#666"
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
+                    value={name}
+                    onChangeText={setName}
                     autoCorrect={false}
                     editable={!isLoading}
                     returnKeyType="next"
-                    inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                    maxLength={50}
                   />
-                  {usernameStatus === 'checking' && (
-                    <View style={styles.inputIcon}>
-                      <ActivityIndicator size="small" color="#666" />
-                    </View>
+                </View>
+              )}
+
+              {needsUsername && (
+                <View style={styles.inputContainer}>
+                  <ThemedText style={styles.label}>Username</ThemedText>
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        usernameStatus === 'available' && styles.inputValid,
+                        (usernameStatus === 'taken' || usernameStatus === 'invalid') && styles.inputInvalid
+                      ]}
+                      placeholder="username"
+                      placeholderTextColor="#666"
+                      value={username}
+                      onChangeText={setUsername}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!isLoading}
+                      returnKeyType="next"
+                      inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                    />
+                    {usernameStatus === 'checking' && (
+                      <View style={styles.inputIcon}>
+                        <ActivityIndicator size="small" color="#666" />
+                      </View>
+                    )}
+                    {usernameStatus === 'available' && (
+                      <ThemedText style={styles.inputIcon}>✓</ThemedText>
+                    )}
+                  </View>
+                  {usernameError && (
+                    <ThemedText style={styles.errorText}>{usernameError}</ThemedText>
                   )}
                   {usernameStatus === 'available' && (
-                    <ThemedText style={styles.inputIcon}>✓</ThemedText>
+                    <ThemedText style={styles.successText}>Username available!</ThemedText>
                   )}
                 </View>
-                {usernameError && (
-                  <ThemedText style={styles.errorText}>{usernameError}</ThemedText>
-                )}
-                {usernameStatus === 'available' && (
-                  <ThemedText style={styles.successText}>Username available!</ThemedText>
-                )}
-              </View>
+              )}
 
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.label}>Phone Number</ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="(555) 555-5555"
-                  placeholderTextColor="#666"
-                  value={phoneNumber}
-                  onChangeText={handlePhoneChange}
-                  keyboardType="phone-pad"
-                  maxLength={14}
-                  editable={!isLoading}
-                  returnKeyType="done"
-                  inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
-                  ref={phoneInputRef}
-                />
-              </View>
+              {needsPhone && (
+                <View style={styles.inputContainer}>
+                  <ThemedText style={styles.label}>Phone Number</ThemedText>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="(555) 555-5555"
+                    placeholderTextColor="#666"
+                    value={phoneNumber}
+                    onChangeText={handlePhoneChange}
+                    keyboardType="phone-pad"
+                    maxLength={14}
+                    editable={!isLoading}
+                    returnKeyType="done"
+                    inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                    ref={phoneInputRef}
+                  />
+                </View>
+              )}
 
-              <View style={styles.inputContainer}>
-                <ThemedText style={styles.label}>Birthday</ThemedText>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => {
-                    Keyboard.dismiss()
-                    setTempBirthday(birthday)
-                    setShowDatePicker(true)
-                  }}
-                  disabled={isLoading}
-                >
-                  <ThemedText style={styles.dateButtonText}>
-                    {formatDate(birthday)}
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
+              {needsBirthday && (
+                <View style={styles.inputContainer}>
+                  <ThemedText style={styles.label}>Birthday</ThemedText>
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => {
+                      Keyboard.dismiss()
+                      setTempBirthday(birthday)
+                      setShowDatePicker(true)
+                    }}
+                    disabled={isLoading}
+                  >
+                    <ThemedText style={styles.dateButtonText}>
+                      {formatDate(birthday)}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Date Picker Modal for iOS */}
               {Platform.OS === 'ios' && showDatePicker && (
@@ -438,13 +464,15 @@ export default function RegisterScreen() {
                 You must be 21 or older to use this app
               </ThemedText>
 
-              <TouchableOpacity
-                style={[styles.cancelButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
-                onPress={handleGoBack}
-                disabled={isLoading || isCancelling}
-              >
-                <ThemedText style={styles.cancelButtonText}>Cancel Registration</ThemedText>
-              </TouchableOpacity>
+              {(!isExistingUser) && (
+                <TouchableOpacity
+                  style={[styles.cancelButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
+                  onPress={handleGoBack}
+                  disabled={isLoading || isCancelling}
+                >
+                  <ThemedText style={styles.cancelButtonText}>Cancel Registration</ThemedText>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={[styles.submitButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}

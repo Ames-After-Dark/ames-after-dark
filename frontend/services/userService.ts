@@ -169,10 +169,10 @@ export interface UserStatus {
 }
 
 export interface CompleteRegistrationData {
-  phoneNumber: string;
-  birthday: string; // YYYY-MM-DD format
-  username: string;
-  name: string;
+  phoneNumber?: string;
+  birthday?: string; // YYYY-MM-DD format
+  username?: string;
+  name?: string;
 }
 
 export interface CompleteRegistrationResponse {

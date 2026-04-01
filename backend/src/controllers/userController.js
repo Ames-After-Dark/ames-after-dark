@@ -152,8 +152,12 @@ exports.completeUserRegistration = async (req, res) => {
 
     const { phoneNumber, birthday, username, name } = req.body || {};
 
-    // Validate required fields
-    if (!phoneNumber || !birthday || !username || !name) {
+    // Load existing user right away
+    const existingUser = await userService.getUserByAuth0Id(auth0Id);
+    const isUpdating = existingUser !== null;
+
+    // Validate required fields explicitly only if not updating
+    if (!isUpdating && (!phoneNumber || !birthday || !username || !name)) {
       return res.status(400).json({
         message: 'Phone number, birthday, username, and name are required',
         errors: {
@@ -165,8 +169,9 @@ exports.completeUserRegistration = async (req, res) => {
       });
     }
 
+    // Pass the isUpdating flag. Fields not sent won't be validated.
     // Validate phone number, birthday, and username format
-    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username, name);
+    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username, name, isUpdating);
 
     if (!validation.valid) {
       return res.status(400).json({
@@ -175,24 +180,44 @@ exports.completeUserRegistration = async (req, res) => {
       });
     }
 
-    // Check if username is already taken
-    const usernameAvailable = await userService.isUsernameAvailable(username);
-    if (!usernameAvailable) {
-      return res.status(409).json({
-        message: 'Username already taken',
-        errors: {
-          username: 'This username is already taken'
-        }
-      });
+    // Check if username is already taken (only if they actually sent one)
+    if (username) {
+      const usernameAvailable = await userService.isUsernameAvailable(username);
+      if (!usernameAvailable) {
+        return res.status(409).json({
+          message: 'Username already taken',
+          errors: {
+            username: 'This username is already taken'
+          }
+        });
+      }
     }
 
     // Check if user already exists
-    const existingUser = await userService.getUserByAuth0Id(auth0Id);
+    if (isUpdating) {
+      // Rather than returning a 409 conflict, we want to allow existing users to update their missing profile fields
+      // Ensure we don't try to change the Auth0 ID, and update only the missing pieces.
 
-    if (existingUser) {
-      return res.status(409).json({
-        message: 'User already registered',
-        userId: existingUser.id
+      // Update only the missing pieces sent by the frontend, fall back to DB data if they didn't send it.
+      const fieldsToUpdate = {
+        phone_number: phoneNumber || existingUser.phone_number,
+        birthday: birthday ? new Date(birthday) : existingUser.birthday,
+        username: username || existingUser.username,
+        name: name || existingUser.name
+      };
+
+      const updatedUser = await userService.updateUser(existingUser.id, fieldsToUpdate);
+
+      return res.status(200).json({
+        message: 'Profile completed successfully',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          username: updatedUser.username,
+          phoneNumber: updatedUser.phone_number,
+          birthday: updatedUser.birthday
+        }
       });
     }
 
