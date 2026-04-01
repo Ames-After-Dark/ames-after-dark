@@ -244,6 +244,25 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
 }
 
 /**
+ * Cancel user registration (deletes Auth0 account)
+ * Requires Auth0 authentication
+ */
+export async function cancelRegistration(accessToken: string): Promise<{ message: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/cancel-registration`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to cancel user registration:', error);
+    throw error;
+  }
+}
+
+/**
  * Get username for the authenticated user
  * Requires Auth0 authentication
  * Returns { username: string | null } - null if user hasn't set username yet

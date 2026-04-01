@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text"
 import { useAuth } from "@/hooks/use-auth"
-import { completeUserRegistration, checkUsernameAvailability } from "@/services/userService"
+import { completeUserRegistration, checkUsernameAvailability, cancelRegistration } from "@/services/userService"
 import { useRouter } from "expo-router"
 import {
   StyleSheet,
@@ -21,7 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 
 export default function RegisterScreen() {
   const router = useRouter()
-  const { user, getAccessToken, refreshUserStatus, refreshUsername } = useAuth()
+  const { user, getAccessToken, refreshUserStatus, refreshUsername, signOut } = useAuth()
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
   const [username, setUsername] = useState("")
@@ -29,6 +29,7 @@ export default function RegisterScreen() {
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const inputAccessoryViewID = "phoneInputDone"
   const phoneInputRef = useRef<TextInput | null>(null)
   const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -149,6 +150,41 @@ export default function RegisterScreen() {
   const handleDatePickerDone = () => {
     setBirthday(tempBirthday)
     setShowDatePicker(false)
+  }
+
+  const handleGoBack = () => {
+    Alert.alert(
+      "Cancel Registration",
+      "Are you sure you want to go back? Your account registration will be cancelled.",
+      [
+        {
+          text: "No",
+          style: "cancel"
+        },
+        {
+          text: "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            setIsCancelling(true)
+            try {
+              const accessToken = await getAccessToken()
+              if (!accessToken) throw new Error('No access token available')
+
+              await cancelRegistration(accessToken)
+              await signOut(true) // forceClearLocal = true to skip Auth0 logout popup
+
+              // Don't set isCancelling(false) here, let the unmount handle it
+              // Or navigate explicitly if layout doesn't automatically eject us:
+              router.replace('/(app)/(auth)/' as any)
+            } catch (error: any) {
+              console.error("Cancellation error:", error)
+              Alert.alert("Cancellation Failed", "Could not cancel registration at this time.")
+              setIsCancelling(false)
+            }
+          }
+        }
+      ]
+    )
   }
 
   const handleSubmit = async () => {
@@ -358,14 +394,22 @@ export default function RegisterScreen() {
           </ThemedText>
 
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={isLoading}
+            style={[styles.cancelButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
+            onPress={handleGoBack}
+            disabled={isLoading || isCancelling}
           >
-            {isLoading ? (
+            <ThemedText style={styles.cancelButtonText}>Cancel Registration</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.submitButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={isLoading || isCancelling}
+          >
+            {isLoading || isCancelling ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <ThemedText style={styles.buttonText}>Complete Registration</ThemedText>
+              <ThemedText style={styles.submitButtonText}>Continue</ThemedText>
             )}
           </TouchableOpacity>
         </View>
@@ -490,7 +534,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#ccc",
   },
-  button: {
+  submitButton: {
     backgroundColor: "#2563eb",
     paddingVertical: 14,
     paddingHorizontal: 32,
@@ -499,13 +543,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-  buttonDisabled: {
+  submitButtonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
+  submitButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#ef4444",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginBottom: 12,
+  },
+  cancelButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   accessoryView: {
     backgroundColor: "#1a1a1a",

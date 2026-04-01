@@ -604,3 +604,35 @@ exports.deleteAccount = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+/**
+ * DELETE /api/users/auth/cancel-registration
+ * Deletes an Auth0 account that hasn't finished registration in our DB yet
+ * Requires valid JWT
+ */
+exports.cancelRegistration = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Unauthorized: No Auth0 ID in token' });
+    }
+
+    // Try deleting from Auth0
+    try {
+      await authService.deleteAuth0User(auth0Id);
+      return res.status(200).json({ message: 'Registration cancelled successfully' });
+    } catch (auth0Err) {
+      console.error('Error deleting from Auth0:', auth0Err);
+      return res.status(502).json({
+        message: 'Failed to delete Auth0 account',
+        error: auth0Err.message
+      });
+    }
+  } catch (err) {
+    console.error('Error cancelling registration:', err);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
+  }
+};
+
+module.exports = exports;
