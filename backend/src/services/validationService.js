@@ -87,12 +87,12 @@ const calculateAge = (birthDate) => {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+
   // Adjust age if birthday hasn't occurred yet this year
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   return age;
 };
 
@@ -124,13 +124,45 @@ exports.validateUsername = (username) => {
 };
 
 /**
+ * Validates a display name
+ * @param {string} name - The display name to validate
+ * @returns {Object} { valid: boolean, error: string | null }
+ */
+exports.validateDisplayName = (name) => {
+  if (!name || name.trim().length === 0) {
+    return { valid: false, error: 'Display name is required' };
+  }
+
+  if (typeof name !== 'string') {
+    return { valid: false, error: 'Display name must be a string' };
+  }
+
+  // Trim whitespace
+  const trimmedName = name.trim();
+
+  // Name must be between 1 and 50 characters
+  if (trimmedName.length > 50) {
+    return { valid: false, error: 'Display name cannot exceed 50 characters' };
+  }
+
+  // Name can only contain letters, numbers, spaces, and basic punctuation (apostrophes, hyphens, periods)
+  if (!/^[a-zA-Z0-9\s\.\-']+$/.test(trimmedName)) {
+    return { valid: false, error: 'Display name contains invalid characters. Use letters, numbers, spaces, hyphens, periods, or apostrophes.' };
+  }
+
+  return { valid: true, error: null };
+};
+
+
+/**
  * Validates both phone number and birthday
  * @param {string} phoneNumber - The phone number to validate
  * @param {string | Date} birthday - The birthday to validate
  * @param {string} username - The username to validate (optional)
+ * @param {string} name - The display name to validate (optional)
  * @returns {Object} { valid: boolean, errors: Object }
  */
-exports.validateUserRegistrationData = (phoneNumber, birthday, username = null) => {
+exports.validateUserRegistrationData = (phoneNumber, birthday, username = null, name = null) => {
   const phoneValidation = exports.validatePhoneNumber(phoneNumber);
   const birthdayValidation = exports.validateBirthday(birthday);
 
@@ -147,6 +179,14 @@ exports.validateUserRegistrationData = (phoneNumber, birthday, username = null) 
     const usernameValidation = exports.validateUsername(username);
     if (!usernameValidation.valid) {
       errors.username = usernameValidation.error;
+    }
+  }
+
+  // Validate name if provided
+  if (name) {
+    const nameValidation = exports.validateDisplayName(name);
+    if (!nameValidation.valid) {
+      errors.name = nameValidation.error;
     }
   }
 

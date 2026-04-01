@@ -163,6 +163,8 @@ export interface UserStatus {
     name: string | null;
     hasPhoneNumber: boolean;
     hasBirthday: boolean;
+    hasUsername?: boolean;
+    hasName?: boolean;
   };
 }
 
@@ -170,6 +172,7 @@ export interface CompleteRegistrationData {
   phoneNumber: string;
   birthday: string; // YYYY-MM-DD format
   username: string;
+  name: string;
 }
 
 export interface CompleteRegistrationResponse {

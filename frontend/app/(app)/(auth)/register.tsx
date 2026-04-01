@@ -14,6 +14,8 @@ import {
   Keyboard,
   InputAccessoryView,
   Modal,
+  ScrollView,
+  KeyboardAvoidingView,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useEffect, useRef } from "react"
@@ -25,6 +27,7 @@ export default function RegisterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [birthday, setBirthday] = useState(new Date())
   const [username, setUsername] = useState("")
+  const [name, setName] = useState("")
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle')
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -44,6 +47,21 @@ export default function RegisterScreen() {
     }
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       return { valid: false, error: 'Only letters, numbers, _ and - allowed' }
+    }
+    return { valid: true, error: null }
+  }
+
+  // Validate name format
+  const validateNameFormat = (name: string): { valid: boolean; error: string | null } => {
+    const trimmed = name.trim()
+    if (trimmed.length === 0) {
+      return { valid: false, error: 'Name is required' }
+    }
+    if (trimmed.length > 50) {
+      return { valid: false, error: 'Name must be less than 50 characters' }
+    }
+    if (!/^[a-zA-Z0-9\s\.\-']+$/.test(trimmed)) {
+      return { valid: false, error: 'Only letters, numbers, spaces, and basic punctuation (.,-\') allowed' }
     }
     return { valid: true, error: null }
   }
@@ -212,6 +230,12 @@ export default function RegisterScreen() {
       return
     }
 
+    const nameValidation = validateNameFormat(name)
+    if (!nameValidation.valid) {
+      Alert.alert("Invalid Name", nameValidation.error!)
+      return
+    }
+
     // Check age (must be 21+)
     const today = new Date()
     const age = today.getFullYear() - birthday.getFullYear()
@@ -237,7 +261,8 @@ export default function RegisterScreen() {
       await completeUserRegistration(accessToken, {
         phoneNumber: cleanedPhone,
         birthday: formatDate(birthday),
-        username: username
+        username: username,
+        name: name.trim()
       })
 
       // Refresh user status and username in auth context
@@ -256,164 +281,186 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.content}>
-          <View style={{ width: '100%' }}>
-            <ThemedText type="title" style={styles.title}>Complete Your Profile</ThemedText>
-            <ThemedText style={styles.subtitle}>
-              We need a few more details to get you started
-            </ThemedText>
-          </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1, width: '100%' }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
+              <View style={{ width: '100%' }}>
+                <ThemedText type="title" style={styles.title}>Complete Your Profile</ThemedText>
+                <ThemedText style={styles.subtitle}>
+                  We need a few more details to get you started
+                </ThemedText>
+              </View>
 
-          <View style={styles.inputContainer}>
-            <ThemedText style={styles.label}>Username</ThemedText>
-            <View style={{ position: 'relative' }}>
-              <TextInput
-                style={[
-                  styles.input,
-                  usernameStatus === 'available' && styles.inputValid,
-                  (usernameStatus === 'taken' || usernameStatus === 'invalid') && styles.inputInvalid
-                ]}
-                placeholder="username"
-                placeholderTextColor="#666"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-                returnKeyType="next"
-                inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
-              />
-              {usernameStatus === 'checking' && (
-                <View style={styles.inputIcon}>
-                  <ActivityIndicator size="small" color="#666" />
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.label}>Display Name</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. John Doe"
+                  placeholderTextColor="#666"
+                  value={name}
+                  onChangeText={setName}
+                  autoCorrect={false}
+                  editable={!isLoading}
+                  returnKeyType="next"
+                  maxLength={50}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.label}>Username</ThemedText>
+                <View style={{ position: 'relative' }}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      usernameStatus === 'available' && styles.inputValid,
+                      (usernameStatus === 'taken' || usernameStatus === 'invalid') && styles.inputInvalid
+                    ]}
+                    placeholder="username"
+                    placeholderTextColor="#666"
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isLoading}
+                    returnKeyType="next"
+                    inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                  />
+                  {usernameStatus === 'checking' && (
+                    <View style={styles.inputIcon}>
+                      <ActivityIndicator size="small" color="#666" />
+                    </View>
+                  )}
+                  {usernameStatus === 'available' && (
+                    <ThemedText style={styles.inputIcon}>✓</ThemedText>
+                  )}
                 </View>
-              )}
-              {usernameStatus === 'available' && (
-                <ThemedText style={styles.inputIcon}>✓</ThemedText>
-              )}
-            </View>
-            {usernameError && (
-              <ThemedText style={styles.errorText}>{usernameError}</ThemedText>
-            )}
-            {usernameStatus === 'available' && (
-              <ThemedText style={styles.successText}>Username available!</ThemedText>
-            )}
-          </View>
+                {usernameError && (
+                  <ThemedText style={styles.errorText}>{usernameError}</ThemedText>
+                )}
+                {usernameStatus === 'available' && (
+                  <ThemedText style={styles.successText}>Username available!</ThemedText>
+                )}
+              </View>
 
-          <View style={styles.inputContainer}>
-            <ThemedText style={styles.label}>Phone Number</ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="(555) 555-5555"
-              placeholderTextColor="#666"
-              value={phoneNumber}
-              onChangeText={handlePhoneChange}
-              keyboardType="phone-pad"
-              maxLength={14}
-              editable={!isLoading}
-              returnKeyType="done"
-              inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
-              ref={phoneInputRef}
-            />
-          </View>
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.label}>Phone Number</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="(555) 555-5555"
+                  placeholderTextColor="#666"
+                  value={phoneNumber}
+                  onChangeText={handlePhoneChange}
+                  keyboardType="phone-pad"
+                  maxLength={14}
+                  editable={!isLoading}
+                  returnKeyType="done"
+                  inputAccessoryViewID={Platform.OS === 'ios' ? inputAccessoryViewID : undefined}
+                  ref={phoneInputRef}
+                />
+              </View>
 
-          <View style={styles.inputContainer}>
-            <ThemedText style={styles.label}>Birthday</ThemedText>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => {
-                Keyboard.dismiss()
-                setTempBirthday(birthday)
-                setShowDatePicker(true)
-              }}
-              disabled={isLoading}
-            >
-              <ThemedText style={styles.dateButtonText}>
-                {formatDate(birthday)}
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.inputContainer}>
+                <ThemedText style={styles.label}>Birthday</ThemedText>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => {
+                    Keyboard.dismiss()
+                    setTempBirthday(birthday)
+                    setShowDatePicker(true)
+                  }}
+                  disabled={isLoading}
+                >
+                  <ThemedText style={styles.dateButtonText}>
+                    {formatDate(birthday)}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
 
-          {/* Date Picker Modal for iOS */}
-          {Platform.OS === 'ios' && showDatePicker && (
-            <Modal
-              transparent={true}
-              animationType="slide"
-              visible={showDatePicker}
-              onRequestClose={handleDatePickerCancel}
-            >
-              <TouchableWithoutFeedback onPress={handleDatePickerCancel}>
-                <View style={styles.modalOverlay}>
-                  <TouchableWithoutFeedback>
-                    <View style={styles.datePickerContainer}>
-                      <View style={styles.datePickerHeader}>
-                        <TouchableOpacity
-                          onPress={handleDatePickerCancel}
-                          style={styles.datePickerButton}
-                        >
-                          <ThemedText style={styles.datePickerCancelText}>Cancel</ThemedText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={handleDatePickerDone}
-                          style={styles.datePickerButton}
-                        >
-                          <ThemedText style={styles.datePickerDoneText}>Done</ThemedText>
-                        </TouchableOpacity>
-                      </View>
-                      <DateTimePicker
-                        value={tempBirthday}
-                        mode="date"
-                        display="spinner"
-                        onChange={handleDateChange}
-                        maximumDate={new Date()}
-                        minimumDate={new Date(1900, 0, 1)}
-                        textColor="#fff"
-                      />
+              {/* Date Picker Modal for iOS */}
+              {Platform.OS === 'ios' && showDatePicker && (
+                <Modal
+                  transparent={true}
+                  animationType="slide"
+                  visible={showDatePicker}
+                  onRequestClose={handleDatePickerCancel}
+                >
+                  <TouchableWithoutFeedback onPress={handleDatePickerCancel}>
+                    <View style={styles.modalOverlay}>
+                      <TouchableWithoutFeedback>
+                        <View style={styles.datePickerContainer}>
+                          <View style={styles.datePickerHeader}>
+                            <TouchableOpacity
+                              onPress={handleDatePickerCancel}
+                              style={styles.datePickerButton}
+                            >
+                              <ThemedText style={styles.datePickerCancelText}>Cancel</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={handleDatePickerDone}
+                              style={styles.datePickerButton}
+                            >
+                              <ThemedText style={styles.datePickerDoneText}>Done</ThemedText>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            value={tempBirthday}
+                            mode="date"
+                            display="spinner"
+                            onChange={handleDateChange}
+                            maximumDate={new Date()}
+                            minimumDate={new Date(1900, 0, 1)}
+                            textColor="#fff"
+                          />
+                        </View>
+                      </TouchableWithoutFeedback>
                     </View>
                   </TouchableWithoutFeedback>
-                </View>
-              </TouchableWithoutFeedback>
-            </Modal>
-          )}
+                </Modal>
+              )}
 
-          {/* Date Picker for Android */}
-          {Platform.OS === 'android' && showDatePicker && (
-            <DateTimePicker
-              value={birthday}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(1900, 0, 1)}
-            />
-          )}
+              {/* Date Picker for Android */}
+              {Platform.OS === 'android' && showDatePicker && (
+                <DateTimePicker
+                  value={birthday}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                  maximumDate={new Date()}
+                  minimumDate={new Date(1900, 0, 1)}
+                />
+              )}
 
-          <ThemedText style={styles.note}>
-            You must be 21 or older to use this app
-          </ThemedText>
+              <ThemedText style={styles.note}>
+                You must be 21 or older to use this app
+              </ThemedText>
 
-          <TouchableOpacity
-            style={[styles.cancelButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
-            onPress={handleGoBack}
-            disabled={isLoading || isCancelling}
-          >
-            <ThemedText style={styles.cancelButtonText}>Cancel Registration</ThemedText>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
+                onPress={handleGoBack}
+                disabled={isLoading || isCancelling}
+              >
+                <ThemedText style={styles.cancelButtonText}>Cancel Registration</ThemedText>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.submitButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isLoading || isCancelling}
-          >
-            {isLoading || isCancelling ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <ThemedText style={styles.submitButtonText}>Continue</ThemedText>
-            )}
-          </TouchableOpacity>
-        </View>
-      </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={[styles.submitButton, (isLoading || isCancelling) && styles.submitButtonDisabled]}
+                onPress={handleSubmit}
+                disabled={isLoading || isCancelling}
+              >
+                {isLoading || isCancelling ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <ThemedText style={styles.submitButtonText}>Continue</ThemedText>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
       {Platform.OS === 'ios' && (
         <InputAccessoryView nativeID={inputAccessoryViewID}>
           <View style={styles.accessoryView}>
@@ -436,10 +483,14 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#0a0a0a",
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "#0a0a0a",
+    paddingVertical: 20,
   },
   content: {
     width: "100%",

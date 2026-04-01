@@ -106,7 +106,8 @@ exports.checkUserStatus = async (req, res) => {
     const hasPhoneNumber = user.phone_number !== null && user.phone_number !== undefined;
     const hasBirthday = user.birthday !== null && user.birthday !== undefined;
     const hasUsername = user.username !== null && user.username !== undefined;
-    const profileComplete = hasPhoneNumber && hasBirthday && hasUsername;
+    const hasName = user.name !== null && user.name !== undefined && user.name.trim() !== '';
+    const profileComplete = hasPhoneNumber && hasBirthday && hasUsername && hasName;
 
     return res.json({
       registered: true,
@@ -119,7 +120,8 @@ exports.checkUserStatus = async (req, res) => {
         name: user.name,
         hasPhoneNumber: hasPhoneNumber,
         hasBirthday: hasBirthday,
-        hasUsername: hasUsername
+        hasUsername: hasUsername,
+        hasName: hasName
       }
     });
 
@@ -148,22 +150,23 @@ exports.completeUserRegistration = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { phoneNumber, birthday, username } = req.body || {};
+    const { phoneNumber, birthday, username, name } = req.body || {};
 
     // Validate required fields
-    if (!phoneNumber || !birthday || !username) {
+    if (!phoneNumber || !birthday || !username || !name) {
       return res.status(400).json({
-        message: 'Phone number, birthday, and username are required',
+        message: 'Phone number, birthday, username, and name are required',
         errors: {
           phoneNumber: !phoneNumber ? 'Phone number is required' : undefined,
           birthday: !birthday ? 'Birthday is required' : undefined,
-          username: !username ? 'Username is required' : undefined
+          username: !username ? 'Username is required' : undefined,
+          name: !name ? 'Name is required' : undefined
         }
       });
     }
 
     // Validate phone number, birthday, and username format
-    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username);
+    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username, name);
 
     if (!validation.valid) {
       return res.status(400).json({
@@ -196,7 +199,8 @@ exports.completeUserRegistration = async (req, res) => {
     // Get additional user info from JWT token if available
     // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
     const email = req.auth?.payload?.email || req.auth?.email || null;
-    const name = req.auth?.payload?.name || req.auth?.name || null;
+    // We already have `name` from req.body now
+
 
     // Create new user
     const newUser = await userService.createUserWithAuth0({
