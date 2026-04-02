@@ -59,6 +59,7 @@ const eventRoutes = require('./src/routes/eventRoutes');
 const dealRoutes = require('./src/routes/dealRoutes');
 const menuItemRoutes = require('./src/routes/menuItemRoutes');
 const r2Routes = require('./src/routes/r2Routes');
+const bannerRoutes = require('./src/routes/bannerRoutes');
 
 app.use('/api/locations', locationRoutes);
 app.use('/api/locationhours', locationHourRoutes);
@@ -71,6 +72,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/deals', dealRoutes);
 app.use('/api/menuitems', menuItemRoutes);
 app.use('/api/r2', r2Routes);
+app.use('/api/banners', bannerRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
