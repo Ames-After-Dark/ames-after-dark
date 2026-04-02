@@ -81,7 +81,7 @@ exports.getFriendsLocations = async (userId) => {
 
 exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
   if (shouldEnable) {
-    return await prisma.location_permissions.upsert({
+    return await prisma.user_location_permissions.upsert({
       where: {
         owner_id_viewer_id: { owner_id: ownerId, viewer_id: viewerId }
       },
@@ -90,7 +90,7 @@ exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
     });
   } else {
     // deleteMany is safer than delete because it won't throw 404 if already deleted
-    return await prisma.location_permissions.deleteMany({
+    return await prisma.user_location_permissions.deleteMany({
       where: { owner_id: ownerId, viewer_id: viewerId }
     });
   }
