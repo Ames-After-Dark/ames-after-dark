@@ -21,9 +21,12 @@ exports.updateUserLocationByUserId = async (userId, data) => {
 }
 
 exports.getFriendsLocations = async (userId) => {
+  const now = new Date();
+
   const data = await prisma.users.findUnique({
     where: { id: userId },
     select: {
+      // Logic for friends where you are user_id_1
       friendships_friendships_user_id_1Tousers: {
         where: { friendship_status_id: 2 },
         select: {
@@ -32,19 +35,17 @@ exports.getFriendsLocations = async (userId) => {
               id: true,
               username: true,
               name: true,
-              user_locations: {
-                where: {
-                  users: {
-                    location_permissions_location_permissions_owner_idTousers: {
-                      some: { viewer_id: userId }
-                    }
-                  }
-                }
-              },
-            },
-          },
-        },
+              user_settings: true,
+              user_locations: true,
+              // We fetch the permission record if it exists
+              location_permissions_location_permissions_owner_idTousers: {
+                where: { viewer_id: userId }
+              }
+            }
+          }
+        }
       },
+      // Logic for friends where you are user_id_2
       friendships_friendships_user_id_2Tousers: {
         where: { friendship_status_id: 2 },
         select: {
@@ -53,35 +54,54 @@ exports.getFriendsLocations = async (userId) => {
               id: true,
               username: true,
               name: true,
-              user_locations: {
-                where: {
-                  users: {
-                    location_permissions_location_permissions_owner_idTousers: {
-                      some: { viewer_id: userId }
-                    }
-                  }
-                }
-              },
-            },
-          },
-        },
-      },
-    },
+              user_settings: true,
+              user_locations: true,
+              location_permissions_location_permissions_owner_idTousers: {
+                where: { viewer_id: userId }
+              }
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!data) return [];
 
-  const friendsList1 = data.friendships_friendships_user_id_1Tousers.map(f => f.users_friendships_user_id_2Tousers);
-  const friendsList2 = data.friendships_friendships_user_id_2Tousers.map(f => f.users_friendships_user_id_1Tousers);
-  
-  const allFriends = [...friendsList1, ...friendsList2];
+  const allFriends = [
+    ...data.friendships_friendships_user_id_1Tousers.map(f => f.users_friendships_user_id_2Tousers),
+    ...data.friendships_friendships_user_id_2Tousers.map(f => f.users_friendships_user_id_1Tousers)
+  ];
 
-  return allFriends.filter(friend => friend.user_locations !== null);
+  return allFriends.filter(friend => {
+    const settings = friend.user_settings;
+    const location = friend.user_locations;
+    const hasExplicitPermission = friend.location_permissions_location_permissions_owner_idTousers.length > 0;
+
+    if (!location) return false;
+
+    if (settings?.ghost_mode_expires_at && new Date(settings.ghost_mode_expires_at) > now) {
+      return false;
+    }
+
+    const pref = settings?.location_sharing_preference || 'SELECTIVE';
+
+    if (pref === 'PRIVATE') return false;
+    if (pref === 'PUBLIC') return true;
+    if (pref === 'SELECTIVE') return hasExplicitPermission;
+
+    return false;
+  }).map(friend => ({
+    id: friend.id,
+    username: friend.username,
+    name: friend.name,
+    location: friend.user_locations
+  }));
 };
 
 exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
   if (shouldEnable) {
-    return await prisma.location_permissions.upsert({
+    return await prisma.user_location_permissions.upsert({
       where: {
         owner_id_viewer_id: { owner_id: ownerId, viewer_id: viewerId }
       },
@@ -90,8 +110,30 @@ exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
     });
   } else {
     // deleteMany is safer than delete because it won't throw 404 if already deleted
-    return await prisma.location_permissions.deleteMany({
+    return await prisma.user_location_permissions.deleteMany({
       where: { owner_id: ownerId, viewer_id: viewerId }
     });
   }
+};
+
+exports.setGhostMode = async (userId, hours) => {
+  let expiry = null;
+  
+  if (hours > 0) {
+    expiry = new Date();
+    expiry.setHours(expiry.getHours() + hours);
+  }
+
+  return await prisma.user_settings.update({
+    where: { user_id: userId },
+    data: { ghost_mode_expires_at: expiry }
+  });
+};
+
+exports.updateSharingPreference = async (userId, preference) => {
+  // preference must be 'PUBLIC', 'PRIVATE', or 'SELECTIVE'
+  return await prisma.user_settings.update({
+    where: { user_id: userId },
+    data: { location_sharing_preference: preference }
+  });
 };

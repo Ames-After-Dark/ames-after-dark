@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.getUserFavoritesByUserId = async (userId) => {
-  return await prisma.user_favorites.findMany({
+  return await prisma.user_favorite_locations.findMany({
     where: { user_id: userId },
     select: {
       location_id: true,
@@ -20,18 +20,18 @@ exports.toggleFavorite = async (userId, locationId) => {
     }
   };
 
-  const existing = await prisma.user_favorites.findUnique({
+  const existing = await prisma.user_favorite_locations.findUnique({
     where: compositeKey
   });
 
   if (existing) {
-    await prisma.user_favorites.delete({
+    await prisma.user_favorite_locations.delete({
       where: compositeKey
     });
     return { favorited: false };
   }
 
-  await prisma.user_favorites.create({
+  await prisma.user_favorite_locations.create({
     data: {
       user_id: userId,
       location_id: locationId

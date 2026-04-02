@@ -163,13 +163,16 @@ export interface UserStatus {
     name: string | null;
     hasPhoneNumber: boolean;
     hasBirthday: boolean;
+    hasUsername?: boolean;
+    hasName?: boolean;
   };
 }
 
 export interface CompleteRegistrationData {
-  phoneNumber: string;
-  birthday: string; // YYYY-MM-DD format
-  username: string;
+  phoneNumber?: string;
+  birthday?: string; // YYYY-MM-DD format
+  username?: string;
+  name?: string;
 }
 
 export interface CompleteRegistrationResponse {
@@ -239,6 +242,25 @@ export async function checkUsernameAvailability(username: string): Promise<{ ava
     return response;
   } catch (error) {
     console.error('Failed to check username availability:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel user registration (deletes Auth0 account)
+ * Requires Auth0 authentication
+ */
+export async function cancelRegistration(accessToken: string): Promise<{ message: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/cancel-registration`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to cancel user registration:', error);
     throw error;
   }
 }

@@ -106,7 +106,8 @@ exports.checkUserStatus = async (req, res) => {
     const hasPhoneNumber = user.phone_number !== null && user.phone_number !== undefined;
     const hasBirthday = user.birthday !== null && user.birthday !== undefined;
     const hasUsername = user.username !== null && user.username !== undefined;
-    const profileComplete = hasPhoneNumber && hasBirthday && hasUsername;
+    const hasName = user.name !== null && user.name !== undefined && user.name.trim() !== '';
+    const profileComplete = hasPhoneNumber && hasBirthday && hasUsername && hasName;
 
     return res.json({
       registered: true,
@@ -119,7 +120,8 @@ exports.checkUserStatus = async (req, res) => {
         name: user.name,
         hasPhoneNumber: hasPhoneNumber,
         hasBirthday: hasBirthday,
-        hasUsername: hasUsername
+        hasUsername: hasUsername,
+        hasName: hasName
       }
     });
 
@@ -148,22 +150,28 @@ exports.completeUserRegistration = async (req, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const { phoneNumber, birthday, username } = req.body || {};
+    const { phoneNumber, birthday, username, name } = req.body || {};
 
-    // Validate required fields
-    if (!phoneNumber || !birthday || !username) {
+    // Load existing user right away
+    const existingUser = await userService.getUserByAuth0Id(auth0Id);
+    const isUpdating = existingUser !== null;
+
+    // Validate required fields explicitly only if not updating
+    if (!isUpdating && (!phoneNumber || !birthday || !username || !name)) {
       return res.status(400).json({
-        message: 'Phone number, birthday, and username are required',
+        message: 'Phone number, birthday, username, and name are required',
         errors: {
           phoneNumber: !phoneNumber ? 'Phone number is required' : undefined,
           birthday: !birthday ? 'Birthday is required' : undefined,
-          username: !username ? 'Username is required' : undefined
+          username: !username ? 'Username is required' : undefined,
+          name: !name ? 'Name is required' : undefined
         }
       });
     }
 
+    // Pass the isUpdating flag. Fields not sent won't be validated.
     // Validate phone number, birthday, and username format
-    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username);
+    const validation = validationService.validateUserRegistrationData(phoneNumber, birthday, username, name, isUpdating);
 
     if (!validation.valid) {
       return res.status(400).json({
@@ -172,31 +180,52 @@ exports.completeUserRegistration = async (req, res) => {
       });
     }
 
-    // Check if username is already taken
-    const usernameAvailable = await userService.isUsernameAvailable(username);
-    if (!usernameAvailable) {
-      return res.status(409).json({
-        message: 'Username already taken',
-        errors: {
-          username: 'This username is already taken'
-        }
-      });
+    // Check if username is already taken (only if they actually sent one)
+    if (username) {
+      const usernameAvailable = await userService.isUsernameAvailable(username);
+      if (!usernameAvailable) {
+        return res.status(409).json({
+          message: 'Username already taken',
+          errors: {
+            username: 'This username is already taken'
+          }
+        });
+      }
     }
 
     // Check if user already exists
-    const existingUser = await userService.getUserByAuth0Id(auth0Id);
+    if (isUpdating) {
+      // Rather than returning a 409 conflict, we want to allow existing users to update their missing profile fields
+      // Ensure we don't try to change the Auth0 ID, and update only the missing pieces.
 
-    if (existingUser) {
-      return res.status(409).json({
-        message: 'User already registered',
-        userId: existingUser.id
+      // Update only the missing pieces sent by the frontend, fall back to DB data if they didn't send it.
+      const fieldsToUpdate = {
+        phone_number: phoneNumber || existingUser.phone_number,
+        birthday: birthday ? new Date(birthday) : existingUser.birthday,
+        username: username || existingUser.username,
+        name: name || existingUser.name
+      };
+
+      const updatedUser = await userService.updateUser(existingUser.id, fieldsToUpdate);
+
+      return res.status(200).json({
+        message: 'Profile completed successfully',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          username: updatedUser.username,
+          phoneNumber: updatedUser.phone_number,
+          birthday: updatedUser.birthday
+        }
       });
     }
 
     // Get additional user info from JWT token if available
     // Note: express-oauth2-jwt-bearer puts claims in req.auth.payload
     const email = req.auth?.payload?.email || req.auth?.email || null;
-    const name = req.auth?.payload?.name || req.auth?.name || null;
+    // We already have `name` from req.body now
+
 
     // Create new user
     const newUser = await userService.createUserWithAuth0({
@@ -604,3 +633,35 @@ exports.deleteAccount = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+/**
+ * DELETE /api/users/auth/cancel-registration
+ * Deletes an Auth0 account that hasn't finished registration in our DB yet
+ * Requires valid JWT
+ */
+exports.cancelRegistration = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Unauthorized: No Auth0 ID in token' });
+    }
+
+    // Try deleting from Auth0
+    try {
+      await authService.deleteAuth0User(auth0Id);
+      return res.status(200).json({ message: 'Registration cancelled successfully' });
+    } catch (auth0Err) {
+      console.error('Error deleting from Auth0:', auth0Err);
+      return res.status(502).json({
+        message: 'Failed to delete Auth0 account',
+        error: auth0Err.message
+      });
+    }
+  } catch (err) {
+    console.error('Error cancelling registration:', err);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
+  }
+};
+
+module.exports = exports;
