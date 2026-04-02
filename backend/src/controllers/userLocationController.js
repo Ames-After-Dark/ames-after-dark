@@ -63,3 +63,48 @@ exports.toggleLocationPermission = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.setGhostMode = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const { hours } = req.body; // Expecting a number like 24, or 0 to turn off
+
+    if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+    if (typeof hours !== 'number') return res.status(400).json({ message: 'Hours must be a number' });
+
+    const result = await userLocationService.setGhostMode(userId, hours);
+    
+    res.json({
+      success: true,
+      ghost_mode_expires_at: result.ghost_mode_expires_at,
+      message: hours > 0 ? `Ghost mode enabled for ${hours} hours` : "Ghost mode disabled"
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.updateSharingPreference = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const { preference } = req.body; // 'PUBLIC', 'PRIVATE', or 'SELECTIVE'
+
+    if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
+    
+    const validPrefs = ['PUBLIC', 'PRIVATE', 'SELECTIVE'];
+    if (!validPrefs.includes(preference)) {
+      return res.status(400).json({ message: 'Invalid preference value' });
+    }
+
+    const result = await userLocationService.updateSharingPreference(userId, preference);
+    
+    res.json({
+      success: true,
+      preference: result.location_sharing_preference
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
