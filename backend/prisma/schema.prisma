@@ -15,6 +15,9 @@ model deals {
   views            Int?               @default(0)
   deal_occurrences deal_occurrences[]
   locations        locations          @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations")
+  
+  banner_id  Int?     // Foreign Key
+  banners    banners? @relation(fields: [banner_id], references: [id])
 
   @@schema("app")
 }
@@ -27,6 +30,9 @@ model events {
   name              String?             @db.VarChar
   event_occurrences event_occurrences[]
   locations         locations?          @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  banner_id  Int?     // Foreign Key
+  banners    banners? @relation(fields: [banner_id], references: [id])
 
   @@schema("app")
 }
@@ -94,7 +100,7 @@ model locations {
   location_types           location_types?            @relation(fields: [location_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location_type")
   zones                    zones?                     @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   menu_items               menu_items[]
-  user_favorites           user_favorites[]
+  user_favorite_locations  user_favorite_locations[]
   users                    users[]
 
   @@schema("app")
@@ -108,7 +114,7 @@ model roles {
   @@schema("app")
 }
 
-model user_favorites {
+model user_favorite_locations {
   user_id      Int
   location_id  Int
   favorited_at DateTime? @default(now()) @db.Timestamptz(6)
@@ -129,14 +135,15 @@ model users {
   name                                                       String?                @db.VarChar(255)
   birthday                                                   DateTime?              @db.Date
   favorite_profile_location_id                               Int?
-  favorite_drink_id            Int?
+  favorite_drink_id                                          Int?
   phone_number                                               String?                @db.VarChar(25)
+  streak                                                     Int?                   @default(0)
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
   location_admins                                            location_admins[]
-  location_permissions_location_permissions_owner_idTousers  location_permissions[] @relation("location_permissions_owner_idTousers")
-  location_permissions_location_permissions_viewer_idTousers location_permissions[] @relation("location_permissions_viewer_idTousers")
-  user_favorites                                             user_favorites[]
+  location_permissions_location_permissions_owner_idTousers  user_location_permissions[] @relation("location_permissions_owner_idTousers")
+  location_permissions_location_permissions_viewer_idTousers user_location_permissions[] @relation("location_permissions_viewer_idTousers")
+  user_favorite_locations                                    user_favorite_locations[]
   user_locations                                             user_locations?
   user_settings                                              user_settings?
   profile_photo_id                                           Int?
@@ -200,7 +207,7 @@ model location_admins {
   @@schema("app")
 }
 
-model location_permissions {
+model user_location_permissions {
   owner_id                                    Int
   viewer_id                                   Int
   created_at                                  DateTime? @default(now()) @db.Timestamptz(6)
@@ -216,8 +223,15 @@ model user_locations {
   latitude   Decimal  @db.Decimal(9, 6)
   longitude  Decimal  @db.Decimal(9, 6)
   updated_at DateTime @default(now()) @db.Timestamptz(6)
-  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction) 
 
+  @@schema("app")
+}
+
+enum SharingPreference {
+  PRIVATE
+  SELECTIVE
+  PUBLIC
   @@schema("app")
 }
 
@@ -228,6 +242,8 @@ model user_settings {
   timezone          String?   @default("UTC") @db.VarChar(50)
   created_at        DateTime? @default(now()) @db.Timestamp(6)
   updated_at        DateTime? @default(now()) @db.Timestamp(6)
+  location_sharing_preference SharingPreference @default(SELECTIVE)
+  ghost_mode_expires_at       DateTime?         @db.Timestamptz(6)
   users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
 
   @@schema("app")
@@ -291,6 +307,17 @@ model user_profile_photos {
   name      String   @unique @db.VarChar(100)
   image_url String   @db.VarChar(512)         // path
   users     users[]  // Back-relation
+
+  @@schema("app")
+}
+
+model banners {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  image_url String   @db.VarChar(512)         // path
+  
+  events    events[]
+  deals     deals[]
 
   @@schema("app")
 }
