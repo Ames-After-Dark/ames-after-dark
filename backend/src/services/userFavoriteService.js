@@ -25,7 +25,7 @@ exports.toggleFavorite = async (userId, locationId) => {
   });
 
   if (existing) {
-    await prisma.user_favorites.delete({
+    await prisma.user_favorite_locations.delete({
       where: compositeKey
     });
     return { favorited: false };
