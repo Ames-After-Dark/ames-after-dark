@@ -15,6 +15,9 @@ model deals {
   views            Int?               @default(0)
   deal_occurrences deal_occurrences[]
   locations        locations          @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations")
+  
+  banner_id  Int?     // Foreign Key
+  banners    banners? @relation(fields: [banner_id], references: [id])
 
   @@schema("app")
 }
@@ -27,6 +30,9 @@ model events {
   name              String?             @db.VarChar
   event_occurrences event_occurrences[]
   locations         locations?          @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  banner_id  Int?     // Foreign Key
+  banners    banners? @relation(fields: [banner_id], references: [id])
 
   @@schema("app")
 }
@@ -292,5 +298,16 @@ model user_profile_photos {
   image_url String   @db.VarChar(512)         // path
   users     users[]  // Back-relation
 
+  @@schema("app")
+}
+
+model banners {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  image_url String   @db.VarChar(512)         // path
+  
+  events    events[]
+  deals     deals[]
+  
   @@schema("app")
 }
