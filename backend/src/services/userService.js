@@ -5,7 +5,7 @@ exports.getUsers = async () => {
   return prisma.users.findMany({
     include: {
       roles: true,
-      user_favorites: {
+      user_favorite_locations: {
         include: {
           locations: {
             include: {
@@ -51,7 +51,7 @@ exports.getUserById = async (id) => {
     where: { id: Number(id) },
     include: {
       roles: true,
-      user_favorites: {
+      user_favorite_locations: {
         include: {
           locations: {
             include: {
@@ -99,7 +99,7 @@ exports.createUser = async (userData) => {
     },
     include: {
       roles: true,
-      user_favorites: true
+      user_favorite_locations: true
     }
   });
 };
@@ -113,7 +113,7 @@ exports.updateUser = async (id, userData) => {
     },
     include: {
       roles: true,
-      user_favorites: true
+      user_favorite_locations: true
     }
   });
 };
@@ -134,7 +134,7 @@ exports.updateUserLimited = async (id, updateData) => {
     data: allowedFields,
     include: {
       roles: true,
-      user_favorites: true
+      user_favorite_locations: true
     }
   });
 };
