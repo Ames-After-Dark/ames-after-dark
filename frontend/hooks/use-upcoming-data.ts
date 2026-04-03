@@ -114,8 +114,8 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
           subtitle: deal.subtitle ?? "",
           kind: "Deal" as const,
         };
-        deal.rule.kind === "one-time" 
-          ? pushOneTimeItem(base, deal.rule.start, deal.rule.end) 
+        deal.rule.kind === "one-time"
+          ? pushOneTimeItem(base, deal.rule.start, deal.rule.end)
           : pushWeeklyItems(base, deal.rule);
       });
 
@@ -128,8 +128,8 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
           subtitle: event.description && event.description !== event.name ? event.description : "",
           kind: "Event" as const,
         };
-        event.rule.kind === "one-time" 
-          ? pushOneTimeItem(base, event.rule.start, event.rule.end) 
+        event.rule.kind === "one-time"
+          ? pushOneTimeItem(base, event.rule.start, event.rule.end)
           : pushWeeklyItems(base, event.rule);
       });
     });
@@ -171,7 +171,7 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
     });
 
     return {
-      label: `Upcoming This Week • ${groupLabelFormatter.format(now)} - ${groupLabelFormatter.format(windowEnd)}`,
+      label: `Upcoming This Week • \n${groupLabelFormatter.format(now)} - ${groupLabelFormatter.format(windowEnd)}`,
       items: upcomingItems,
       groups,
     };

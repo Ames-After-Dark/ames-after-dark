@@ -209,6 +209,28 @@ export default function Tonight() {
     return data;
   }, [query, allActiveDealsTonight]);
 
+  const activeSummary = useMemo(() => {
+    if (activeTab === "open") {
+      const count = filteredBars.length;
+      return {
+        icon: "time-outline" as const,
+        title: "Open Now",
+        subtitle: `${count} bar${count === 1 ? "" : "s"} currently open`,
+      };
+    }
+
+    if (activeTab === "deals") {
+      const count = filteredDeals.length;
+      return {
+        icon: "pricetag-outline" as const,
+        title: "Deals Tonight",
+        subtitle: `${count} active deal${count === 1 ? "" : "s"} tonight`,
+      };
+    }
+
+    return null;
+  }, [activeTab, filteredBars.length, filteredDeals.length, query]);
+
   // ----- Filter friends -----
   // Temporarily disabled for user testing until friend tracking is implemented.
   // const filteredFriends = useMemo(() => {
@@ -397,7 +419,31 @@ export default function Tonight() {
           )}
 
           {activeTab === "open" && (
+            <View style={styles.tabSummaryRow}>
+              <View style={styles.tabSummaryIcon}>
+                <Ionicons name={activeSummary?.icon ?? "time-outline"} size={18} color={Theme.dark.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+              </View>
+            </View>
+          )}
+
+          {activeTab === "open" && (
             <OpenNowSection data={filteredBars} onBarPress={(id) => goToBarDetail(id, "tonight-open")} />
+          )}
+
+          {activeTab === "deals" && (
+            <View style={styles.tabSummaryRow}>
+              <View style={styles.tabSummaryIcon}>
+                <Ionicons name={activeSummary?.icon ?? "pricetag-outline"} size={18} color={Theme.dark.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+              </View>
+            </View>
           )}
 
           {activeTab === "deals" && (
@@ -445,6 +491,36 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.dark.background, // "#0B0C12",
     paddingTop: 6,
     paddingBottom: 10,
+  },
+  tabSummaryRow: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tabSummaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.search.background,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  tabSummaryTitle: {
+    color: Theme.container.titleText,
+    fontSize: 16,
+    fontWeight: "700",
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  tabSummarySubtitle: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 2,
   },
   sectionTitle: {
     color: Theme.container.titleText, // "#E5E7EB",
