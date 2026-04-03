@@ -8,6 +8,7 @@ import { useUser } from "@/context/user-context";
 import { groupFriendsByNearbyBar } from "@/utils/nearby-friends";
 import { formatLastActive } from "@/utils/location-utils";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
+import type { Location as MapLocation } from "@/services/locationService";
 
 type FriendsSectionProps = {
   query: string;
@@ -20,6 +21,13 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
   const { locations, isLoading: locationsLoading } = useMapLocations();
   const { friends, loading: friendsLoading } = useFriendsLocations(user?.id);
   const [expandedBarId, setExpandedBarId] = React.useState<string | null>(null);
+
+  const stackedBarTargets = React.useMemo(() => {
+    const sips = locations.find((location: MapLocation) => location.name === "Sips");
+    const paddys = locations.find((location: MapLocation) => location.name === "Paddy's Irish Pub");
+
+    return { sips, paddys };
+  }, [locations]);
 
   const nearbyGroups = React.useMemo(() => {
     const grouped = groupFriendsByNearbyBar(friends, locations);
@@ -103,6 +111,7 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
         {nearbyGroups.map((group) => {
           const barId = String(group.bar.id);
           const targetBarId = String(group.sourceBarId ?? group.bar.id);
+          const isStackedGroup = group.bar.id === "stacked-sips-paddys";
           const isExpanded = expandedBarId === barId;
           const latestUpdatedAt = group.friends
             .map((friend) => friend.location?.updated_at || friend.user_locations?.updated_at)
@@ -198,9 +207,26 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
                   </View>
 
                   <View style={styles.expandedActions}>
-                    <Pressable style={styles.detailsButton} onPress={() => onBarPress(targetBarId)}>
-                      <Text style={styles.detailsButtonText}>View Bar Details</Text>
-                    </Pressable>
+                    {isStackedGroup ? (
+                      <>
+                        <Pressable
+                          style={styles.detailsButton}
+                          onPress={() => stackedBarTargets.sips && onBarPress(String(stackedBarTargets.sips.id))}
+                        >
+                          <Text style={styles.detailsButtonText}>View Sips</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.detailsButton}
+                          onPress={() => stackedBarTargets.paddys && onBarPress(String(stackedBarTargets.paddys.id))}
+                        >
+                          <Text style={styles.detailsButtonText}>View Paddy's</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable style={styles.detailsButton} onPress={() => onBarPress(targetBarId)}>
+                        <Text style={styles.detailsButtonText}>View {group.bar.name} Details</Text>
+                      </Pressable>
+                    )}
                     <Pressable style={styles.closeButton} onPress={() => setExpandedBarId(null)}>
                       <Text style={styles.closeButtonText}>Collapse</Text>
                     </Pressable>
@@ -241,6 +267,8 @@ const styles = StyleSheet.create({
     color: Theme.container.titleText,
     fontSize: 16,
     fontWeight: "700",
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
   sectionSubtitle: {
     color: Theme.container.inactiveText,
@@ -373,6 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 12,
+    flexWrap: "wrap",
   },
   detailsButton: {
     flex: 1,
