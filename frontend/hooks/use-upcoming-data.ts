@@ -171,7 +171,7 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
     });
 
     return {
-      label: `Upcoming This Week • \n${groupLabelFormatter.format(now)} - ${groupLabelFormatter.format(windowEnd)}`,
+      label: null,
       items: upcomingItems,
       groups,
     };

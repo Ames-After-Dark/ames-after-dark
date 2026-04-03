@@ -231,44 +231,21 @@ export default function Tonight() {
     return null;
   }, [activeTab, filteredBars.length, filteredDeals.length, query]);
 
-  // ----- Filter friends -----
-  // Temporarily disabled for user testing until friend tracking is implemented.
-  // const filteredFriends = useMemo(() => {
-  //   const q = query.trim().toLowerCase();
-  //   let data: Friend[] = friends;
-  //   if (q) {
-  //     data = data.filter(
-  //       (f) =>
-  //         (f.name ?? "").toLowerCase().includes(q) ||
-  //         (f.username ?? "").toLowerCase().includes(q)
-  //     );
-  //   }
-  //   return data;
-  // }, [query, friends]);
-
-  // const tonightPosters = useMemo(() => {
-  //   const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-  //   return HERO_POSTERS.map((poster) => {
-  //     const posterKey = normalize(poster.barName);
-  //     const matchedBar = scheduledBars.find((bar) => {
-  //       const barKey = normalize(bar.name);
-  //       return (
-  //         barKey === posterKey ||
-  //         barKey.includes(posterKey) ||
-  //         posterKey.includes(barKey)
-  //       );
-  //     });
-
-  //     return {
-  //       id: poster.id,
-  //       barId: matchedBar ? String(matchedBar.id) : null,
-  //       image: poster.image,
-  //     };
-  //   });
-  // }, [scheduledBars]);
-
   const upcomingWeekData = useUpcomingSchedule(scheduledBars, query);
+
+  const homeSummary = useMemo(() => {
+    if (activeTab !== null) {
+      return null;
+    }
+
+    const count = upcomingWeekData.items.length;
+
+    return {
+      icon: "calendar-outline" as const,
+      title: "Upcoming This Week",
+      subtitle: `${count} upcoming deal${count === 1 ? "" : "s"} and event${count === 1 ? "" : "s"}`,
+    };
+  }, [activeTab, upcomingWeekData.items.length]);
 
   // Navigation helpers
   const goToBarDetail = (id: string, backTo: BackTarget = "bars") =>
@@ -415,7 +392,18 @@ export default function Tonight() {
           */}
           {/* Content area logic */}
           {activeTab === null && (
-            <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            <>
+              <View style={styles.tabSummaryRow}>
+                <View style={styles.tabSummaryIcon}>
+                  <Ionicons name={homeSummary?.icon ?? "calendar-outline"} size={18} color={Theme.dark.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
+                  <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
+                </View>
+              </View>
+              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            </>
           )}
 
           {activeTab === "open" && (
@@ -495,7 +483,7 @@ const styles = StyleSheet.create({
   tabSummaryRow: {
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 4,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -521,13 +509,6 @@ const styles = StyleSheet.create({
     color: Theme.container.inactiveText,
     fontSize: 12,
     marginTop: 2,
-  },
-  sectionTitle: {
-    color: Theme.container.titleText, // "#E5E7EB",
-    fontSize: 18,
-    fontWeight: "700",
-    paddingHorizontal: 16,
-    marginBottom: 8,
   },
   tabsRow: {
     flexDirection: "row",
