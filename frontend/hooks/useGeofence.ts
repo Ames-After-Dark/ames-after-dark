@@ -5,21 +5,22 @@ export const GEOFENCE_RADIUS_METERS = 50;
 
 export function useGeofence(friends: any[], locations: any[]) {
     const activeFriends = useMemo(() => {
-
-        // If we don't have bars or friends yet, return empty
         if (!friends.length || !locations.length) return [];
 
         return friends.filter(friend => {
-            const friendLoc = friend.user_locations;
-            if (!friendLoc) return false;
+            // Check for the new 'location' key, but fallback to 'user_locations'
+            const friendLoc = friend.location || friend.user_locations;
+
+            if (!friendLoc) {
+                console.log(`Skipping ${friend.name}: No location data found.`);
+                return false;
+            }
 
             const friendLat = Number(friendLoc.latitude);
             const friendLng = Number(friendLoc.longitude);
 
-            // Safety check for valid coordinates
             if (isNaN(friendLat) || isNaN(friendLng)) return false;
 
-            // Check if the friend is within the radius of ANY bar
             return locations.some(bar => {
                 const distance = calculateDistance(
                     friendLat,
@@ -32,5 +33,12 @@ export function useGeofence(friends: any[], locations: any[]) {
         });
     }, [friends, locations]);
 
+    console.log(`printing active friends within geofence: ${activeFriends.length}`);
+
+    for (const friend of activeFriends) {
+        console.log(`Friend ${friend.name} is within geofence of a bar!`);
+    }
+
     return activeFriends;
 }
+

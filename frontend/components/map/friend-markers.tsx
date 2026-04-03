@@ -39,11 +39,19 @@ const getGroupMeta = (bar: BarLocation) => {
 };
 
 export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
+
     const barGroups = friends.reduce((acc, friend) => {
 
-        if (!friend.user_locations) return acc;
+        if (!friend.location && !friend.user_locations) return acc;
 
-        const { latitude, longitude } = friend.user_locations;
+        // const { latitude, longitude } = friend.user_locations;
+        // const friendLoc = friend.location || friend.user_locations;
+
+        const friendLoc = friend.location || friend.user_locations;
+        if (!friendLoc) return acc;
+
+        const { latitude, longitude } = friendLoc;
+
         const lat = Number(latitude);
         const lon = Number(longitude);
 
