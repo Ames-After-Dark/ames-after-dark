@@ -221,7 +221,9 @@ export default function Bars() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {filter === "Favorites" ? "No favorites yet" : "No locations match filters"}
+                {filter === "Favorites" ? "You haven't saved any favorites yet." 
+                : search.trim().length > 0 ? `No locations found matching "${search}"` 
+                  : "No locations match your current filters."}
               </Text>
             </View>
           }

@@ -24,7 +24,9 @@ export default function UpcomingSection({ data, onBarPress }: UpcomingSectionPro
                 <View key={group.key} style={styles.upcomingGroup}>
                     <Text style={styles.upcomingDayHeader}>{group.label}</Text>
                     {group.items.map((item: any) => (
-                        <Pressable key={item.id} style={styles.card} onPress={() => onBarPress(item.barId)}>
+                        <Pressable key={item.id} 
+                        style={[styles.card, item.isActiveNow && styles.cardActive]} 
+                        onPress={() => onBarPress(item.barId)}>
                             <Image
                                 source={getLogoAssetForLocationName(item.bar)}
                                 style={styles.cardImg}
@@ -64,6 +66,10 @@ const styles = StyleSheet.create({
         borderRadius: 14, 
         borderWidth: 1, 
         borderColor: Theme.container.secondaryBorder,
+    },
+    cardActive: {
+        borderColor: Theme.dark.primary,
+        borderWidth: 2,
     },
     cardImg: { 
         width: 48, 

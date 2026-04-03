@@ -15,7 +15,7 @@ export default function DealsSection({ data, onBarPress }: DealsSectionProps) {
       {data.map((item) => (
         <Pressable
           key={item.id}
-          style={styles.card}
+          style={[styles.card, item.isActiveNow && styles.cardActive]}
           onPress={() => onBarPress(item.barId)}
         >
           <Image
@@ -58,6 +58,10 @@ const styles = StyleSheet.create({
     borderRadius: 14, 
     borderWidth: 1, 
     borderColor: Theme.container.secondaryBorder,
+  },
+  cardActive: {
+    borderColor: Theme.dark.primary,
+    borderWidth: 2,
   },
   cardImg: { 
     width: 48, 

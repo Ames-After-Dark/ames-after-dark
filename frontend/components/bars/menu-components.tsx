@@ -12,10 +12,10 @@ interface MenuItemProps {
 export const MenuItem = ({ item, isLast, onPress }: MenuItemProps) => (
     <>
         <Pressable
-            onPress={() => item.desc && onPress(item)}
+            onPress={() => onPress(item)}
             style={({ pressed }) => [
                 styles.itemPressable,
-                pressed && item.desc ? styles.itemPressed : null
+                pressed ? styles.itemPressed : null
             ]}
         >
             <View style={styles.itemRow}>
@@ -54,8 +54,19 @@ export const MenuItemModal = ({ item, onClose }: { item: any, onClose: () => voi
     <Modal transparent visible={Boolean(item)} animationType="fade" onRequestClose={onClose}>
         <Pressable style={styles.modalBackdrop} onPress={onClose}>
             <Pressable style={styles.modalCard} onPress={() => { }}>
-                <Text style={styles.modalTitle}>{item?.name}</Text>
-                <Text style={styles.modalDesc}>{item?.desc}</Text>
+                <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>{item?.name}</Text>
+                    {item?.price ? (
+                        <Text style={styles.modalPrice}>{formatPrice(item.price)}</Text>
+                    ) : null}
+                </View>
+                {item?.desc ? (
+                    <Text style={styles.modalDesc}>{item?.desc}</Text>
+                ) : (
+                    <Text style={[styles.modalDesc, { fontStyle: 'italic', opacity: 0.7 }]}>
+                        No description available.
+                    </Text>
+                )}
                 <Pressable style={styles.modalClose} onPress={onClose}>
                     <Text style={styles.modalCloseText}>Close</Text>
                 </Pressable>
@@ -134,7 +145,8 @@ const styles = StyleSheet.create({
         color: Theme.container.titleText,
         fontSize: 18,
         fontWeight: "700",
-        marginBottom: 8
+        marginBottom: 8,
+        flexShrink: 1
     },
     modalDesc: {
         color: Theme.search.input,
@@ -152,5 +164,17 @@ const styles = StyleSheet.create({
     modalCloseText: {
         color: Theme.dark.white,
         fontWeight: "700"
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+        gap: 12
+    },
+    modalPrice: {
+        color: Theme.dark.secondary,
+        fontWeight: "700",
+        fontSize: 16,
     },
 });
