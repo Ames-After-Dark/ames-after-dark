@@ -27,8 +27,7 @@ import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 const ZOOM_THRESHOLD = 0.005;
 
-// TODO - 1 minute for testing, change to 1 hour for production
-const GHOST_MODE_DURATION_HOURS = 0.0166667;
+const GHOST_MODE_DURATION_HOURS = 1;
 
 export default function MapScreen() {
     const insets = useSafeAreaInsets();
