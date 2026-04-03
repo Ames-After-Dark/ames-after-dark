@@ -7,8 +7,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 
 // Context & Services
 import { useUser } from '@/context/user-context';
-import { apiFetch } from '@/services/apiClient';
-import { getUserFriends } from '@/services/userService';
+import { UserLocationService } from '@/services/userLocationService';
 
 // Hooks
 import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
@@ -23,16 +22,20 @@ import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
 import { FriendMarkers } from '@/components/map/friend-markers';
 import { calculateDistance } from '@/utils/location-utils';
+import { getFriendLocation } from '@/utils/nearby-friends';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 const ZOOM_THRESHOLD = 0.005;
+
+const GHOST_MODE_DURATION_HOURS = 1;
 
 export default function MapScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
-    const { selectedId } = useLocalSearchParams<{ selectedId?: string }>();
+    const ghostModeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { selectedId, selectedFriendId } = useLocalSearchParams<{ selectedId?: string; selectedFriendId?: string }>();
 
     // --- State ---
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
@@ -77,7 +80,7 @@ export default function MapScreen() {
             const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             setUserLocation(pos.coords);
 
-            if (mapReady && !selectedId) {
+            if (mapReady && !selectedId && !selectedFriendId) {
                 mapRef.current?.animateToRegion({
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude,
@@ -94,7 +97,7 @@ export default function MapScreen() {
         })();
 
         return () => subscription?.remove();
-    }, [hasPermission, mapReady]);
+    }, [hasPermission, mapReady, selectedFriendId, selectedId]);
 
     // --- Helpers ---
 
@@ -138,44 +141,128 @@ export default function MapScreen() {
 
         setIsGhostModeLoading(true);
         const nextGhostValue = !isGhostModeEnabled;
+        const hours = nextGhostValue ? GHOST_MODE_DURATION_HOURS : 0;
+
+        // Update button state immediately so the UI reflects the user's tap.
+        setIsGhostModeEnabled(nextGhostValue);
 
         try {
-            const allFriends = await getUserFriends(currentUserId);
+            const result = await UserLocationService.setGhostMode(currentUserId, hours);
+            const expiresAt = result?.ghost_mode_expires_at;
 
-            await Promise.all(
-                allFriends.map((friend) =>
-                    apiFetch(`/userlocations/permissions/${friend.id}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ownerId: currentUserId,
-                            enabled: !nextGhostValue, // If GhostMode true, Enabled is false
-                        }),
-                    })
-                )
-            );
+            if (ghostModeTimeoutRef.current) {
+                clearTimeout(ghostModeTimeoutRef.current);
+                ghostModeTimeoutRef.current = null;
+            }
 
-            // Give DB a moment to catch up
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (expiresAt) {
+                const msUntilExpiry = new Date(expiresAt).getTime() - Date.now();
+
+                if (msUntilExpiry > 0) {
+                    ghostModeTimeoutRef.current = setTimeout(() => {
+                        setIsGhostModeEnabled(false);
+                        ghostModeTimeoutRef.current = null;
+                    }, msUntilExpiry);
+                    setIsGhostModeEnabled(true);
+                } else {
+                    const fallbackMs = Math.max(hours * 60 * 60 * 1000, 0);
+                    if (fallbackMs > 0) {
+                        ghostModeTimeoutRef.current = setTimeout(() => {
+                            setIsGhostModeEnabled(false);
+                            ghostModeTimeoutRef.current = null;
+                        }, fallbackMs);
+                        setIsGhostModeEnabled(true);
+                    } else {
+                        setIsGhostModeEnabled(false);
+                    }
+                }
+            } else {
+                const fallbackMs = Math.max(hours * 60 * 60 * 1000, 0);
+                if (fallbackMs > 0) {
+                    ghostModeTimeoutRef.current = setTimeout(() => {
+                        setIsGhostModeEnabled(false);
+                        ghostModeTimeoutRef.current = null;
+                    }, fallbackMs);
+                    setIsGhostModeEnabled(true);
+                } else {
+                    setIsGhostModeEnabled(false);
+                }
+            }
+
             await refetchFriends();
-
-            setIsGhostModeEnabled(nextGhostValue);
 
             if (selectedLocation?.isSelf) {
                 setSelectedLocation((prev: any) => prev ? { ...prev, atBarName: getUserBarName() } : prev);
             }
         } catch (err) {
             console.error('Failed to update ghost mode', err);
+            setIsGhostModeEnabled(!nextGhostValue);
         } finally {
             setIsGhostModeLoading(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (ghostModeTimeoutRef.current) {
+                clearTimeout(ghostModeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleGoToBarPage = () => {
         if (!selectedLocation) return;
         router.push({ pathname: "/bars/[id]", params: { id: String(selectedLocation.id), backTo: "map" } });
         setSelectedLocation(null);
     };
+
+    useEffect(() => {
+        if (!mapReady || !selectedFriendId || !friends.length || !locations.length) return;
+
+        const targetFriend = friends.find((friend) => String(friend.id) === selectedFriendId);
+        if (!targetFriend) return;
+
+        const friendLoc = getFriendLocation(targetFriend);
+        const latitude = Number(friendLoc?.latitude);
+        const longitude = Number(friendLoc?.longitude);
+
+        setSelectedLocation(targetFriend);
+
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: latitude - 0.001,
+                        longitude,
+                    },
+                    heading: 0,
+                    altitude: 700,
+                    zoom: 18,
+                },
+                { duration: 700 }
+            );
+            return;
+        }
+
+        const targetBar = targetFriend.atBarName
+            ? locations.find((bar) => bar.name === targetFriend.atBarName)
+            : null;
+
+        if (targetBar) {
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: targetBar.latitude - 0.001,
+                        longitude: targetBar.longitude,
+                    },
+                    heading: 0,
+                    altitude: 700,
+                    zoom: 18,
+                },
+                { duration: 700 }
+            );
+        }
+    }, [friends, locations, mapReady, selectedFriendId]);
 
     if (isLoading) return <MapSkeleton />;
     if (error || shouldForceErrorPage('map')) {

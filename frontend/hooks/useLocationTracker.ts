@@ -76,6 +76,7 @@ export function useFriendsLocations(userId: number | undefined) {
             const data = await FriendLocationService.getFriendsLocations(userId);
 
             console.log("Fetched friends count:", data.length);
+            console.log("Sample friend data:", data);
 
             setFriends(data);
         } catch (err) {

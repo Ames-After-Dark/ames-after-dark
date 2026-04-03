@@ -10,6 +10,7 @@ type UpcomingWeekItem = {
   kind: "Deal" | "Event";
   startsAt: Date;
   whenLabel: string;
+  isActiveNow: boolean;
 };
 
 type UpcomingWeekGroup = {
@@ -28,6 +29,15 @@ function formatUpcomingDateTime(value: Date): string {
   }).format(value);
 }
 
+// Treats anything before 3:00am as the previous day
+function getLogicalDate(date: Date): Date {
+  const logical = new Date(date.getTime());
+  // Shifts 2am Friday to 11pm Thursday
+  logical.setHours(logical.getHours() - 3); // to change the boundary time, adjust this number
+  logical.setHours(0, 0, 0, 0);
+  return logical;
+}
+
 export function useUpcomingSchedule(scheduledBars: any[], query: string) {
   return useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -38,7 +48,7 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
     const items: UpcomingWeekItem[] = [];
 
     const pushOneTimeItem = (
-      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel">,
+      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel" | "isActiveNow">,
       start: string,
       end: string
     ) => {
@@ -55,11 +65,12 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
         id: `${base.id}-${displayTime.getTime()}`,
         startsAt: displayTime,
         whenLabel: isHappeningNow ? "Happening now" : formatUpcomingDateTime(startsAt),
+        isActiveNow: isHappeningNow,
       });
     };
 
     const pushWeeklyItems = (
-      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel">,
+      base: Omit<UpcomingWeekItem, "startsAt" | "whenLabel" | "isActiveNow">,
       rule: any
     ) => {
       let wasActive = isActive(rule, now);
@@ -70,6 +81,7 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
           id: `${base.id}-active-${now.getTime()}`,
           startsAt: now,
           whenLabel: "Happening now",
+          isActiveNow: true,
         });
       }
 
@@ -83,6 +95,7 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
             id: `${base.id}-${cursor.getTime()}`,
             startsAt: cursor,
             whenLabel: formatUpcomingDateTime(cursor),
+            isActiveNow: false,
           });
         }
         wasActive = isCurrentlyActive;
@@ -101,8 +114,8 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
           subtitle: deal.subtitle ?? "",
           kind: "Deal" as const,
         };
-        deal.rule.kind === "one-time" 
-          ? pushOneTimeItem(base, deal.rule.start, deal.rule.end) 
+        deal.rule.kind === "one-time"
+          ? pushOneTimeItem(base, deal.rule.start, deal.rule.end)
           : pushWeeklyItems(base, deal.rule);
       });
 
@@ -115,8 +128,8 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
           subtitle: event.description && event.description !== event.name ? event.description : "",
           kind: "Event" as const,
         };
-        event.rule.kind === "one-time" 
-          ? pushOneTimeItem(base, event.rule.start, event.rule.end) 
+        event.rule.kind === "one-time"
+          ? pushOneTimeItem(base, event.rule.start, event.rule.end)
           : pushWeeklyItems(base, event.rule);
       });
     });
@@ -129,15 +142,16 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
       );
     }
 
-    const labelFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+    // const labelFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
     const groupLabelFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" });
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
+    const logicalToday = getLogicalDate(now);
+    // const startOfToday = new Date(now);
+    // startOfToday.setHours(0, 0, 0, 0);
 
     const groupsMap = new Map<string, UpcomingWeekItem[]>();
     upcomingItems.forEach((item) => {
-      const groupDate = new Date(item.startsAt);
-      groupDate.setHours(0, 0, 0, 0);
+      const groupDate = getLogicalDate(item.startsAt);
+      // groupDate.setHours(0, 0, 0, 0);
       const key = `${groupDate.getFullYear()}-${groupDate.getMonth()}-${groupDate.getDate()}`;
       const existing = groupsMap.get(key) ?? [];
       existing.push(item);
@@ -145,19 +159,19 @@ export function useUpcomingSchedule(scheduledBars: any[], query: string) {
     });
 
     const groups: UpcomingWeekGroup[] = Array.from(groupsMap.entries()).map(([key, groupedItems]) => {
-      const groupDate = new Date(groupedItems[0].startsAt);
-      groupDate.setHours(0, 0, 0, 0);
-      const dayDiff = Math.round((groupDate.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000));
+      const groupDate = getLogicalDate(groupedItems[0].startsAt);
+      // groupDate.setHours(0, 0, 0, 0);
+      const dayDiff = Math.round((groupDate.getTime() - logicalToday.getTime()) / (24 * 60 * 60 * 1000));
 
       let groupLabel = groupLabelFormatter.format(groupDate);
-      if (dayDiff === 0) groupLabel = "Today";
+      if (dayDiff === 0) groupLabel = "Tonight";
       if (dayDiff === 1) groupLabel = "Tomorrow";
 
       return { key, label: groupLabel, items: groupedItems };
     });
 
     return {
-      label: `Upcoming This Week • ${labelFormatter.format(now)} - ${labelFormatter.format(windowEnd)}`,
+      label: null,
       items: upcomingItems,
       groups,
     };

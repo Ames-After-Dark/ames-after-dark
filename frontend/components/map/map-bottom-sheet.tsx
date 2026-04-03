@@ -50,7 +50,11 @@ export const MapBottomSheet = ({
     const isSelf = (loc: any): loc is { id: number; name: string; profile_pic_url?: string; isSelf: true; atBarName?: string } =>
         !!loc && loc.isSelf === true;
 
-    const friendUpdatedAt = isFriend(location) ? location.user_locations?.updated_at : undefined;
+    // const friendUpdatedAt = isFriend(location) ? location.user_locations?.updated_at : undefined;
+    // Fallback to either key to be safe
+    const friendLoc = isFriend(location) ? (location.location || location.user_locations) : undefined;
+    const friendUpdatedAt = friendLoc?.updated_at;
+
     const friendStatus = friendUpdatedAt ? `Active ${formatLastActive(friendUpdatedAt)}` : 'Last active unknown';
     const friendSubtitle = isFriend(location)
         ? location.atBarName
@@ -232,7 +236,7 @@ export const MapBottomSheet = ({
                                 {isGhostModeLoading
                                     ? 'Updating...'
                                     : isGhostModeEnabled
-                                        ? 'Ghost Mode: ON'
+                                        ? 'Ghost Mode: ON (1 hour)'
                                         : 'Ghost Mode: OFF'}
                             </Text>
                         </View>

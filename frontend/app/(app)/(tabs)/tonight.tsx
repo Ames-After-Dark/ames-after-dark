@@ -52,7 +52,7 @@ const TAB_META = [
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = (typeof TAB_META)[number]["key"];
-type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
+type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals" | "tonight-friends";
 
 const isTabKey = (value: string | undefined): value is TabKey =>
   value === "open" || value === "deals" || value === "friends";
@@ -209,44 +209,43 @@ export default function Tonight() {
     return data;
   }, [query, allActiveDealsTonight]);
 
-  // ----- Filter friends -----
-  // Temporarily disabled for user testing until friend tracking is implemented.
-  // const filteredFriends = useMemo(() => {
-  //   const q = query.trim().toLowerCase();
-  //   let data: Friend[] = friends;
-  //   if (q) {
-  //     data = data.filter(
-  //       (f) =>
-  //         (f.name ?? "").toLowerCase().includes(q) ||
-  //         (f.username ?? "").toLowerCase().includes(q)
-  //     );
-  //   }
-  //   return data;
-  // }, [query, friends]);
+  const activeSummary = useMemo(() => {
+    if (activeTab === "open") {
+      const count = filteredBars.length;
+      return {
+        icon: "time-outline" as const,
+        title: "Open Now",
+        subtitle: `${count} bar${count === 1 ? "" : "s"} currently open`,
+      };
+    }
 
-  // const tonightPosters = useMemo(() => {
-  //   const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (activeTab === "deals") {
+      const count = filteredDeals.length;
+      return {
+        icon: "pricetag-outline" as const,
+        title: "Deals Tonight",
+        subtitle: `${count} active deal${count === 1 ? "" : "s"} tonight`,
+      };
+    }
 
-  //   return HERO_POSTERS.map((poster) => {
-  //     const posterKey = normalize(poster.barName);
-  //     const matchedBar = scheduledBars.find((bar) => {
-  //       const barKey = normalize(bar.name);
-  //       return (
-  //         barKey === posterKey ||
-  //         barKey.includes(posterKey) ||
-  //         posterKey.includes(barKey)
-  //       );
-  //     });
-
-  //     return {
-  //       id: poster.id,
-  //       barId: matchedBar ? String(matchedBar.id) : null,
-  //       image: poster.image,
-  //     };
-  //   });
-  // }, [scheduledBars]);
+    return null;
+  }, [activeTab, filteredBars.length, filteredDeals.length, query]);
 
   const upcomingWeekData = useUpcomingSchedule(scheduledBars, query);
+
+  const homeSummary = useMemo(() => {
+    if (activeTab !== null) {
+      return null;
+    }
+
+    const count = upcomingWeekData.items.length;
+
+    return {
+      icon: "calendar-outline" as const,
+      title: "Upcoming This Week",
+      subtitle: `${count} upcoming deal${count === 1 ? "" : "s"} and event${count === 1 ? "" : "s"}`,
+    };
+  }, [activeTab, upcomingWeekData.items.length]);
 
   // Navigation helpers
   const goToBarDetail = (id: string, backTo: BackTarget = "bars") =>
@@ -392,20 +391,155 @@ export default function Tonight() {
                 "active deals and events ('null')" 
           */}
           {/* Content area logic */}
+          {/* {activeTab === null && (
+            <>
+              <View style={styles.tabSummaryRow}>
+                <View style={styles.tabSummaryIcon}>
+                  <Ionicons name={homeSummary?.icon ?? "calendar-outline"} size={18} color={Theme.dark.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
+                  <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
+                </View>
+              </View>
+              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            </>
+          )} */}
+
+          {/* Content area logic for "Home" (no tab selected) */}
           {activeTab === null && (
-            <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            <>
+              {/* 1. Show the "Upcoming This Week" header only if there is matching data */}
+              {upcomingWeekData.items.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={homeSummary?.icon ?? "calendar-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* 2. Spacer to keep the "No matching" message aligned across all views */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* 3. The section itself handles the "No matching" UI internally */}
+              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            </>
+          )}
+
+          {/* {activeTab === "open" && (
+            <View style={styles.tabSummaryRow}>
+              <View style={styles.tabSummaryIcon}>
+                <Ionicons name={activeSummary?.icon ?? "time-outline"} size={18} color={Theme.dark.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+              </View>
+            </View>
           )}
 
           {activeTab === "open" && (
             <OpenNowSection data={filteredBars} onBarPress={(id) => goToBarDetail(id, "tonight-open")} />
+          )} */}
+
+          {activeTab === "open" && (
+            <>
+              {/* Use a ternary to switch between the Header and the Spacer */}
+              {filteredBars.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={activeSummary?.icon ?? "time-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* This maintains the vertical alignment when the header disappears */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* This component stays outside the ternary so it can show the "No Matching" state */}
+              <OpenNowSection
+                data={filteredBars}
+                onBarPress={(id) => goToBarDetail(id, "tonight-open")}
+              />
+            </>
+          )}
+
+          {/* {activeTab === "deals" && (
+            <View style={styles.tabSummaryRow}>
+              <View style={styles.tabSummaryIcon}>
+                <Ionicons name={activeSummary?.icon ?? "pricetag-outline"} size={18} color={Theme.dark.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+              </View>
+            </View>
           )}
 
           {activeTab === "deals" && (
             <DealsSection data={filteredDeals} onBarPress={(id) => goToBarDetail(id, "tonight-deals")} />
+          )} */}
+
+          {activeTab === "deals" && (
+            <>
+              {/* 1. Show the Summary Row if there's data, otherwise show the spacer */}
+              {filteredDeals.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={activeSummary?.icon ?? "pricetag-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* Spacer to match the Friends tab and maintain the message position */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* 2. Render the DealsSection below the header/spacer */}
+              <DealsSection
+                data={filteredDeals}
+                onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
+              />
+            </>
           )}
 
           {activeTab === "friends" && (
-            <FriendsSection />
+            <FriendsSection
+              query={query}
+              onBarPress={(id) => goToBarDetail(id, "tonight-friends")}
+              onFriendPress={(friendId) =>
+                router.push({
+                  pathname: "/(app)/(tabs)/map",
+                  params: {
+                    selectedFriendId: String(friendId),
+                    focusToken: String(Date.now()),
+                  },
+                })
+              }
+            />
           )}
         </ScrollView>
       )}
@@ -434,12 +568,35 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 10,
   },
-  sectionTitle: {
-    color: Theme.container.titleText, // "#E5E7EB",
-    fontSize: 18,
+  tabSummaryRow: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tabSummaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Theme.search.background,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  tabSummaryTitle: {
+    color: Theme.container.titleText,
+    fontSize: 16,
     fontWeight: "700",
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  tabSummarySubtitle: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 2,
   },
   tabsRow: {
     flexDirection: "row",
