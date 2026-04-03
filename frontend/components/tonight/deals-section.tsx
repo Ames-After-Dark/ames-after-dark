@@ -10,6 +10,22 @@ interface DealsSectionProps {
 }
 
 export default function DealsSection({ data, onBarPress }: DealsSectionProps) {
+  if (!data.length) {
+    return (
+      <View style={styles.stateContainer}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="pricetags-outline" size={40} color={Theme.dark.primary} />
+        </View>
+        <Text style={styles.comingSoonHeader}>
+          No matching deals found.
+        </Text>
+        <Text style={styles.emptyText}>
+          Try a different search term or clear the filter.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.cardsList}>
       {data.map((item) => (
@@ -38,75 +54,99 @@ export default function DealsSection({ data, onBarPress }: DealsSectionProps) {
           </View>
         </Pressable>
       ))}
-      {!data.length && <Text style={styles.emptyText}>No deals available tonight.</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  cardsList: { 
-    padding: 16, 
-    gap: 12, 
-    paddingBottom: 92 
+  stateContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 28,
+    paddingBottom: 92,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardsList: {
+    padding: 16,
+    gap: 12,
+    paddingBottom: 92
   },
   card: {
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 12, 
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     padding: 12,
-    backgroundColor: Theme.container.background, 
-    borderRadius: 14, 
-    borderWidth: 1, 
+    backgroundColor: Theme.container.background,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: Theme.container.secondaryBorder,
   },
   cardActive: {
     borderColor: Theme.dark.primary,
     borderWidth: 2,
   },
-  cardImg: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 10, 
-    borderWidth: 1, 
-    borderColor: Theme.container.secondaryBorder 
+  cardImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder
   },
-  cardTitle: { 
-    color: Theme.container.titleText, 
-    fontWeight: "800", 
-    fontSize: 14 
+  cardTitle: {
+    color: Theme.container.titleText,
+    fontWeight: "800",
+    fontSize: 14
   },
-  cardSubtitle: { 
-    color: Theme.container.inactiveText, 
-    marginTop: 2, 
-    fontSize: 13 
+  cardSubtitle: {
+    color: Theme.container.inactiveText,
+    marginTop: 2,
+    fontSize: 13
   },
-  cardDetail: { 
-    color: Theme.container.inactiveText, 
-    marginTop: 2, 
-    fontSize: 12 
+  cardDetail: {
+    color: Theme.container.inactiveText,
+    marginTop: 2,
+    fontSize: 12
   },
-  rightContainer: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 8 
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
   },
-  statusPill: { 
-    width: 60, 
-    alignItems: "center", 
-    justifyContent: "center", 
-    paddingVertical: 4, 
-    borderRadius: 999 
+  statusPill: {
+    width: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4,
+    borderRadius: 999
   },
-  statusPillText: { 
-    color: "#0b0c12", 
-    fontSize: 10, 
-    fontWeight: "800", 
-    textAlign: "center" 
+  statusPillText: {
+    color: "#0b0c12",
+    fontSize: 10,
+    fontWeight: "800",
+    textAlign: "center"
   },
-  emptyText: { 
-    color: Theme.container.inactiveText, 
-    textAlign: "center", 
-    marginTop: 24, 
-    fontSize: 13 
+  emptyText: {
+    color: Theme.container.inactiveText,
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 13
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Theme.search.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  comingSoonHeader: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
   },
 });

@@ -14,7 +14,19 @@ interface UpcomingSectionProps {
 
 export default function UpcomingSection({ data, onBarPress }: UpcomingSectionProps) {
     if (!data.groups.length) {
-        return <Text style={styles.emptyText}>No upcoming deals or events found.</Text>;
+        return (
+            <View style={styles.stateContainer}>
+                <View style={styles.iconCircle}>
+                    <Ionicons name="calendar-outline" size={40} color={Theme.dark.primary} />
+                </View>
+                <Text style={styles.comingSoonHeader}>
+                    No matching upcoming events found.
+                </Text>
+                <Text style={styles.emptyText}>
+                    Try a different search term or clear the filter.
+                </Text>
+            </View>
+        );
     }
 
     return (
@@ -53,6 +65,31 @@ export default function UpcomingSection({ data, onBarPress }: UpcomingSectionPro
 }
 
 const styles = StyleSheet.create({
+    stateContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 28,
+        paddingBottom: 92,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    iconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: Theme.search.background,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: Theme.container.secondaryBorder,
+    },
+    comingSoonHeader: {
+        color: Theme.container.titleText,
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 8,
+        textAlign: "center",
+    },
     cardsList: {
         paddingHorizontal: 16,
         paddingTop: 0,
@@ -134,7 +171,7 @@ const styles = StyleSheet.create({
     emptyText: {
         color: Theme.container.inactiveText,
         textAlign: "center",
-        marginTop: 24,
+        marginTop: 8,
         fontSize: 13
     },
 });

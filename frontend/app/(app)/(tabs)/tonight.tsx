@@ -391,7 +391,7 @@ export default function Tonight() {
                 "active deals and events ('null')" 
           */}
           {/* Content area logic */}
-          {activeTab === null && (
+          {/* {activeTab === null && (
             <>
               <View style={styles.tabSummaryRow}>
                 <View style={styles.tabSummaryIcon}>
@@ -404,9 +404,37 @@ export default function Tonight() {
               </View>
               <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
             </>
+          )} */}
+
+          {/* Content area logic for "Home" (no tab selected) */}
+          {activeTab === null && (
+            <>
+              {/* 1. Show the "Upcoming This Week" header only if there is matching data */}
+              {upcomingWeekData.items.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={homeSummary?.icon ?? "calendar-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* 2. Spacer to keep the "No matching" message aligned across all views */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* 3. The section itself handles the "No matching" UI internally */}
+              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
+            </>
           )}
 
-          {activeTab === "open" && (
+          {/* {activeTab === "open" && (
             <View style={styles.tabSummaryRow}>
               <View style={styles.tabSummaryIcon}>
                 <Ionicons name={activeSummary?.icon ?? "time-outline"} size={18} color={Theme.dark.primary} />
@@ -420,9 +448,39 @@ export default function Tonight() {
 
           {activeTab === "open" && (
             <OpenNowSection data={filteredBars} onBarPress={(id) => goToBarDetail(id, "tonight-open")} />
+          )} */}
+
+          {activeTab === "open" && (
+            <>
+              {/* Use a ternary to switch between the Header and the Spacer */}
+              {filteredBars.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={activeSummary?.icon ?? "time-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* This maintains the vertical alignment when the header disappears */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* This component stays outside the ternary so it can show the "No Matching" state */}
+              <OpenNowSection
+                data={filteredBars}
+                onBarPress={(id) => goToBarDetail(id, "tonight-open")}
+              />
+            </>
           )}
 
-          {activeTab === "deals" && (
+          {/* {activeTab === "deals" && (
             <View style={styles.tabSummaryRow}>
               <View style={styles.tabSummaryIcon}>
                 <Ionicons name={activeSummary?.icon ?? "pricetag-outline"} size={18} color={Theme.dark.primary} />
@@ -436,6 +494,36 @@ export default function Tonight() {
 
           {activeTab === "deals" && (
             <DealsSection data={filteredDeals} onBarPress={(id) => goToBarDetail(id, "tonight-deals")} />
+          )} */}
+
+          {activeTab === "deals" && (
+            <>
+              {/* 1. Show the Summary Row if there's data, otherwise show the spacer */}
+              {filteredDeals.length > 0 ? (
+                <View style={styles.tabSummaryRow}>
+                  <View style={styles.tabSummaryIcon}>
+                    <Ionicons
+                      name={activeSummary?.icon ?? "pricetag-outline"}
+                      size={18}
+                      color={Theme.dark.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
+                    <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
+                  </View>
+                </View>
+              ) : (
+                /* Spacer to match the Friends tab and maintain the message position */
+                <View style={{ height: 48 }} />
+              )}
+
+              {/* 2. Render the DealsSection below the header/spacer */}
+              <DealsSection
+                data={filteredDeals}
+                onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
+              />
+            </>
           )}
 
           {activeTab === "friends" && (
