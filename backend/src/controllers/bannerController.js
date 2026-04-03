@@ -25,3 +25,24 @@ exports.getBannerById = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+exports.createBanner = async (req, res) => {
+  try {
+    const { name, image_url } = req.body;
+
+    if (!name || !image_url) {
+      return res.status(400).json({ error: "Name and image_url are required." });
+    }
+
+    const newBanner = await bannerService.createBanner({ name, image_url });
+    
+    res.status(201).json(newBanner);
+  } catch (error) {
+    // Check for Prisma unique constraint violation (P2002)
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "A banner with this name already exists." });
+    }
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

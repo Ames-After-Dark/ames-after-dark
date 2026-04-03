@@ -91,11 +91,19 @@ exports.getUserById = async (id) => {
   });
 };
 
-exports.createUser = async (userData) => {
+exports.createUser = async (userData, /*timezone*/) => {
   return prisma.users.create({
     data: {
       ...userData,
       role_id: userData.role_id ? Number(userData.role_id) : null,
+      /*
+      user_settings: {
+        create: {
+          timezone: timezone || 'UTC', // Fallback to UTC
+          location_sharing_preference: 'SELECTIVE'
+        }
+      }
+      */
     },
     include: {
       roles: true,

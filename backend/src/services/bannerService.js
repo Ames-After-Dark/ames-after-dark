@@ -56,3 +56,13 @@ exports.getActiveBanners = async () => {
     };
   }).filter(b => b.target_type !== 'NONE'); // Only return banners that actually have something active
 };
+
+
+exports.createBanner = async (bannerData) => {
+  return await prisma.banners.create({
+    data: {
+      name: bannerData.name,
+      image_url: bannerData.image_url,
+    }
+  });
+};
