@@ -7,8 +7,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 
 // Context & Services
 import { useUser } from '@/context/user-context';
-import { apiFetch } from '@/services/apiClient';
-import { getUserFriends } from '@/services/userService';
+import { UserLocationService } from '@/services/userLocationService';
 
 // Hooks
 import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
@@ -28,11 +27,14 @@ import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 const ZOOM_THRESHOLD = 0.005;
 
+const GHOST_MODE_DURATION_HOURS = 1;
+
 export default function MapScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
+    const ghostModeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { selectedId, selectedFriendId } = useLocalSearchParams<{ selectedId?: string; selectedFriendId?: string }>();
 
     // --- State ---
@@ -139,38 +141,74 @@ export default function MapScreen() {
 
         setIsGhostModeLoading(true);
         const nextGhostValue = !isGhostModeEnabled;
+        const hours = nextGhostValue ? GHOST_MODE_DURATION_HOURS : 0;
+
+        // Update button state immediately so the UI reflects the user's tap.
+        setIsGhostModeEnabled(nextGhostValue);
 
         try {
-            const allFriends = await getUserFriends(currentUserId);
+            const result = await UserLocationService.setGhostMode(currentUserId, hours);
+            const expiresAt = result?.ghost_mode_expires_at;
 
-            await Promise.all(
-                allFriends.map((friend) =>
-                    apiFetch(`/userlocations/permissions/${friend.id}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            ownerId: currentUserId,
-                            enabled: !nextGhostValue, // If GhostMode true, Enabled is false
-                        }),
-                    })
-                )
-            );
+            if (ghostModeTimeoutRef.current) {
+                clearTimeout(ghostModeTimeoutRef.current);
+                ghostModeTimeoutRef.current = null;
+            }
 
-            // Give DB a moment to catch up
-            await new Promise(resolve => setTimeout(resolve, 500));
+            if (expiresAt) {
+                const msUntilExpiry = new Date(expiresAt).getTime() - Date.now();
+
+                if (msUntilExpiry > 0) {
+                    ghostModeTimeoutRef.current = setTimeout(() => {
+                        setIsGhostModeEnabled(false);
+                        ghostModeTimeoutRef.current = null;
+                    }, msUntilExpiry);
+                    setIsGhostModeEnabled(true);
+                } else {
+                    const fallbackMs = Math.max(hours * 60 * 60 * 1000, 0);
+                    if (fallbackMs > 0) {
+                        ghostModeTimeoutRef.current = setTimeout(() => {
+                            setIsGhostModeEnabled(false);
+                            ghostModeTimeoutRef.current = null;
+                        }, fallbackMs);
+                        setIsGhostModeEnabled(true);
+                    } else {
+                        setIsGhostModeEnabled(false);
+                    }
+                }
+            } else {
+                const fallbackMs = Math.max(hours * 60 * 60 * 1000, 0);
+                if (fallbackMs > 0) {
+                    ghostModeTimeoutRef.current = setTimeout(() => {
+                        setIsGhostModeEnabled(false);
+                        ghostModeTimeoutRef.current = null;
+                    }, fallbackMs);
+                    setIsGhostModeEnabled(true);
+                } else {
+                    setIsGhostModeEnabled(false);
+                }
+            }
+
             await refetchFriends();
-
-            setIsGhostModeEnabled(nextGhostValue);
 
             if (selectedLocation?.isSelf) {
                 setSelectedLocation((prev: any) => prev ? { ...prev, atBarName: getUserBarName() } : prev);
             }
         } catch (err) {
             console.error('Failed to update ghost mode', err);
+            setIsGhostModeEnabled(!nextGhostValue);
         } finally {
             setIsGhostModeLoading(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (ghostModeTimeoutRef.current) {
+                clearTimeout(ghostModeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleGoToBarPage = () => {
         if (!selectedLocation) return;

@@ -236,7 +236,7 @@ export const MapBottomSheet = ({
                                 {isGhostModeLoading
                                     ? 'Updating...'
                                     : isGhostModeEnabled
-                                        ? 'Ghost Mode: ON'
+                                        ? 'Ghost Mode: ON (1 hour)'
                                         : 'Ghost Mode: OFF'}
                             </Text>
                         </View>
