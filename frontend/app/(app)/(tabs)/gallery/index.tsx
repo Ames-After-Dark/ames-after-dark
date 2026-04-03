@@ -200,7 +200,7 @@ export default function GalleryScreen() {
         <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} style={styles.searchIcon} />
           <TextInput
-            placeholder="Search Gallery"
+            placeholder="Search gallery"
             placeholderTextColor={Theme.search.inactiveInput}
             value={search}
             onChangeText={setSearch}
@@ -227,6 +227,14 @@ export default function GalleryScreen() {
         onContentSizeChange={(_, contentHeight) => {
           contentHeightRef.current = contentHeight;
         }}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {search.trim().length > 0 ? `No albums found matching "${search}"` 
+              : "No albums match your current filters."}
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => {
           const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };
           const weekday = dateObj && !isNaN(dateObj.getTime())
@@ -339,5 +347,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 140,
     backgroundColor: Theme.dark.black,
+  },
+  emptyContainer: {
+    marginTop: 100,
+    alignItems: 'center'
+  },
+  emptyText: {
+    color: Theme.search.inactiveInput,
+    fontSize: 13,
   },
 });

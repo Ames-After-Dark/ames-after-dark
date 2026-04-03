@@ -25,6 +25,7 @@ export interface TonightDealData {
   bar: string;
   title: string;
   subtitle?: string;
+  isActiveNow: boolean;
 }
 
 interface NormalizedActiveDeal {
@@ -352,6 +353,7 @@ export function useTonightData() {
           bar: bar.name,
           title: deal.title,
           subtitle: deal.subtitle,
+          isActiveNow: true,
         } as TonightDealData;
       })
       .filter((item): item is TonightDealData => Boolean(item));
