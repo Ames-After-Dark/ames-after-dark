@@ -10,15 +10,24 @@ export interface BarLocation {
 
 export interface FriendLocation {
     id: number;
-    username: string;
     name: string;
+    username: string;
     profile_pic_url?: string;
     atBarName?: string;
-    user_locations?: {
-        latitude: number | string;
-        longitude: number | string;
+    // Add the new key here:
+    location?: {
+        latitude: string | number;
+        longitude: string | number;
         updated_at: string;
-    } | null;
+        user_id: number;
+    };
+    // Keep this for backward compatibility if needed:
+    user_locations?: {
+        latitude: string | number;
+        longitude: string | number;
+        updated_at: string;
+        user_id: number;
+    };
 }
 
 export interface GroupLocation {

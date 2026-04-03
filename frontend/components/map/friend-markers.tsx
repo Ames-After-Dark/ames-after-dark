@@ -39,11 +39,19 @@ const getGroupMeta = (bar: BarLocation) => {
 };
 
 export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
+
     const barGroups = friends.reduce((acc, friend) => {
 
-        if (!friend.user_locations) return acc;
+        if (!friend.location && !friend.user_locations) return acc;
 
-        const { latitude, longitude } = friend.user_locations;
+        // const { latitude, longitude } = friend.user_locations;
+        // const friendLoc = friend.location || friend.user_locations;
+
+        const friendLoc = friend.location || friend.user_locations;
+        if (!friendLoc) return acc;
+
+        const { latitude, longitude } = friendLoc;
+
         const lat = Number(latitude);
         const lon = Number(longitude);
 
@@ -51,14 +59,26 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
             return acc;
         }
 
-        const atBar = locations.find(bar =>
-            calculateDistance(
-                lat,
-                lon,
-                bar.latitude,
-                bar.longitude
-            ) <= GEOFENCE_RADIUS_METERS
-        );
+        // const atBar = locations.find(bar =>
+        //     calculateDistance(
+        //         lat,
+        //         lon,
+        //         bar.latitude,
+        //         bar.longitude
+        //     ) <= GEOFENCE_RADIUS_METERS
+        // );
+
+        const atBar = locations
+            .map(bar => ({
+                ...bar,
+                distance: calculateDistance(lat, lon, bar.latitude, bar.longitude)
+            }))
+            // Filter by radius first
+            .filter(bar => bar.distance <= GEOFENCE_RADIUS_METERS)
+            // Sort by distance (ascending)
+            .sort((a, b) => a.distance - b.distance)[0]; // Grab the absolute closest
+
+        console.log(`Friend ${friend.name} is ${atBar ? `at ${atBar.name} (${atBar.distance.toFixed(1)}m away)` : 'not at any bar'}`);
 
         if (atBar) {
             const { groupId, groupBar } = getGroupMeta(atBar);
