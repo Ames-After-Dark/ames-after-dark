@@ -52,7 +52,7 @@ const TAB_META = [
 
 // Derive a union type from TAB_META keys: "open" | "deals" | "friends"
 type TabKey = (typeof TAB_META)[number]["key"];
-type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
+type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals" | "tonight-friends";
 
 const isTabKey = (value: string | undefined): value is TabKey =>
   value === "open" || value === "deals" || value === "friends";
@@ -405,7 +405,19 @@ export default function Tonight() {
           )}
 
           {activeTab === "friends" && (
-            <FriendsSection />
+            <FriendsSection
+              query={query}
+              onBarPress={(id) => goToBarDetail(id, "tonight-friends")}
+              onFriendPress={(friendId) =>
+                router.push({
+                  pathname: "/(app)/(tabs)/map",
+                  params: {
+                    selectedFriendId: String(friendId),
+                    focusToken: String(Date.now()),
+                  },
+                })
+              }
+            />
           )}
         </ScrollView>
       )}
