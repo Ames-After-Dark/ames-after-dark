@@ -32,5 +32,6 @@ export interface FriendLocation {
 
 export interface GroupLocation {
     bar: BarLocation;
+    sourceBarId?: string | number;
     friends: FriendLocation[];
 }

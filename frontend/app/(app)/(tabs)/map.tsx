@@ -23,6 +23,7 @@ import { MapMarkers } from '@/components/map/map-markers';
 import { MapBottomSheet } from '@/components/map/map-bottom-sheet';
 import { FriendMarkers } from '@/components/map/friend-markers';
 import { calculateDistance } from '@/utils/location-utils';
+import { getFriendLocation } from '@/utils/nearby-friends';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 
 const ZOOM_THRESHOLD = 0.005;
@@ -32,7 +33,7 @@ export default function MapScreen() {
     const { user } = useUser();
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
-    const { selectedId } = useLocalSearchParams<{ selectedId?: string }>();
+    const { selectedId, selectedFriendId } = useLocalSearchParams<{ selectedId?: string; selectedFriendId?: string }>();
 
     // --- State ---
     const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
@@ -77,7 +78,7 @@ export default function MapScreen() {
             const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             setUserLocation(pos.coords);
 
-            if (mapReady && !selectedId) {
+            if (mapReady && !selectedId && !selectedFriendId) {
                 mapRef.current?.animateToRegion({
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude,
@@ -94,7 +95,7 @@ export default function MapScreen() {
         })();
 
         return () => subscription?.remove();
-    }, [hasPermission, mapReady]);
+    }, [hasPermission, mapReady, selectedFriendId, selectedId]);
 
     // --- Helpers ---
 
@@ -176,6 +177,54 @@ export default function MapScreen() {
         router.push({ pathname: "/bars/[id]", params: { id: String(selectedLocation.id), backTo: "map" } });
         setSelectedLocation(null);
     };
+
+    useEffect(() => {
+        if (!mapReady || !selectedFriendId || !friends.length || !locations.length) return;
+
+        const targetFriend = friends.find((friend) => String(friend.id) === selectedFriendId);
+        if (!targetFriend) return;
+
+        const friendLoc = getFriendLocation(targetFriend);
+        const latitude = Number(friendLoc?.latitude);
+        const longitude = Number(friendLoc?.longitude);
+
+        setSelectedLocation(targetFriend);
+
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: latitude - 0.001,
+                        longitude,
+                    },
+                    heading: 0,
+                    altitude: 700,
+                    zoom: 18,
+                },
+                { duration: 700 }
+            );
+            return;
+        }
+
+        const targetBar = targetFriend.atBarName
+            ? locations.find((bar) => bar.name === targetFriend.atBarName)
+            : null;
+
+        if (targetBar) {
+            mapRef.current?.animateCamera(
+                {
+                    center: {
+                        latitude: targetBar.latitude - 0.001,
+                        longitude: targetBar.longitude,
+                    },
+                    heading: 0,
+                    altitude: 700,
+                    zoom: 18,
+                },
+                { duration: 700 }
+            );
+        }
+    }, [friends, locations, mapReady, selectedFriendId]);
 
     if (isLoading) return <MapSkeleton />;
     if (error || shouldForceErrorPage('map')) {
