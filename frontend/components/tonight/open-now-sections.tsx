@@ -23,7 +23,7 @@ export default function OpenNowSection({ data, onBarPress }: { data: any[], onBa
                     </View>
                 </Pressable>
             ))}
-            {!data.length && <Text style={styles.emptyText}>No bars currently open.</Text>}
+            {!data.length && <Text style={styles.emptyText}>No open bars matching your search.</Text>}
         </View>
     );
 }
