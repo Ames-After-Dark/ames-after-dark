@@ -162,6 +162,10 @@ export default function BarPhotosScreen() {
         data={photos}
         keyExtractor={(item) => String(item.id)}
         numColumns={3}
+        initialNumToRender={12}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews={true} // Unmount photos that are off-screen
         contentContainerStyle={{
           paddingTop: TOTAL_HEADER_HEIGHT + 60,
           paddingBottom: insets.bottom + TAB_BAR_HEIGHT
@@ -171,7 +175,7 @@ export default function BarPhotosScreen() {
             setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);
           }}
             onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
-            <Image source={item.image} style={styles.photo} resizeMode="cover" />
+            <Image source={item.image} style={styles.photo} resizeMode="cover" resizeMethod="resize" />
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}

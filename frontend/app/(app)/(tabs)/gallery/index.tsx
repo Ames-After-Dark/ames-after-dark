@@ -214,6 +214,10 @@ export default function GalleryScreen() {
         data={grouped}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        removeClippedSubviews={true}
         ListHeaderComponent={<View style={{ height: SEARCH_BAR_AREA_HEIGHT + 20 }} />}
         contentContainerStyle={{
           paddingHorizontal: 12,
