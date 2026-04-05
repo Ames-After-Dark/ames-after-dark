@@ -363,6 +363,21 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
             .catch((err: any) => console.error('Failed to fetch bar list:', err));
     }, []);
 
+    useEffect(() => {
+        setFavBarName(user?.locations?.name || DEFAULT_BAR_NAME);
+        setFavBarLocationId(user?.favorite_profile_location_id || null);
+    }, [user]);
+
+    const favBarAssets = getBarAssets({ name: favBarName });
+
+    const handleBarPress = () => {
+        if (isMe && isEditing) {
+            setBarPickerVisible(true);
+        } else if (favBarLocationId) {
+            router.push({ pathname: '/bars/[id]', params: { id: favBarLocationId.toString() } });
+        }
+    };
+
     const handleBarSelect = async (bar: { id: number; name: string }) => {
         setFavBarName(bar.name);
         setFavBarLocationId(bar.id);
