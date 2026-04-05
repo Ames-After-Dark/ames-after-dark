@@ -3,11 +3,11 @@ import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
 import { useAuth } from './use-auth';
 
-export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
+export function useLocationTracker(hasPermission: boolean) {
     const { getAccessToken } = useAuth();
 
     useEffect(() => {
-        if (userId === undefined || !hasPermission) return;
+        if (!hasPermission) return;
 
         // track if the component is still alive
         let isMounted = true;
@@ -68,23 +68,22 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
             isMounted = false;
             subscription?.remove();
         };
-    }, [userId, hasPermission, getAccessToken]);
+    }, [hasPermission, getAccessToken]);
 }
 
-export function useFriendsLocations(userId: number | undefined) {
+export function useFriendsLocations() {
     const { getAccessToken } = useAuth();
     const [friends, setFriends] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchFriends = async () => {
-        if (userId === undefined) {
-            setFriends([]);
-            setLoading(false);
-            return;
-        }
         try {
             const token = await getAccessToken();
-            if (!token) return;
+            if (!token) {
+                setFriends([]);
+                setLoading(false);
+                return;
+            }
 
             const data = await FriendLocationService.getFriendsLocations(token);
 
@@ -92,22 +91,19 @@ export function useFriendsLocations(userId: number | undefined) {
             console.log("Sample friend data:", data);
 
             setFriends(data);
-        } catch (err) {
-            console.error("Error fetching friend locations:", err);
+        } catch (error) {
+            console.error("Error fetching friends:", error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        // Initial fetch
         fetchFriends();
-
-        // Single interval
-        const interval = setInterval(fetchFriends, 15000);
-
-        return () => clearInterval(interval);
-    }, [userId, getAccessToken]); // Only depend on userId and getAccessToken
+        // Optional: refresh periodically (e.g. every minute)
+        const intervalId = setInterval(fetchFriends, 60000);
+        return () => clearInterval(intervalId);
+    }, [getAccessToken]);
 
     return { friends, loading, refetch: fetchFriends };
 }

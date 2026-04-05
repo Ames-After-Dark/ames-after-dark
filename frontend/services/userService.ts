@@ -136,7 +136,8 @@ export interface UpdateUserPayload {
 }
 
 export const updateUser = async (
-  userId: string | number,
+  token: string,
+  userId: string | number, // kept for backward compatibility with url params
   updates: UpdateUserPayload
 ) => {
   // Remove undefined fields
@@ -149,13 +150,13 @@ export const updateUser = async (
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(filteredUpdates),
   });
 
   return data;
 };
-
 
 export async function getMutualFriends(viewerToken: string, profileId: string | number): Promise<Friend[]> {
   try {

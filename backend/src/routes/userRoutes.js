@@ -20,7 +20,7 @@ router.delete('/auth/cancel-registration', checkJwt, userController.cancelRegist
 router.get('/', userController.getUsers);         // Read all
 router.get('/friends', checkJwt, userController.getUserFriends);
 router.get('/:id', userController.getUserById);  // Read one
-router.put('/:id', userController.updateUserLimited);   // Update
+router.put('/:id', checkJwt, userController.updateUserLimited);   // Update
 
 router.get('/profile/favorite-drinks', userController.getUserProfileFavoriteDrinkOptions);
 router.get('/profile/favorite-drinks/:id', userController.getUserProfileFavoriteDrinkOptionsById);

@@ -317,7 +317,7 @@ const zoomStyles = StyleSheet.create({
 // PROFILE GRID
 // ─────────────────────────────────────────────────────────────────────────────
 export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boolean; isEditing?: boolean }) => {
-    const { userStatus } = useAuth();
+    const { userStatus, getAccessToken } = useAuth();
 
     const [selectedDrink, setSelectedDrink] = useState<ProfileAsset>(() => getDrinkById(user?.favorite_drink_id));
     const [isDrinkPickerVisible, setDrinkPickerVisible] = useState(false);
@@ -368,47 +368,23 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         setFavBarLocationId(bar.id);
         if (!userStatus?.userId) return;
         try {
-            await updateUser(userStatus.userId, { favorite_profile_location_id: bar.id } as any);
+            const token = await getAccessToken();
+            if (!token) return;
+            await updateUser(token, userStatus.userId, { favorite_profile_location_id: bar.id } as any);
         } catch (err) {
             console.error('Failed to save fav bar:', err);
         }
     };
 
-    const handleBarPress = () => {
-        if (isMe && isEditing) {
-            setBarPickerVisible(true);
-        } else {
-            const barId = favBarLocationId ?? user?.favorite_profile_location_id ?? 3;
-            router.push(`/bars/${barId}` as any);
-        }
-    };
-
-    useEffect(() => {
-        const fetchFavBar = async () => {
-            if (!user?.favorite_profile_location_id) {
-                setFavBarName(DEFAULT_BAR_NAME);
-                setFavBarLocationId(3);
-                return;
-            }
-            try {
-                const location = await apiFetch(`/locations/${user.favorite_profile_location_id}`);
-                if (location?.name) setFavBarName(location.name);
-                setFavBarLocationId(user.favorite_profile_location_id);
-            } catch (err) {
-                console.error('Failed to fetch fav bar:', err);
-                setFavBarName(DEFAULT_BAR_NAME);
-            }
-        };
-        fetchFavBar();
-    }, [user?.favorite_profile_location_id]);
-
-    const favBarAssets = getBarAssets({ name: favBarName });
+    const DRINKS = DRINK_OPTIONS;
 
     const handleDrinkSelect = async (item: ProfileAsset) => {
         setSelectedDrink(item);
         if (!userStatus?.userId) return;
         try {
-            await updateUser(userStatus.userId, { favorite_drink_id: item.id } as any);
+            const token = await getAccessToken();
+            if (!token) return;
+            await updateUser(token, userStatus.userId, { favorite_drink_id: item.id } as any);
         } catch (err) {
             console.error('Failed to save drink:', err);
         }

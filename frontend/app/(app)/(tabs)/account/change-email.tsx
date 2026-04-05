@@ -11,16 +11,17 @@ import {
 import { Stack, router } from "expo-router";
 
 import { getUserById, updateUser } from "@/services/userService";
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ChangeEmailScreen() {
+  const { userStatus, getAccessToken } = useAuth();
   const [email, setEmail] = useState("");
   const [originalEmail, setOriginalEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Replace with real auth user ID later
-  const currentUserId = 10;
+  const currentUserId = userStatus?.userId || 10;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -75,7 +76,10 @@ export default function ChangeEmailScreen() {
       setSaving(true);
       setError(null);
 
-      await updateUser(currentUserId, { email: normalizedEmail });
+      const token = await getAccessToken();
+      if (!token) return;
+
+      await updateUser(token, currentUserId, { email: normalizedEmail });
 
       // Update local state after successful save
       setOriginalEmail(normalizedEmail);

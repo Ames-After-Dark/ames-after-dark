@@ -52,16 +52,26 @@ export default function MapScreen() {
     const [mapReady, setMapReady] = useState(false);
     const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
 
-    const currentUserId = user?.id;
-
     // --- Data Hooks ---
     const { locations, isLoading, error } = useMapLocations();
-    const { friends, refetch: refetchFriends } = useFriendsLocations(currentUserId);
+    const { friends, refetch: refetchFriends } = useFriendsLocations();
 
     // Track user location globally (updates DB)
-    useLocationTracker(currentUserId, hasPermission);
+    useLocationTracker(hasPermission);
 
     // --- Logic Hooks ---
+    const userLocationDistance = useMemo(() => {
+        if (!userLocation || !locations.length) return {};
+        return locations.reduce((acc, bar) => {
+            const distance = calculateDistance(
+                userLocation.latitude, userLocation.longitude,
+                bar.latitude, bar.longitude
+            );
+            acc[bar.id] = distance;
+            return acc;
+        }, {} as Record<string, number>);
+    }, [userLocation, locations]);
+
     const activeFriends = useGeofence(friends, locations);
 
     // --- Effects ---
@@ -120,15 +130,15 @@ export default function MapScreen() {
     };
 
     const handleSelectSelf = () => {
-        if (!currentUserId || !userLocation) {
+        if (!userLocation) {
             return;
         }
 
         // 1. Update the selection state for the Bottom Sheet
         setSelectedLocation({
-            id: currentUserId,
-            name: user?.name || 'You',
-            profile_pic_url: user?.profile_pic_url,
+            id: user.id,
+            name: user.name || 'You',
+            profile_pic_url: user.profile_pic_url,
             isSelf: true,
             atBarName: getUserBarName(),
         });
@@ -143,7 +153,7 @@ export default function MapScreen() {
     };
 
     const handleToggleGhostMode = async () => {
-        if (!currentUserId || isGhostModeLoading) return;
+        if (isGhostModeLoading) return;
 
         setIsGhostModeLoading(true);
         const nextGhostValue = !isGhostModeEnabled;
@@ -227,7 +237,7 @@ export default function MapScreen() {
     useEffect(() => {
         if (!mapReady || !selectedFriendId || !friends.length || !locations.length) return;
 
-        const targetFriend = friends.find((friend) => String(friend.id) === selectedFriendId);
+        const targetFriend = friends.find((friend: any) => String(friend.id) === selectedFriendId);
         if (!targetFriend) return;
 
         const friendLoc = getFriendLocation(targetFriend);
