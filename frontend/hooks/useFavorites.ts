@@ -4,7 +4,7 @@ import { useAuth } from './use-auth';
 
 export function useFavorites() {
 
-    const { currentUser } = useAuth();
+    const { currentUser, getAccessToken } = useAuth();
     const USER_ID = currentUser?.id ? Number(currentUser.id) : null;
 
     const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -18,8 +18,10 @@ export function useFavorites() {
 
         setLoading(true);
         try {
+            const token = await getAccessToken();
+            if (!token) return;
 
-            const data = await favoriteService.getUserFavorites(USER_ID);
+            const data = await favoriteService.getUserFavorites(token);
 
             const favMap: Record<string, boolean> = {};
             if (data && Array.isArray(data)) {
@@ -34,7 +36,7 @@ export function useFavorites() {
         } finally {
             setLoading(false);
         }
-    }, [USER_ID]);
+    }, [USER_ID, getAccessToken]);
 
     const toggleFavorite = useCallback(async (locationId: number | string) => {
         if (!USER_ID || isNaN(USER_ID)) {
@@ -48,13 +50,15 @@ export function useFavorites() {
         setFavorites(prev => ({ ...prev, [idStr]: !prev[idStr] }));
 
         try {
+            const token = await getAccessToken();
+            if (!token) return;
 
-            const result = await favoriteService.toggleFavorite(USER_ID, idNum);
+            const result = await favoriteService.toggleFavorite(idNum, token);
             setFavorites(prev => ({ ...prev, [idStr]: result.favorited }));
         } catch (error) {
             setFavorites(prev => ({ ...prev, [idStr]: !prev[idStr] }));
         }
-    }, [USER_ID]);
+    }, [USER_ID, getAccessToken]);
 
     const isFavorited = (locationId: number | string) => !!favorites[String(locationId)];
 

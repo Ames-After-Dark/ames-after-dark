@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
+import { useAuth } from './use-auth';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
+    const { getAccessToken } = useAuth();
+
     useEffect(() => {
         if (userId === undefined || !hasPermission) return;
 
@@ -22,10 +25,13 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                     return;
                 }
 
-                await UserLocationService.updateLocation(userId, {
+                const token = await getAccessToken();
+                if (!token) return;
+
+                await UserLocationService.updateLocation({
                     latitude: initial.coords.latitude,
                     longitude: initial.coords.longitude,
-                });
+                }, token);
 
                 subscription = await Location.watchPositionAsync(
                     {
@@ -38,10 +44,13 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
 
                     async (location) => {
                         try {
-                            await UserLocationService.updateLocation(userId, {
+                            const ongoingToken = await getAccessToken();
+                            if (!ongoingToken) return;
+
+                            await UserLocationService.updateLocation({
                                 latitude: location.coords.latitude,
                                 longitude: location.coords.longitude,
-                            });
+                            }, ongoingToken);
                         } catch (err) {
                             console.error("Failed to sync location with server", err);
                         }
@@ -59,10 +68,11 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
             isMounted = false;
             subscription?.remove();
         };
-    }, [userId, hasPermission]);
+    }, [userId, hasPermission, getAccessToken]);
 }
 
 export function useFriendsLocations(userId: number | undefined) {
+    const { getAccessToken } = useAuth();
     const [friends, setFriends] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -73,7 +83,10 @@ export function useFriendsLocations(userId: number | undefined) {
             return;
         }
         try {
-            const data = await FriendLocationService.getFriendsLocations(userId);
+            const token = await getAccessToken();
+            if (!token) return;
+
+            const data = await FriendLocationService.getFriendsLocations(token);
 
             console.log("Fetched friends count:", data.length);
             console.log("Sample friend data:", data);
@@ -94,7 +107,7 @@ export function useFriendsLocations(userId: number | undefined) {
         const interval = setInterval(fetchFriends, 15000);
 
         return () => clearInterval(interval);
-    }, [userId]); // Only depend on userId
+    }, [userId, getAccessToken]); // Only depend on userId and getAccessToken
 
     return { friends, loading, refetch: fetchFriends };
 }

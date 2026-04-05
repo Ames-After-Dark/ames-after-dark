@@ -120,15 +120,17 @@ export default function FriendProfileScreen() {
         setError(null);
 
         try {
+            const token = await getAccessToken();
+            if (!token) return;
 
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
                 getUserById(id),
-                getUserFriends(id),
-                isMe ? Promise.resolve([]) : getMutualFriends(userStatus.userId, id),
-                isMe ? getPendingFriendRequests(userStatus.userId) : Promise.resolve([]),
+                getUserById(id).then((u: any) => u.friends || []), // Fixed this, profile ID friends
+                isMe ? Promise.resolve([]) : getMutualFriends(token, id),
+                isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
             ]);
 
-            const formattedPending = (pendingRequestsData || []).map(req => {
+            const formattedPending = (pendingRequestsData || []).map((req: any) => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
                 const friend = isOutgoing
                     ? req.users_friendships_user_id_2Tousers
@@ -149,24 +151,19 @@ export default function FriendProfileScreen() {
             setPendingRequests(formattedPending);
 
             if (isMe) {
-
-                const recs = await getRecommendedFriends(userStatus.userId);
+                // For "Me", compute pending/recs accurately
+                const recs = await getRecommendedFriends(token);
                 setRecommendedFriends(recs || []);
-
-                setRelationship({
-                    isFriend: true,
-                    isBlocked: false,
-                    sentRequest: false,
-                    receivedRequest: false,
-                });
             } else {
-                const myFriends = await getUserFriends(userStatus.userId);
-                const isFriend = myFriends.some(f => f.id.toString() === id);
+                // If not me, check friendship status by grabbing MY friends
+                const myFriends = await getUserFriends(token);
+                const isMyFriend = myFriends.some((f: any) => f.id === Number(id));
+
                 const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
                 const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
 
                 setRelationship({
-                    isFriend,
+                    isFriend: isMyFriend,
                     isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
                     sentRequest: Boolean(incoming?.friendship_status_id === 1),
                     receivedRequest: Boolean(outgoing?.friendship_status_id === 1),

@@ -18,7 +18,7 @@ router.delete('/auth/cancel-registration', checkJwt, userController.cancelRegist
 
 // CRUD routes
 router.get('/', userController.getUsers);         // Read all
-router.get('/:userId/friends', userController.getUserFriends);
+router.get('/friends', checkJwt, userController.getUserFriends);
 router.get('/:id', userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
 

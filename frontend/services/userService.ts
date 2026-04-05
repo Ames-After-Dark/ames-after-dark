@@ -2,87 +2,114 @@ import { apiFetch } from './apiClient';
 import { Friend, PendingFriendRequest } from '@/types/types';
 
 
-export async function sendFriendRequest(userId: string | number, friendId: string | number) {
+export async function sendFriendRequest(token: string, friendId: string | number) {
   try {
-    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
-      method: 'POST'
+    return await apiFetch(`/friendships/friends/${friendId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
     });
   } catch (error) {
-    console.error(`Failed to send friend request from ${userId} to ${friendId}:`, error);
+    console.error(`Failed to send friend request from to ${friendId}:`, error);
     throw error;
   }
 }
 
-export async function getPendingFriendRequests(userId: string | number): Promise<PendingFriendRequest[]> {
+export async function getPendingFriendRequests(token: string): Promise<PendingFriendRequest[]> {
   try {
-    const requests = await apiFetch(`/friendships/${userId}/friend-requests`);
+    const requests = await apiFetch(`/friendships/friend-requests`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
     return Array.isArray(requests) ? requests : [];
   } catch (error) {
-    console.error(`Failed to fetch pending friend requests for user ${userId}:`, error);
+    console.error(`Failed to fetch pending friend requests:`, error);
     throw error;
   }
 }
 
-export async function getRecommendedFriends(userId: string | number, limit: number = 5): Promise<Friend[]> {
+export async function getRecommendedFriends(token: string, limit: number = 5): Promise<Friend[]> {
   try {
-    const recommendations = await apiFetch(`/friendships/${userId}/recommended-friends?limit=${limit}`);
+    const recommendations = await apiFetch(`/friendships/recommended-friends?limit=${limit}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
     return Array.isArray(recommendations) ? recommendations : [];
   } catch (error) {
-    console.error(`Failed to fetch recommended friends for user ${userId}:`, error);
+    console.error(`Failed to fetch recommended friends:`, error);
     throw error;
   }
 }
 
-export async function acceptFriendRequest(userId: string | number, friendId: string | number) {
+export async function acceptFriendRequest(token: string, friendId: string | number) {
   try {
-    return await apiFetch(`/friendships/${userId}/friends/${friendId}/accept`, {
-      method: 'POST'
+    return await apiFetch(`/friendships/friends/${friendId}/accept`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
     });
   } catch (error) {
-    console.error(`Failed to accept friend request between ${userId} and ${friendId}:`, error);
+    console.error(`Failed to accept friend request to ${friendId}:`, error);
     throw error;
   }
 }
 
-export async function declineFriendRequest(userId: string | number, friendId: string | number) {
+export async function declineFriendRequest(token: string, friendId: string | number) {
   try {
-    return await apiFetch(`/friendships/${userId}/friends/${friendId}/decline`, {
-      method: 'POST'
+    return await apiFetch(`/friendships/friends/${friendId}/decline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
     });
   } catch (error) {
-    console.error(`Failed to decline friend request between ${userId} and ${friendId}:`, error);
+    console.error(`Failed to decline friend request to ${friendId}:`, error);
     throw error;
   }
 }
 
-export async function blockFriend(userId: string | number, friendId: string | number) {
+export async function blockFriend(token: string, friendId: string | number) {
   try {
-    return await apiFetch(`/friendships/${userId}/friends/${friendId}/block`, {
-      method: 'POST'
+    return await apiFetch(`/friendships/friends/${friendId}/block`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
     });
   } catch (error) {
-    console.error(`Failed to block user between ${userId} and ${friendId}:`, error);
+    console.error(`Failed to block user with ${friendId}:`, error);
     throw error;
   }
 }
 
-export async function removeFriend(userId: string | number, friendId: string | number) {
+export async function removeFriend(token: string, friendId: string | number) {
   try {
-    return await apiFetch(`/friendships/${userId}/friends/${friendId}`, {
-      method: 'DELETE'
+    return await apiFetch(`/friendships/friends/${friendId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
     });
   } catch (error) {
-    console.error(`Failed to remove friend between ${userId} and ${friendId}:`, error);
+    console.error(`Failed to remove friend with ${friendId}:`, error);
     throw error;
   }
 }
 
-export async function getUserFriends(userId: string | number): Promise<Friend[]> {
+export async function getUserFriends(token: string): Promise<Friend[]> {
   try {
-    const friends = await apiFetch(`/friendships/${userId}/friends`);
+    const friends = await apiFetch(`/users/friends`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
     return Array.isArray(friends) ? friends : [];
   } catch (error) {
-    console.error(`Failed to fetch friends for user ${userId}:`, error);
+    console.error(`Failed to fetch friends:`, error);
     throw error;
   }
 }
@@ -130,23 +157,23 @@ export const updateUser = async (
 };
 
 
-export async function getMutualFriends(viewerId: string | number, profileId: string | number): Promise<Friend[]> {
+export async function getMutualFriends(viewerToken: string, profileId: string | number): Promise<Friend[]> {
   try {
     // Fetch both lists in parallel for better performance
     const [viewerFriends, profileFriends] = await Promise.all([
-      getUserFriends(viewerId),
-      getUserFriends(profileId)
+      getUserFriends(viewerToken),
+      getUserById(profileId).then(user => user.friends || []) // Fallback, would need dedicated generic get friends if needed. Let's just reuse.
     ]);
 
     // Create a Set of viewer friend IDs for O(1) lookup time
     const viewerFriendIds = new Set(viewerFriends.map(f => f.id));
 
     // Filter profile friends to only include those in the viewer's list
-    const mutual = profileFriends.filter(f => viewerFriendIds.has(f.id));
+    const mutual = profileFriends.filter((f: Friend) => viewerFriendIds.has(f.id));
 
     return mutual;
   } catch (error) {
-    console.error(`Failed to calculate mutual friends between ${viewerId} and ${profileId}:`, error);
+    console.error(`Failed to calculate mutual friends between ${viewerToken} and ${profileId}:`, error);
     return []; // Return empty array on failure to avoid breaking the UI
   }
 }
@@ -366,14 +393,17 @@ export async function deleteAccount(accessToken: string): Promise<{ message: str
   }
 }
 
-export const toggleGhostMode = async (currentUserId: number, isGhostModeNow: boolean) => {
-  const allFriends = await getUserFriends(currentUserId);
+export const toggleGhostMode = async (token: string, currentUserId: number, isGhostModeNow: boolean) => {
+  const allFriends = await getUserFriends(token);
   const nextVisibility = !isGhostModeNow;
 
   return Promise.all(
     allFriends.map((friend) =>
       apiFetch(`/userlocations/permissions/${friend.id}`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           ownerId: currentUserId,
           enabled: nextVisibility,

@@ -15,24 +15,34 @@ export const UserLocationService = {
     /**
      * Updates the current user's location in the database
      */
-    updateLocation: async (userId: number, data: UserLocationData) => {
-        return await apiFetch(`/userlocations/${userId}`, {
+    updateLocation: async (data: UserLocationData, token: string) => {
+        return await apiFetch(`/userlocations`, {
             method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify(data),
         });
     },
 
-    setGhostMode: async (userId: number, hours: number): Promise<GhostModeResponse> => {
-        return await apiFetch(`/userlocations/${userId}/ghost`, {
+    setGhostMode: async (hours: number, token: string): Promise<GhostModeResponse> => {
+        return await apiFetch(`/userlocations/ghost`, {
             method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify({ hours }),
         });
     },
 };
 
 export const FriendLocationService = {
-    getFriendsLocations: async (userId: number) => {
+    getFriendsLocations: async (token: string) => {
 
-        return await apiFetch(`/userlocations/${userId}/friends/locations`);
+        return await apiFetch(`/userlocations/friends/locations`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
     }
 };

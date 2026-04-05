@@ -1,9 +1,14 @@
 const friendshipService = require('../services/friendshipService');
+const userService = require('../services/userService');
 
 exports.getFriends = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
     const friends = await friendshipService.getFriends(userId);
     res.json(friends);
   } catch (err) {
@@ -13,10 +18,15 @@ exports.getFriends = async (req, res) => {
 };
 
 exports.sendFriendRequest = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  const friendId = parseInt(req.params.friendId, 10);
-  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const friendId = parseInt(req.params.friendId, 10);
+    if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
     const request = await friendshipService.sendFriendRequest(userId, friendId);
     res.status(201).json(request);
   } catch (err) {
@@ -26,10 +36,15 @@ exports.sendFriendRequest = async (req, res) => {
 };
 
 exports.acceptFriendRequest = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  const friendId = parseInt(req.params.friendId, 10);
-  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const friendId = parseInt(req.params.friendId, 10);
+    if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
     const result = await friendshipService.acceptFriendRequest(userId, friendId);
     res.json(result);
   } catch (err) {
@@ -39,10 +54,15 @@ exports.acceptFriendRequest = async (req, res) => {
 };
 
 exports.declineFriendRequest = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  const friendId = parseInt(req.params.friendId, 10);
-  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const friendId = parseInt(req.params.friendId, 10);
+    if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
     const result = await friendshipService.declineFriendRequest(userId, friendId);
     res.json(result);
   } catch (err) {
@@ -52,10 +72,15 @@ exports.declineFriendRequest = async (req, res) => {
 };
 
 exports.blockFriend = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  const friendId = parseInt(req.params.friendId, 10);
-  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const friendId = parseInt(req.params.friendId, 10);
+    if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
     const result = await friendshipService.blockFriend(userId, friendId);
     res.json(result);
   } catch (err) {
@@ -65,10 +90,15 @@ exports.blockFriend = async (req, res) => {
 };
 
 exports.removeFriend = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  const friendId = parseInt(req.params.friendId, 10);
-  if (isNaN(userId) || isNaN(friendId)) return res.status(400).json({ message: 'Invalid userId or friendId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const friendId = parseInt(req.params.friendId, 10);
+    if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
     await friendshipService.removeFriend(userId, friendId);
     res.status(204).send();
   } catch (err) {
@@ -78,9 +108,13 @@ exports.removeFriend = async (req, res) => {
 };
 
 exports.getPendingRequests = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
     const requests = await friendshipService.getPendingRequests(userId);
     res.json(requests);
   } catch (err) {
@@ -90,12 +124,15 @@ exports.getPendingRequests = async (req, res) => {
 };
 
 exports.getRecommendedFriends = async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
-  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
-
-  const limit = parseInt(req.query.limit, 10) || 10;
-
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
+    const limit = parseInt(req.query.limit, 10) || 10;
+
     const recommendations = await friendshipService.getRecommendedFriends(userId, limit);
 
     // Flatten the response to return just user objects with mutualCount

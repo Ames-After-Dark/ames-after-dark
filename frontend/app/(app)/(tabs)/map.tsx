@@ -7,6 +7,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 
 // Context & Services
 import { useUser } from '@/context/user-context';
+import { useAuth } from '@/hooks/use-auth';
 import { UserLocationService } from '@/services/userLocationService';
 
 // Hooks
@@ -33,7 +34,12 @@ export default function MapScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
-    const mapRef = useRef<MapView>(null);
+    const mapRef = useRef<MapView | null>(null);
+    const mapViewRef = useRef<MapView>(null);
+    const bottomSheetRef = useRef<any>(null);
+
+    const { getAccessToken } = useAuth();
+
     const ghostModeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { selectedId, selectedFriendId } = useLocalSearchParams<{ selectedId?: string; selectedFriendId?: string }>();
 
@@ -147,7 +153,9 @@ export default function MapScreen() {
         setIsGhostModeEnabled(nextGhostValue);
 
         try {
-            const result = await UserLocationService.setGhostMode(currentUserId, hours);
+            const token = await getAccessToken();
+            if (!token) return;
+            const result = await UserLocationService.setGhostMode(hours, token);
             const expiresAt = result?.ghost_mode_expires_at;
 
             if (ghostModeTimeoutRef.current) {

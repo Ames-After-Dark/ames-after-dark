@@ -16,9 +16,11 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Friend } from '@/types/types';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { getUserFriends } from '@/services/userService';
+import { useAuth } from '@/hooks/use-auth';
 import ErrorState from '@/components/ui/error-state';
 
 export default function LocationVisibilityScreen() {
+  const { getAccessToken } = useAuth();
   const [shareWithAll, setShareWithAll] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
@@ -32,8 +34,9 @@ export default function LocationVisibilityScreen() {
       setLoading(true);
       setError(null);
       try {
-        const currentUserId = 'YOUR_USER_ID'; // get this from auth context/state
-        const friendsData = await getUserFriends(currentUserId);
+        const token = await getAccessToken();
+        if (!token) return;
+        const friendsData = await getUserFriends(token);
         setFriends(friendsData || []);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch friends'));
@@ -42,7 +45,7 @@ export default function LocationVisibilityScreen() {
       }
     };
     fetchFriends();
-  }, []);
+  }, [getAccessToken]);
 
   const filteredFriends = friends.filter((f) =>
     (f.name || '').toLowerCase().includes(search.toLowerCase())

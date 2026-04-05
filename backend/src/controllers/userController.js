@@ -29,8 +29,13 @@ exports.getUserById = async (req, res) => {
 };
 
 exports.getUserFriends = async (req, res) => {
-  const userId = req.params.userId;
   try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+    if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const userId = user.id;
+
     const friends = await userService.getUserFriends(userId);
     res.json(friends);
   } catch (err) {
