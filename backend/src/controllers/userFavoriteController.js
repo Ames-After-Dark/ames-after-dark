@@ -25,7 +25,15 @@ exports.getUserFavoritesByUserId = async (req, res) => {
 
 // POST /api/userfavorites/toggle
 exports.toggleFavorite = async (req, res) => {
+  if (!req.body) {
+    return res.status(400).json({ message: 'Request body is empty' });
+  }
+
   const { locationId } = req.body;
+
+  if (locationId === undefined) {
+    return res.status(400).json({ message: 'locationId is required' });
+  }
 
   try {
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;

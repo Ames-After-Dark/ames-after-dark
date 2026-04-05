@@ -154,6 +154,13 @@ export default function FriendProfileScreen() {
                 // For "Me", compute pending/recs accurately
                 const recs = await getRecommendedFriends(token);
                 setRecommendedFriends(recs || []);
+
+                setRelationship({
+                    isFriend: true,
+                    isBlocked: false,
+                    sentRequest: false,
+                    receivedRequest: false,
+                });
             } else {
                 // If not me, check friendship status by grabbing MY friends
                 const myFriends = await getUserFriends(token);
@@ -211,6 +218,9 @@ export default function FriendProfileScreen() {
     const hasForcedError = shouldForceErrorPage(isMe ? 'account' : 'friendProfile');
 
     const handleAction = async (type: string, targetId?: number, targetNameFromModal?: string) => {
+        const token = await getAccessToken();
+        if (!token) return;
+
         const friendId = targetId || Number(id);
         const myId = userStatus!.userId!;
         const isRecommendedAdd = type === 'primary' && typeof targetId === 'number' && isMe;
@@ -224,7 +234,7 @@ export default function FriendProfileScreen() {
             if (status === 'STRANGER' || isRecommendedAdd) {
 
                 await handleAdd(
-                    myId,
+                    token,
                     friendId,
                     () => {
                         triggerToast(`Friend request sent to ${targetName}`);
@@ -236,18 +246,18 @@ export default function FriendProfileScreen() {
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
 
             if (status === 'BLOCKED') {
-                await handleUnblock(myId, friendId, fetchProfile);
+                await handleUnblock(token, friendId, fetchProfile);
             }
         } else if (type === 'respond') {
             setIsRespondModalVisible(true);
         } else if (type === 'accept' || type === 'decline') {
-            await handlePendingDecision(myId, friendId, type, fetchProfile);
+            await handlePendingDecision(token, friendId, type, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'block') {
-            handleConfirmBlock(myId, friendId, user.name, fetchProfile);
+            handleConfirmBlock(token, friendId, user.name, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'remove') {
-            handleRemove(myId, friendId, targetName, fetchProfile);
+            handleRemove(token, friendId, targetName, fetchProfile);
         } else if (type === 'cancel') {
             Alert.alert(
                 "Cancel Request",
@@ -267,7 +277,7 @@ export default function FriendProfileScreen() {
                                 };
                             });
 
-                            await handleCancelRequest(myId, friendId, targetName, fetchProfile);
+                            await handleCancelRequest(token, friendId, targetName, fetchProfile);
                         }
                     }
                 ]

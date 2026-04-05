@@ -22,7 +22,7 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
     };
 
     const handleAdd = async (
-        currentUserId: number,
+        token: string,
         targetUserId: number,
         onOptimisticUpdate: () => void,
         onSuccess: () => void
@@ -31,7 +31,7 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         onOptimisticUpdate();
 
         try {
-            await sendFriendRequest(currentUserId, targetUserId);
+            await sendFriendRequest(token, targetUserId);
 
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             triggerToast("Friend Request Sent!", 'check');
@@ -47,7 +47,7 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         }
     };
 
-    const handleConfirmBlock = (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
+    const handleConfirmBlock = (token: string, targetUserId: number, name: string, onSuccess: () => void) => {
         Alert.alert("Block User", `Are you sure you want to block ${name}?`, [
             { text: "Cancel", style: "cancel" },
             {
@@ -56,10 +56,11 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
                 onPress: async () => {
                     setLoading(true);
                     try {
-                        await blockFriend(currentUserId, targetUserId);
+                        await blockFriend(token, targetUserId);
                         triggerToast("User blocked", "ban");
                         onSuccess();
                     } catch (err) {
+                        console.error(err);
                         Alert.alert("Error", "Could not block user.");
                     } finally {
                         setLoading(false);
@@ -69,15 +70,11 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         ]);
     };
 
-    const handleUnblock = async (currentUserId: number, targetUserId: number, onSuccess: () => void) => {
+    const handleUnblock = async (token: string, targetUserId: number, onSuccess: () => void) => {
         setLoading(true);
         try {
-
-            await removeFriend(currentUserId, targetUserId);
-
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await removeFriend(token, targetUserId);
             triggerToast("User unblocked", "unlock");
-
             onSuccess();
         } catch (err) {
             console.error(err);
@@ -87,30 +84,34 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         }
     };
 
-    const handlePendingDecision = async (currentUserId: number, targetUserId: number, action: 'accept' | 'decline', onSuccess: () => void) => {
+    const handlePendingDecision = async (
+        token: string,
+        targetUserId: number,
+        type: 'accept' | 'decline',
+        onSuccess: () => void
+    ) => {
         setLoading(true);
         try {
-            if (action === 'accept') {
-                await acceptFriendRequest(currentUserId, targetUserId);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                triggerToast('Request accepted!', 'check');
+            if (type === 'accept') {
+                await acceptFriendRequest(token, targetUserId);
+                triggerToast("Friend request accepted!", "user-plus");
             } else {
-                await declineFriendRequest(currentUserId, targetUserId);
-                triggerToast('Request declined', 'times');
+                await declineFriendRequest(token, targetUserId);
+                triggerToast("Friend request declined", "times");
             }
             onSuccess();
         } catch (err) {
-            Alert.alert("Error", "Action failed.");
+            console.error(err);
+            Alert.alert("Error", `Could not ${type} request.`);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRemove = async (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
-
+    const handleRemove = (token: string, targetUserId: number, name: string, onSuccess: () => void) => {
         Alert.alert(
             "Remove Friend",
-            `Are you sure you want to remove ${name} from your friends list?`,
+            `Are you sure you want to remove ${name} as a friend?`,
             [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -119,11 +120,11 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
                     onPress: async () => {
                         setLoading(true);
                         try {
-                            await removeFriend(currentUserId, targetUserId);
-                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                            triggerToast(`${name} removed`, "user-times");
+                            await removeFriend(token, targetUserId);
+                            triggerToast("Friend removed", "user-times");
                             onSuccess();
                         } catch (err) {
+                            console.error(err);
                             Alert.alert("Error", "Could not remove friend.");
                         } finally {
                             setLoading(false);
@@ -134,14 +135,18 @@ export const useProfileActions = (triggerToast: (msg: string, icon?: string) => 
         );
     };
 
-    const handleCancelRequest = async (currentUserId: number, targetUserId: number, name: string, onSuccess: () => void) => {
+    const handleCancelRequest = async (token: string, targetUserId: number, name: string, onSuccess: () => void) => {
         setLoading(true);
         try {
-            await removeFriend(currentUserId, targetUserId);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            triggerToast(`Cancelled request to ${name}`, 'times');
-            onSuccess();
+            await removeFriend(token, targetUserId);
+            triggerToast("Request canceled", "times");
+
+            setTimeout(() => {
+                onSuccess();
+            }, 600);
+
         } catch (err) {
+            console.error(err);
             Alert.alert("Error", "Could not cancel request.");
         } finally {
             setLoading(false);
