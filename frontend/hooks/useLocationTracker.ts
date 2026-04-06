@@ -1,18 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
+    const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+
     useEffect(() => {
         if (userId === undefined || !hasPermission) return;
 
         // track if the component is still alive
         let isMounted = true;
-        let subscription: Location.LocationSubscription | null = null;
 
         const startTracking = async () => {
 
             if (!isMounted) return;
+
+            if (subscriptionRef.current) {
+                subscriptionRef.current.remove();
+                subscriptionRef.current = null;
+            }
 
             try {
                 const initial = await Location.getCurrentPositionAsync({
@@ -27,7 +33,7 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                     longitude: initial.coords.longitude,
                 });
 
-                subscription = await Location.watchPositionAsync(
+                const subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.Balanced,
                         // move 5 meters to trigger
@@ -38,6 +44,13 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
 
                     async (location) => {
                         try {
+
+                if (!isMounted) {
+                    subscription.remove();
+                    return;
+                }
+
+                subscriptionRef.current = subscription;
                             await UserLocationService.updateLocation(userId, {
                                 latitude: location.coords.latitude,
                                 longitude: location.coords.longitude,
@@ -57,7 +70,8 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         return () => {
             // stop initial sync if unmounting
             isMounted = false;
-            subscription?.remove();
+            subscriptionRef.current?.remove();
+            subscriptionRef.current = null;
         };
     }, [userId, hasPermission]);
 }

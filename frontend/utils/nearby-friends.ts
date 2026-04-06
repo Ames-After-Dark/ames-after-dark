@@ -107,17 +107,15 @@ export function filterFriendsWithinRadius(friends: FriendLocation[], locations: 
 
 export function groupFriendsByNearbyBar(friends: FriendLocation[], locations: BarLocation[]) {
     const now = new Date();
-    const visibleFriends = friends.filter((friend) => {
-        if (!isFriendFreshEnough(friend, now)) {
-            return false;
-        }
+    const friendsWithBars = friends
+        .filter((friend) => isFriendFreshEnough(friend, now))
+        .map((friend) => ({
+            friend,
+            closestBar: getClosestBarForFriend(friend, locations),
+        }))
+        .filter((entry): entry is { friend: FriendLocation; closestBar: NonNullable<ReturnType<typeof getClosestBarForFriend>> } => Boolean(entry.closestBar));
 
-        return Boolean(getClosestBarForFriend(friend, locations));
-    });
-
-    const groups = visibleFriends.reduce((acc, friend) => {
-        const closestBar = getClosestBarForFriend(friend, locations);
-
+    const groups = friendsWithBars.reduce((acc, { friend, closestBar }) => {
         if (!closestBar) {
             return acc;
         }
