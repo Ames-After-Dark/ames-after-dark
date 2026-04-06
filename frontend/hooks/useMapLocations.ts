@@ -13,13 +13,25 @@ export const useMapLocations = (): UseMapLocationsReturn => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const loadLocations = async () => {
+        let isActive = true;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+        const loadLocations = async (showLoadingState = true) => {
             try {
-                setIsLoading(true);
+                if (showLoadingState) {
+                    setIsLoading(true);
+                }
                 const data = await fetchLocations();
+                if (!isActive) {
+                    return;
+                }
                 setLocations(data);
+                setError(null);
             }
             catch (err: unknown) {
+                if (!isActive) {
+                    return;
+                }
                 if (err instanceof Error) {
                     setError(err.message);
                 }
@@ -28,11 +40,37 @@ export const useMapLocations = (): UseMapLocationsReturn => {
                 }
             }
             finally {
-                setIsLoading(false);
+                if (!isActive) {
+                    return;
+                }
+                if (showLoadingState) {
+                    setIsLoading(false);
+                }
             }
         };
 
-        loadLocations();
+        const scheduleRefresh = () => {
+            timeoutId = setTimeout(async () => {
+                await loadLocations(false);
+
+                if (isActive) {
+                    scheduleRefresh();
+                }
+            }, 1800000); // 30 minutes in milliseconds
+        };
+
+        void loadLocations(true).then(() => {
+            if (isActive) {
+                scheduleRefresh();
+            }
+        });
+
+        return () => {
+            isActive = false;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
     }, []);
 
     return { locations, isLoading, error };

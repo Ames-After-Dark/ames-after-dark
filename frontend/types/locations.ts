@@ -3,6 +3,7 @@ export interface BarLocation {
     name: string;
     address?: string;
     hours?: string;
+    open?: boolean;
     logo?: any;
     latitude: number;
     longitude: number;

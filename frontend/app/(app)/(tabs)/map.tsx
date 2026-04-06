@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -70,30 +70,44 @@ export default function MapScreen() {
 
     // 2. Initial Map Focus & User Location Sync
     useEffect(() => {
+        // Note: We still keep this check, but the logic inside the async IIFE is the real fix
         if (!hasPermission) return;
 
         let subscription: Location.LocationSubscription | null = null;
 
         (async () => {
+            try {
+                // RE-CHECK permissions explicitly before the heavy lifting
+                const { status } = await Location.getForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    console.warn("Permission not granted yet, skipping position fetch.");
+                    return;
+                }
 
-            // Get current pos once for initial zoom
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            setUserLocation(pos.coords);
+                // Now it's safe to call
+                const pos = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced
+                });
 
-            if (mapReady && !selectedId && !selectedFriendId) {
-                mapRef.current?.animateToRegion({
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
+                setUserLocation(pos.coords);
+
+                if (mapReady && !selectedId && !selectedFriendId) {
+                    mapRef.current?.animateToRegion({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                    }, 1000);
+                }
+
+                // Watch for movement
+                subscription = await Location.watchPositionAsync(
+                    { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
+                    (loc) => setUserLocation(loc.coords)
+                );
+            } catch (err) {
+                console.error("Location fetch failed:", err);
             }
-
-            // Watch for movement
-            subscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
-                (loc) => setUserLocation(loc.coords)
-            );
         })();
 
         return () => subscription?.remove();
@@ -217,10 +231,13 @@ export default function MapScreen() {
     };
 
     useEffect(() => {
-        if (!mapReady || !selectedFriendId || !friends.length || !locations.length) return;
+        if (!mapReady || !selectedFriendId || !activeFriends.length || !locations.length) return;
 
-        const targetFriend = friends.find((friend) => String(friend.id) === selectedFriendId);
-        if (!targetFriend) return;
+        const targetFriend = activeFriends.find((friend) => String(friend.id) === selectedFriendId);
+        if (!targetFriend) {
+            setSelectedLocation(null);
+            return;
+        }
 
         const friendLoc = getFriendLocation(targetFriend);
         const latitude = Number(friendLoc?.latitude);
@@ -262,7 +279,7 @@ export default function MapScreen() {
                 { duration: 700 }
             );
         }
-    }, [friends, locations, mapReady, selectedFriendId]);
+    }, [activeFriends, locations, mapReady, selectedFriendId]);
 
     if (isLoading) return <MapSkeleton />;
     if (error || shouldForceErrorPage('map')) {
