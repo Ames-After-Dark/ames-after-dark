@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, Animated, PanResponder, Dimensions
 import { Theme } from '@/constants/theme';
 import { formatLastActive } from '@/utils/location-utils';
 import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -116,6 +116,20 @@ export const MapBottomSheet = ({
         })
     ).current;
 
+    const [previousGroup, setPreviousGroup] = React.useState<GroupLocation | null>(null);
+    useEffect(() => {
+        if (!location) {
+            setPreviousGroup(null);
+        }
+    }, [location]);
+
+    const handleBack = () => {
+        if (previousGroup) {
+            onSelectLocation(previousGroup);
+            setPreviousGroup(null);
+        }
+    };
+
     useEffect(() => {
         Animated.spring(slideAnim, {
             toValue: location ? 0 : SCREEN_HEIGHT,
@@ -144,7 +158,29 @@ export const MapBottomSheet = ({
                     <View style={styles.dragHandle} />
                 </View>
 
+                {/* <View style={styles.sheetHeader}>
+                    <Image
+                        source={displayImage}
+                        style={[
+                            styles.sheetLogo,
+                            (isFriend(location) || isGroup(location)) && styles.friendAvatar,
+                            isSelf(location) && { borderColor: '#00EAFF', borderRadius: 16 },
+                        ]}
+                    />
+                    <View style={styles.textContainer}>
+                        <Text style={styles.modalTitle} numberOfLines={1}>{title}</Text>
+                        <Text style={styles.modalBodyText}>{subtitle}</Text>
+                    </View>
+                </View> */}
+
                 <View style={styles.sheetHeader}>
+                    {/* BACK ARROW - Only show if we came from a group */}
+                    {previousGroup && isFriend(location) && (
+                        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                    )}
+
                     <Image
                         source={displayImage}
                         style={[
@@ -170,7 +206,12 @@ export const MapBottomSheet = ({
                                 <TouchableOpacity
                                     key={f.id}
                                     style={styles.friendListRow}
-                                    onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
+                                    // onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
+                                    onPress={() => {
+                                        // Save the current group (which is 'location') before switching
+                                        setPreviousGroup(location as GroupLocation);
+                                        onSelectLocation({ ...f, atBarName: location.bar.name });
+                                    }}
                                 >
                                     <Image
                                         source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}
