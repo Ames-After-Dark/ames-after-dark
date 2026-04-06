@@ -13,6 +13,8 @@ export interface FriendLocation {
     name: string;
     username: string;
     profile_pic_url?: string;
+    profile_photo_id?: number;
+    avatar?: any;
     atBarName?: string;
     // Add the new key here:
     location?: {

@@ -8,6 +8,7 @@ import { useUser } from "@/context/user-context";
 import { groupFriendsByNearbyBar } from "@/utils/nearby-friends";
 import { formatLastActive } from "@/utils/location-utils";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
+import { getAvatarSourceForUser } from "@/constants/profileAssets";
 import type { Location as MapLocation } from "@/services/locationService";
 
 type FriendsSectionProps = {
@@ -151,11 +152,7 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
                   {group.friends.slice(0, 3).map((friend, index) => (
                     <Image
                       key={friend.id}
-                      source={{
-                        uri:
-                          friend.profile_pic_url ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=7b61ff&color=fff`,
-                      }}
+                      source={getAvatarSourceForUser(friend)}
                       style={[styles.avatar, { marginLeft: index === 0 ? 0 : -10 }]}
                     />
                   ))}
@@ -187,11 +184,7 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
                       return (
                         <Pressable key={friend.id} style={styles.friendRow} onPress={() => onFriendPress(friend.id)}>
                           <Image
-                            source={{
-                              uri:
-                                friend.profile_pic_url ||
-                                `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=7b61ff&color=fff`,
-                            }}
+                            source={getAvatarSourceForUser(friend)}
                             style={styles.friendAvatar}
                           />
                           <View style={{ flex: 1 }}>

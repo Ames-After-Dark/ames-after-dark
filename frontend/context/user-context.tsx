@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/use-auth";
-import { getUserProfileByAuth } from '@/services/userService';
+import { getUserById, getUserProfileByAuth } from '@/services/userService';
 
 interface UserContextType {
     user: any | null;
@@ -26,10 +26,24 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         try {
             const token = await getAccessToken();
+            let userData: any = null;
+
             if (token) {
-                const userData = await getUserProfileByAuth(token);
-                setUser(userData);
+                userData = await getUserProfileByAuth(token);
             }
+
+            // Account screens use /users/:id and include profile_photo_id.
+            // Enrich context with that same payload when auth profile is missing fields.
+            if (!userData || userData.profile_photo_id == null) {
+                const fullUser = await getUserById(userStatus.userId);
+                userData = {
+                    ...(fullUser || {}),
+                    ...(userData || {}),
+                    profile_photo_id: fullUser?.profile_photo_id ?? userData?.profile_photo_id ?? null,
+                };
+            }
+
+            setUser(userData);
         } catch (err) {
             console.error('Failed to fetch user context:', err);
         } finally {

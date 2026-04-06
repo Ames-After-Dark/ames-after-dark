@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getAvatarSourceForUser } from '@/constants/profileAssets';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -96,10 +97,15 @@ export const MapBottomSheet = ({
     //             : location?.logo;
 
     const displayImage = (isFriend(location) || isSelf(location))
-        ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=${isSelf(location) ? '00EAFF' : '7b61ff'}&color=fff` }
+        ? getAvatarSourceForUser(location)
         : isGroup(location)
             ? location.bar.logo
             : location?.logo;
+
+    console.log("BottomSheet Location:", location);
+    console.log("BottomSheet Title:", title);
+    console.log("BottomSheet Subtitle:", subtitle);
+    console.log("BottomSheet Display Image:", displayImage);
 
     const panResponder = useRef(
         PanResponder.create({
@@ -173,7 +179,7 @@ export const MapBottomSheet = ({
                                     onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
                                 >
                                     <Image
-                                        source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}
+                                        source={getAvatarSourceForUser(f)}
                                         style={styles.listAvatar}
                                     />
                                     <View style={styles.listTextContainer}>

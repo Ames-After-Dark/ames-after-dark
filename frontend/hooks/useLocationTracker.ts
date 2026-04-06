@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
+import { getUserFriends } from '@/services/userService';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     useEffect(() => {
@@ -73,12 +74,26 @@ export function useFriendsLocations(userId: number | undefined) {
             return;
         }
         try {
-            const data = await FriendLocationService.getFriendsLocations(userId);
+            const [locationRows, friendRows] = await Promise.all([
+                FriendLocationService.getFriendsLocations(userId),
+                getUserFriends(userId),
+            ]);
 
-            console.log("Fetched friends count:", data.length);
-            console.log("Sample friend data:", data);
+            const friendById = new Map(
+                (friendRows || []).map((friend: any) => [Number(friend.id), friend])
+            );
 
-            setFriends(data);
+            const enriched = (locationRows || []).map((loc: any) => {
+                const profile = friendById.get(Number(loc.id));
+                return {
+                    ...loc,
+                    profile_photo_id: profile?.profile_photo_id,
+                    profile_pic_url: profile?.profile_pic_url,
+                    avatar: profile?.avatar,
+                };
+            });
+
+            setFriends(enriched);
         } catch (err) {
             console.error("Error fetching friend locations:", err);
         } finally {

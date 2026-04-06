@@ -16,6 +16,7 @@ import { useGeofence, GEOFENCE_RADIUS_METERS } from '@/hooks/useGeofence';
 
 // UI Components & Constants
 import { Theme } from '@/constants/theme';
+import { getAvatarSourceForUser } from '@/constants/profileAssets';
 import ErrorState from '@/components/ui/error-state';
 import { MapSkeleton } from '@/components/map/map-skeleton';
 import { MapMarkers } from '@/components/map/map-markers';
@@ -57,6 +58,7 @@ export default function MapScreen() {
 
     // --- Logic Hooks ---
     const activeFriends = useGeofence(friends, locations);
+    const userAvatarSource = getAvatarSourceForUser(user);
 
     // --- Effects ---
 
@@ -325,7 +327,7 @@ export default function MapScreen() {
                             >
                                 <View style={styles.userMarkerContainer} pointerEvents="none">
                                     <Image
-                                        source={{ uri: user?.profile_pic_url || `https://ui-avatars.com/api/?name=${user?.name || 'Me'}&background=00EAFF&color=fff` }}
+                                        source={userAvatarSource}
                                         style={styles.userAvatar}
                                     />
                                     <View style={styles.userMarkerPulse} />

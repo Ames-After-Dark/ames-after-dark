@@ -5,6 +5,7 @@ import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 import { groupFriendsByNearbyBar } from '@/utils/nearby-friends';
 
 import { Marker, MarkerPressEvent } from 'react-native-maps';
+import { getAvatarSourceForUser } from '@/constants/profileAssets';
 
 interface FriendMarkersProps {
     friends: FriendLocation[];
@@ -13,6 +14,7 @@ interface FriendMarkersProps {
 }
 
 export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMarkersProps) => {
+
     const barGroups = groupFriendsByNearbyBar(friends, locations);
 
     return (
@@ -40,10 +42,7 @@ export const FriendMarkers = ({ friends, locations, onSelectFriend }: FriendMark
                     >
                         <View style={styles.groupMarkerContainer}>
                             <Image
-                                source={{
-                                    uri: group.friends[0].profile_pic_url ||
-                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(group.friends[0].name)}&background=7b61ff&color=fff`
-                                }}
+                                source={getAvatarSourceForUser(group.friends[0])}
                                 style={styles.friendAvatar}
                             />
 

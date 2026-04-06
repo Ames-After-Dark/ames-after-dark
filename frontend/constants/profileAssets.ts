@@ -13,16 +13,23 @@ export type ProfileAsset = {
     source: ImageSourcePropType;
 };
 
+export type AvatarUserLike = {
+    profile_photo_id?: number | null;
+    profile_pic_url?: string | null;
+    avatar?: ImageSourcePropType | string | null;
+    name?: string | null;
+};
+
 // ── Avatars ──────────────────────────────────────────────────────────────────
 export const AVATAR_OPTIONS: ProfileAsset[] = [
-    { id: 2,  source: require('@/assets/images/avatars/Boy_1.png') },
-    { id: 3,  source: require('@/assets/images/avatars/Boy_2.png') },
-    { id: 4,  source: require('@/assets/images/avatars/Boy_3.png') },
-    { id: 5,  source: require('@/assets/images/avatars/Boy_4.png') },
-    { id: 6,  source: require('@/assets/images/avatars/Boy_5.png') },
-    { id: 7,  source: require('@/assets/images/avatars/Boy_6.png') },
-    { id: 8,  source: require('@/assets/images/avatars/Boy_7.png') },
-    { id: 9,  source: require('@/assets/images/avatars/Boy_8.png') },
+    { id: 2, source: require('@/assets/images/avatars/Boy_1.png') },
+    { id: 3, source: require('@/assets/images/avatars/Boy_2.png') },
+    { id: 4, source: require('@/assets/images/avatars/Boy_3.png') },
+    { id: 5, source: require('@/assets/images/avatars/Boy_4.png') },
+    { id: 6, source: require('@/assets/images/avatars/Boy_5.png') },
+    { id: 7, source: require('@/assets/images/avatars/Boy_6.png') },
+    { id: 8, source: require('@/assets/images/avatars/Boy_7.png') },
+    { id: 9, source: require('@/assets/images/avatars/Boy_8.png') },
     { id: 10, source: require('@/assets/images/avatars/Boy_9.png') },
     { id: 11, source: require('@/assets/images/avatars/Boy_10.png') },
     { id: 12, source: require('@/assets/images/avatars/Girl_1.png') },
@@ -41,14 +48,14 @@ export const DEFAULT_AVATAR_ID = 2;
 
 // ── Drinks ───────────────────────────────────────────────────────────────────
 export const DRINK_OPTIONS: ProfileAsset[] = [
-    { id: 2,  source: require('@/assets/images/drinks/01.png') },
-    { id: 3,  source: require('@/assets/images/drinks/02.png') },
-    { id: 4,  source: require('@/assets/images/drinks/03.png') },
-    { id: 5,  source: require('@/assets/images/drinks/04.png') },
-    { id: 6,  source: require('@/assets/images/drinks/05.png') },
-    { id: 7,  source: require('@/assets/images/drinks/06.png') },
-    { id: 8,  source: require('@/assets/images/drinks/07.png') },
-    { id: 9,  source: require('@/assets/images/drinks/08.png') },
+    { id: 2, source: require('@/assets/images/drinks/01.png') },
+    { id: 3, source: require('@/assets/images/drinks/02.png') },
+    { id: 4, source: require('@/assets/images/drinks/03.png') },
+    { id: 5, source: require('@/assets/images/drinks/04.png') },
+    { id: 6, source: require('@/assets/images/drinks/05.png') },
+    { id: 7, source: require('@/assets/images/drinks/06.png') },
+    { id: 8, source: require('@/assets/images/drinks/07.png') },
+    { id: 9, source: require('@/assets/images/drinks/08.png') },
     { id: 10, source: require('@/assets/images/drinks/09.png') },
     { id: 11, source: require('@/assets/images/drinks/10.png') },
     { id: 12, source: require('@/assets/images/drinks/11.png') },
@@ -64,11 +71,28 @@ export const DEFAULT_DRINK_ID = 2;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 export const getAvatarById = (id: number | null | undefined): ProfileAsset => {
-    const found = AVATAR_OPTIONS.find(a => a.id === (id ?? DEFAULT_AVATAR_ID));
-    return found ?? AVATAR_OPTIONS[0];
+    // Explicitly use DEFAULT_AVATAR_ID (2) for null/undefined
+    const targetId = id ?? DEFAULT_AVATAR_ID;
+    const found = AVATAR_OPTIONS.find(a => a.id === targetId);
+    // If somehow the ID is invalid, fallback to the explicit DEFAULT
+    return found ?? AVATAR_OPTIONS.find(a => a.id === DEFAULT_AVATAR_ID) ?? AVATAR_OPTIONS[0];
 };
 
 export const getDrinkById = (id: number | null | undefined): ProfileAsset => {
     const found = DRINK_OPTIONS.find(d => d.id === (id ?? DEFAULT_DRINK_ID));
     return found ?? DRINK_OPTIONS[0];
+};
+
+export const getAvatarSourceForUser = (user: AvatarUserLike | null | undefined): ImageSourcePropType => {
+    if (user?.avatar) {
+        return typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar;
+    }
+
+    if (user?.profile_pic_url) {
+        return { uri: user.profile_pic_url };
+    }
+
+    const avatarAsset = getAvatarById(user?.profile_photo_id);
+    console.log(`getAvatarSourceForUser: profilePhotoId=${user?.profile_photo_id}, returning avatar id=${avatarAsset.id}`);
+    return avatarAsset.source;
 };

@@ -140,6 +140,9 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
     const [isPickerVisible, setPickerVisible] = useState(false);
     const [isEditPromptVisible, setEditPromptVisible] = useState(false);
 
+    console.log("user avatar source (account): ", selectedAvatar);
+    console.log("user profile photo id (account): ", user?.profile_photo_id);
+
     // Wiggle animation
     const wiggle = useRef(new Animated.Value(0)).current;
     useEffect(() => {
