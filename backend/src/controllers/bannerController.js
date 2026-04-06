@@ -1,4 +1,5 @@
 const bannerService = require('../services/bannerService');
+const userService = require('../services/userService');
 
 // GET /api/banners
 exports.getActiveBanners = async (req, res) => {
@@ -28,6 +29,17 @@ exports.getBannerById = async (req, res) => {
 
 exports.createBanner = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    //Unsure on the role names but not super important right now
+    if (!userRoles || (!userRoles.isAdmin && userRoles.roles?.name?.toLowerCase() !== 'developer')) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
     const { name, image_url } = req.body;
 
     if (!name || !image_url) {
@@ -35,7 +47,7 @@ exports.createBanner = async (req, res) => {
     }
 
     const newBanner = await bannerService.createBanner({ name, image_url });
-    
+
     res.status(201).json(newBanner);
   } catch (error) {
     // Check for Prisma unique constraint violation (P2002)
