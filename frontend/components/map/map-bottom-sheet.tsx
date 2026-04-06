@@ -158,23 +158,8 @@ export const MapBottomSheet = ({
                     <View style={styles.dragHandle} />
                 </View>
 
-                {/* <View style={styles.sheetHeader}>
-                    <Image
-                        source={displayImage}
-                        style={[
-                            styles.sheetLogo,
-                            (isFriend(location) || isGroup(location)) && styles.friendAvatar,
-                            isSelf(location) && { borderColor: '#00EAFF', borderRadius: 16 },
-                        ]}
-                    />
-                    <View style={styles.textContainer}>
-                        <Text style={styles.modalTitle} numberOfLines={1}>{title}</Text>
-                        <Text style={styles.modalBodyText}>{subtitle}</Text>
-                    </View>
-                </View> */}
-
                 <View style={styles.sheetHeader}>
-                    {/* BACK ARROW - Only show if we came from a group */}
+                    {/* Only show if coming from a group */}
                     {previousGroup && isFriend(location) && (
                         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
@@ -341,6 +326,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 2,
         borderColor: Theme.dark.primary,
+        marginLeft: 0,
     },
     friendAvatar: {
         borderRadius: 16,
@@ -416,5 +402,10 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         backgroundColor: '#222',
-    }
+    },
+    backButton: {
+        paddingRight: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
