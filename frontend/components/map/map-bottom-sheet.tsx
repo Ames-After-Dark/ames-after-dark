@@ -104,10 +104,17 @@ export const MapBottomSheet = ({
 
     const [previousGroup, setPreviousGroup] = React.useState<GroupLocation | null>(null);
     useEffect(() => {
-        if (!location) {
-            setPreviousGroup(null);
+
+        if (previousGroup) {
+            const isFriendFromPreviousGroup =
+                isFriend(location) &&
+                previousGroup.friends.some(friend => friend.id === location.id);
+            if (!isFriendFromPreviousGroup) {
+                setPreviousGroup(null);
+            }
         }
-    }, [location]);
+
+    }, [location, previousGroup]);
 
     const handleBack = () => {
         if (previousGroup) {
@@ -177,9 +184,7 @@ export const MapBottomSheet = ({
                                 <TouchableOpacity
                                     key={f.id}
                                     style={styles.friendListRow}
-                                    // onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
                                     onPress={() => {
-                                        // Save the current group (which is 'location') before switching
                                         setPreviousGroup(location as GroupLocation);
                                         onSelectLocation({ ...f, atBarName: location.bar.name });
                                     }}
