@@ -2,12 +2,31 @@ import { BarLocation, FriendLocation, GroupLocation } from "@/types/locations";
 import { calculateDistance } from "@/utils/location-utils";
 
 export const FRIEND_GEOFENCE_RADIUS_METERS = 50;
+const MAP_RESET_HOUR = 3;
 
 const STACKED_BAR_NAMES = new Set(["sips", "paddy's irish pub"]);
 const STACKED_BAR_GROUP_ID = "stacked-sips-paddys";
 
 export function getFriendLocation(friend: FriendLocation) {
     return friend.location || friend.user_locations;
+}
+
+function getMapResetCutoff(now: Date) {
+    const cutoff = new Date(now);
+    cutoff.setHours(MAP_RESET_HOUR, 0, 0, 0);
+
+    if (now.getHours() < MAP_RESET_HOUR) {
+        cutoff.setDate(cutoff.getDate() - 1);
+    }
+
+    return cutoff;
+}
+
+function isFriendFreshEnough(friend: FriendLocation, now: Date) {
+    const friendLoc = getFriendLocation(friend);
+    const updatedAt = friendLoc?.updated_at ? new Date(friendLoc.updated_at).getTime() : 0;
+
+    return updatedAt >= getMapResetCutoff(now).getTime();
 }
 
 function getGroupMeta(bar: BarLocation) {
@@ -46,13 +65,19 @@ export function getClosestBarForFriend(friend: FriendLocation, locations: BarLoc
         return null;
     }
 
-    const closestBar = locations
+    const nearbyBars = locations
         .map((bar) => ({
             ...bar,
             distance: calculateDistance(latitude, longitude, bar.latitude, bar.longitude),
         }))
         .filter((bar) => bar.distance <= FRIEND_GEOFENCE_RADIUS_METERS)
-        .sort((left, right) => left.distance - right.distance)[0];
+        .sort((left, right) => left.distance - right.distance);
+
+    if (!nearbyBars.length) {
+        return null;
+    }
+
+    const closestBar = nearbyBars.find((bar) => bar.open === true);
 
     if (!closestBar) {
         return null;
@@ -69,13 +94,28 @@ export function getClosestBarForFriend(friend: FriendLocation, locations: BarLoc
 }
 
 export function filterFriendsWithinRadius(friends: FriendLocation[], locations: BarLocation[]) {
-    return friends.filter((friend) => getClosestBarForFriend(friend, locations));
+    const now = new Date();
+
+    return friends.filter((friend) => {
+        if (!isFriendFreshEnough(friend, now)) {
+            return false;
+        }
+
+        return Boolean(getClosestBarForFriend(friend, locations));
+    });
 }
 
 export function groupFriendsByNearbyBar(friends: FriendLocation[], locations: BarLocation[]) {
-    const groups = friends.reduce((acc, friend) => {
-        const closestBar = getClosestBarForFriend(friend, locations);
+    const now = new Date();
+    const friendsWithBars = friends
+        .filter((friend) => isFriendFreshEnough(friend, now))
+        .map((friend) => ({
+            friend,
+            closestBar: getClosestBarForFriend(friend, locations),
+        }))
+        .filter((entry): entry is { friend: FriendLocation; closestBar: NonNullable<ReturnType<typeof getClosestBarForFriend>> } => Boolean(entry.closestBar));
 
+    const groups = friendsWithBars.reduce((acc, { friend, closestBar }) => {
         if (!closestBar) {
             return acc;
         }
