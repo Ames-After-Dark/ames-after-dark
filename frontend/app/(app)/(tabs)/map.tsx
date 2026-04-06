@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Image } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { StyleSheet, View, Image, Text } from 'react-native';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -327,6 +327,54 @@ export default function MapScreen() {
                             onSelectFriend={setSelectedLocation}
                         />
 
+                        <Circle
+                            // 42.0255627805003, -93.65721506480799
+                            center={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
+                            radius={200} // Meters
+                            fillColor="rgba(0, 234, 255, 0.1)"
+                            strokeColor="#00EAFF"
+                            strokeWidth={2}
+                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                        />
+
+                        <Marker
+                            key="coming-soon-ames"
+                            coordinate={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
+                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                        >
+                            <View style={styles.comingSoonBubble}>
+                                <View style={styles.comingSoonContent}>
+                                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                                </View>
+                                {/* The tail goes below the content to point at the map coordinate */}
+                                <View style={styles.comingSoonTail} />
+                            </View>
+                        </Marker>
+
+                        <Circle
+                            // 42.02550266479028, -93.61474917818076
+                            center={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
+                            radius={500} // Meters
+                            fillColor="rgba(0, 234, 255, 0.1)"
+                            strokeColor="#00EAFF"
+                            strokeWidth={2}
+                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                        />
+
+                        <Marker
+                            key="coming-soon-ames-main-street"
+                            coordinate={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
+                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                        >
+                            <View style={styles.comingSoonBubble}>
+                                <View style={styles.comingSoonContent}>
+                                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                                </View>
+                                {/* The tail goes below the content to point at the map coordinate */}
+                                <View style={styles.comingSoonTail} />
+                            </View>
+                        </Marker>
+
                         {userLocation && (
                             <Marker
                                 key="me"
@@ -404,5 +452,40 @@ const styles = StyleSheet.create({
         backgroundColor: '#00EAFF',
         opacity: 0.6,
         transform: [{ translateY: 5 }],
+    },
+    comingSoonBubble: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    comingSoonContent: {
+        backgroundColor: Theme.dark.background,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#00EAFF', // Match your user marker cyan
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    comingSoonText: {
+        color: '#00EAFF',
+        fontWeight: 'bold',
+        fontSize: 14,
+        textTransform: 'uppercase',
+    },
+    comingSoonTail: {
+        width: 0,
+        height: 0,
+        borderLeftWidth: 8,
+        borderRightWidth: 8,
+        borderTopWidth: 10,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: '#00EAFF',
+        marginBottom: -2, // Pulls the bubble down onto the tail
+        zIndex: 1,
     },
 });
