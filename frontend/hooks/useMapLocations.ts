@@ -13,11 +13,14 @@ export const useMapLocations = (): UseMapLocationsReturn => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const loadLocations = async () => {
+        const loadLocations = async (showLoadingState = true) => {
             try {
-                setIsLoading(true);
+                if (showLoadingState) {
+                    setIsLoading(true);
+                }
                 const data = await fetchLocations();
                 setLocations(data);
+                setError(null);
             }
             catch (err: unknown) {
                 if (err instanceof Error) {
@@ -28,11 +31,20 @@ export const useMapLocations = (): UseMapLocationsReturn => {
                 }
             }
             finally {
-                setIsLoading(false);
+                if (showLoadingState) {
+                    setIsLoading(false);
+                }
             }
         };
 
-        loadLocations();
+        loadLocations(true);
+
+        // Keep map open/closed status fresh for friend marker visibility.
+        const interval = setInterval(() => {
+            loadLocations(false);
+        }, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return { locations, isLoading, error };

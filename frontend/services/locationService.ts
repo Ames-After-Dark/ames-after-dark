@@ -45,19 +45,44 @@ interface LocationHoursApiResponse {
     location_hours?: LocationHourRow[];
 }
 
+function resolveLocationTimezone(timezone?: string): string {
+    const trimmed = timezone?.trim();
+    if (!trimmed || trimmed.toUpperCase() === 'UTC') {
+        return 'America/Chicago';
+    }
+    return trimmed;
+}
+
 function parseTimeToMinutes(value?: string): number | null {
     if (!value) {
         return null;
     }
 
-    const match = value.match(/(\d{1,2}):(\d{2})/);
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
     if (!match) {
         return null;
     }
 
-    const hour = Number(match[1]);
+    let hour = Number(match[1]);
     const minute = Number(match[2]);
-    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    const meridiem = match[3]?.toUpperCase();
+
+    if (Number.isNaN(hour) || Number.isNaN(minute) || minute < 0 || minute > 59) {
+        return null;
+    }
+
+    if (meridiem) {
+        if (hour < 1 || hour > 12) {
+            return null;
+        }
+        if (meridiem === 'PM' && hour !== 12) {
+            hour += 12;
+        }
+        if (meridiem === 'AM' && hour === 12) {
+            hour = 0;
+        }
+    } else if (hour < 0 || hour > 23) {
         return null;
     }
 
@@ -245,13 +270,14 @@ export const fetchLocations = async (): Promise<Location[]> => {
 
                 try {
                     const hoursResponse = await apiFetch(`/locationhours/${apiLoc.id}`) as LocationHoursApiResponse;
+                    const timezone = resolveLocationTimezone(hoursResponse?.timezone);
                     const resolvedHours = getHoursForToday(
                         hoursResponse?.location_hours,
-                        hoursResponse?.timezone || 'America/Chicago'
+                        timezone
                     );
                     isOpenNow = isLocationOpenNow(
                         hoursResponse?.location_hours,
-                        hoursResponse?.timezone || 'America/Chicago'
+                        timezone
                     );
 
                     if (resolvedHours) {
@@ -261,7 +287,10 @@ export const fetchLocations = async (): Promise<Location[]> => {
                     console.warn(`Unable to fetch hours for location ${apiLoc.id}`, hoursError);
                 }
 
-                const effectiveOpen = typeof apiLoc.open === 'boolean' ? apiLoc.open : isOpenNow;
+                const hasHoursSchedule = hoursText !== 'Hours not available';
+                const effectiveOpen = hasHoursSchedule
+                    ? isOpenNow
+                    : Boolean(apiLoc.open);
 
                 return {
                     id: String(apiLoc.id),
