@@ -54,12 +54,12 @@ export default function AccountSettingsScreen() {
         </View>
       </View>
 
-      <View style={styles.sectionContainer}>
+      {/* <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Account</Text>
         <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} />
         <SettingsItem icon="edit" text="Edit Bio" onPress={() => router.push('/account/edit-bio')} />
         <SettingsItem icon="camera" text="Change Profile Picture" onPress={() => router.push('/account/change-profile-picture')} />
-      </View>
+      </View> */}
 
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Settings & Privacy</Text>
