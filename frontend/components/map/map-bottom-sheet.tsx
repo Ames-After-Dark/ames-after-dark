@@ -64,13 +64,6 @@ export const MapBottomSheet = ({
     const selfSubtitle = isSelf(location)
         ? (location.atBarName ? `You are currently at ${location.atBarName}` : 'You are not currently at a tracked bar')
         : '';
-    // const title = isFriend(location)
-    //     ? location.name
-    //     : isGroup(location)
-    //         ? `${location.friends.length} Friends`
-    //         : isSelf(location)
-    //             ? 'You'
-    //             : location?.name;
 
     const title = isFriend(location)
         ? location.name
@@ -87,13 +80,6 @@ export const MapBottomSheet = ({
             : isSelf(location)
                 ? selfSubtitle
                 : location?.hours;
-    // const displayImage = isFriend(location)
-    //     ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=7b61ff&color=fff` }
-    //     : isSelf(location)
-    //         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=00EAFF&color=fff` }
-    //         : isGroup(location)
-    //             ? location.bar.logo
-    //             : location?.logo;
 
     const displayImage = (isFriend(location) || isSelf(location))
         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=${isSelf(location) ? '00EAFF' : '7b61ff'}&color=fff` }
@@ -222,19 +208,6 @@ export const MapBottomSheet = ({
                         <Text style={styles.buttonText}>View {location.name}'s Profile</Text>
                     </TouchableOpacity>
                 ) : isSelf(location) ? (
-                    // <TouchableOpacity
-                    //     style={[styles.button, { backgroundColor: isGhostModeEnabled ? '#8B5CF6' : Theme.dark.accent, opacity: isGhostModeLoading ? 0.7 : 1 }]}
-                    //     onPress={onToggleGhostMode}
-                    //     disabled={isGhostModeLoading}
-                    // >
-                    //     <Text style={styles.buttonText}>
-                    //         {isGhostModeLoading
-                    //             ? 'Updating Ghost Mode...'
-                    //             : isGhostModeEnabled
-                    //                 ? 'Turn Ghost Mode Off'
-                    //                 : 'Turn Ghost Mode On'}
-                    //     </Text>
-                    // </TouchableOpacity>
                     <TouchableOpacity
                         style={[
                             styles.button,
