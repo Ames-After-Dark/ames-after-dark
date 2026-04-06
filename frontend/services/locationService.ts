@@ -9,6 +9,7 @@ export interface Location {
     name: string;
     latitude: number;
     longitude: number;
+    open: boolean;
     hours: string;
     logo: ImageSourcePropType;
 }
@@ -18,6 +19,7 @@ export interface MapLocation {
     name: string;
     latitude: number;
     longitude: number;
+    open: boolean;
     hours?: string;
     logo?: any;
 }
@@ -27,6 +29,7 @@ interface LocationApiResponse {
     name: string;
     latitude: number | string;
     longitude: number | string;
+    open?: boolean;
 }
 
 interface LocationHourRow {
@@ -42,19 +45,44 @@ interface LocationHoursApiResponse {
     location_hours?: LocationHourRow[];
 }
 
+function resolveLocationTimezone(timezone?: string): string {
+    const trimmed = timezone?.trim();
+    if (!trimmed || trimmed.toUpperCase() === 'UTC') {
+        return 'America/Chicago';
+    }
+    return trimmed;
+}
+
 function parseTimeToMinutes(value?: string): number | null {
     if (!value) {
         return null;
     }
 
-    const match = value.match(/(\d{1,2}):(\d{2})/);
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
     if (!match) {
         return null;
     }
 
-    const hour = Number(match[1]);
+    let hour = Number(match[1]);
     const minute = Number(match[2]);
-    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+    const meridiem = match[3]?.toUpperCase();
+
+    if (Number.isNaN(hour) || Number.isNaN(minute) || minute < 0 || minute > 59) {
+        return null;
+    }
+
+    if (meridiem) {
+        if (hour < 1 || hour > 12) {
+            return null;
+        }
+        if (meridiem === 'PM' && hour !== 12) {
+            hour += 12;
+        }
+        if (meridiem === 'AM' && hour === 12) {
+            hour = 0;
+        }
+    } else if (hour < 0 || hour > 23) {
         return null;
     }
 
@@ -129,6 +157,76 @@ function getHoursForToday(
     return undefined;
 }
 
+function getNowInTimezone(now: Date, timezone: string): Date {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+
+    const parts = Object.fromEntries(
+        formatter.formatToParts(now).map((part) => [part.type, part.value])
+    );
+
+    return new Date(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second)
+    );
+}
+
+function isLocationOpenNow(
+    schedule: LocationHourRow[] | undefined,
+    timezone = 'America/Chicago',
+    now = new Date()
+): boolean {
+    if (!Array.isArray(schedule) || !schedule.length) {
+        return false;
+    }
+
+    const inTimezone = getNowInTimezone(now, timezone);
+    const currentWeekdayId = inTimezone.getDay() + 1; // 1=Sun..7=Sat
+    const previousWeekdayId = currentWeekdayId === 1 ? 7 : currentWeekdayId - 1;
+
+    const isOpenForRow = (row: LocationHourRow, isPreviousDayRow: boolean): boolean => {
+        const openMinutes = parseTimeToMinutes(row.open_time ?? row.open_time_utc);
+        const closeMinutes = parseTimeToMinutes(row.close_time ?? row.close_time_utc);
+
+        if (openMinutes == null || closeMinutes == null) {
+            return false;
+        }
+
+        const nowMinutes = inTimezone.getHours() * 60 + inTimezone.getMinutes();
+        const isOvernight = closeMinutes <= openMinutes;
+
+        if (!isOvernight) {
+            if (isPreviousDayRow) {
+                return false;
+            }
+            return nowMinutes >= openMinutes && nowMinutes < closeMinutes;
+        }
+
+        if (isPreviousDayRow) {
+            return nowMinutes < closeMinutes;
+        }
+
+        return nowMinutes >= openMinutes;
+    };
+
+    const todaysRows = schedule.filter((row) => Number(row.weekday_id) === currentWeekdayId);
+    const previousRows = schedule.filter((row) => Number(row.weekday_id) === previousWeekdayId);
+
+    return todaysRows.some((row) => isOpenForRow(row, false)) || previousRows.some((row) => isOpenForRow(row, true));
+}
+
 /**
  * Fetches location data from a backend API.
  * @returns {Promise<Location[]>} A promise that resolves to an array of locations.
@@ -146,8 +244,8 @@ export const fetchLocations = async (): Promise<Location[]> => {
             throw new Error("Invalid API response format");
         }
 
-        const locationResults = await Promise.all(
-            apiLocations.map(async (apiLoc) => {
+        const locationResults: Array<Location | null> = await Promise.all(
+            apiLocations.map(async (apiLoc): Promise<Location | null> => {
                 // Convert latitude and longitude to numbers if they're strings
                 const latitude = typeof apiLoc.latitude === 'string' ? parseFloat(apiLoc.latitude) : apiLoc.latitude;
                 const longitude = typeof apiLoc.longitude === 'string' ? parseFloat(apiLoc.longitude) : apiLoc.longitude;
@@ -168,12 +266,18 @@ export const fetchLocations = async (): Promise<Location[]> => {
 
                 const logoAsset = getLogoAssetForLocationName(apiLoc.name);
                 let hoursText = 'Hours not available';
+                let isOpenNow = false;
 
                 try {
                     const hoursResponse = await apiFetch(`/locationhours/${apiLoc.id}`) as LocationHoursApiResponse;
+                    const timezone = resolveLocationTimezone(hoursResponse?.timezone);
                     const resolvedHours = getHoursForToday(
                         hoursResponse?.location_hours,
-                        hoursResponse?.timezone || 'America/Chicago'
+                        timezone
+                    );
+                    isOpenNow = isLocationOpenNow(
+                        hoursResponse?.location_hours,
+                        timezone
                     );
 
                     if (resolvedHours) {
@@ -183,19 +287,24 @@ export const fetchLocations = async (): Promise<Location[]> => {
                     console.warn(`Unable to fetch hours for location ${apiLoc.id}`, hoursError);
                 }
 
+                const hasHoursSchedule = hoursText !== 'Hours not available';
+                const effectiveOpen = hasHoursSchedule
+                    ? isOpenNow
+                    : Boolean(apiLoc.open);
+
                 return {
                     id: String(apiLoc.id),
                     name: apiLoc.name,
                     latitude,
                     longitude,
+                    open: effectiveOpen,
                     hours: hoursText,
                     logo: logoAsset,
                 };
             })
         );
 
-        const locations: Location[] = locationResults
-            .filter((location): location is Location => location !== null);
+        const locations = locationResults.filter((location): location is Location => location !== null);
 
         console.log("Successfully processed", locations.length, "valid locations out of", apiLocations.length, "total");
         return locations;
@@ -221,6 +330,7 @@ export const fetchLocationById = async (id: string): Promise<Location | null> =>
             name: apiLoc.name,
             latitude,
             longitude,
+            open: Boolean(apiLoc.open),
             logo: getLogoAssetForLocationName(apiLoc.name),
             hours: "...", // You can fetch hours here if needed
         };
