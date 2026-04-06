@@ -1,4 +1,5 @@
 const userService = require('../services/userService');
+const userSettingService = require('../services/userSettingService');
 const validationService = require('../services/validationService');
 const authService = require('../services/authService');
 
@@ -109,6 +110,12 @@ exports.checkUserStatus = async (req, res) => {
     const hasName = user.name !== null && user.name !== undefined && user.name.trim() !== '';
     const profileComplete = hasPhoneNumber && hasBirthday && hasUsername && hasName;
 
+    const userSettings = await userSettingService.getUserSettingsByUserId(user.id);
+    if (!userSettings) {
+      // Quietly create user settings if they don't exist
+      await userSettingService.createUserSettings(user.id, { location_sharing_preference: 'SELECTIVE' });
+    }
+
     return res.json({
       registered: true,
       profileComplete: profileComplete,
@@ -208,6 +215,11 @@ exports.completeUserRegistration = async (req, res) => {
 
       const updatedUser = await userService.updateUser(existingUser.id, fieldsToUpdate);
 
+      const userSettings = await userSettingService.getUserSettingsByUserId(updatedUser.id);
+      if (!userSettings) {
+        await userSettingService.createUserSettings(updatedUser.id, { location_sharing_preference: 'SELECTIVE' });
+      }
+
       return res.status(200).json({
         message: 'Profile completed successfully',
         user: {
@@ -236,6 +248,8 @@ exports.completeUserRegistration = async (req, res) => {
       email: email,
       name: name
     });
+
+    await userSettingService.createUserSettings(newUser.id, { location_sharing_preference: 'SELECTIVE' });
 
     return res.status(201).json({
       message: 'Registration completed successfully',

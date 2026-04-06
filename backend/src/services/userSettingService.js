@@ -8,6 +8,16 @@ exports.getUserSettingsByUserId = async (userId) => {
 	});
 }
 
+// Create user settings for user
+exports.createUserSettings = async (userId, data) => {
+	return prisma.user_settings.create({
+		data: {
+			user_id: userId,
+			...data
+		}
+	});
+}
+
 // Update user settings by userId
 exports.updateUserSettingsByUserId = async (userId, data) => {
 	return prisma.user_settings.update({
