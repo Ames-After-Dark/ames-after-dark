@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const friendshipController = require('../controllers/friendshipController');
-const { checkJwt } = require('../middleware/auth');
+const { checkJwt } = require('../middleware/authMiddleware');
 
 // Get all friends for a user
 router.get('/friends', checkJwt, friendshipController.getFriends);
