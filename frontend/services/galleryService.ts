@@ -13,11 +13,32 @@ if (!BACKEND_URL) {
 export { Photo, Album };
 
 /**
- * Fetches the latest weekend albums from the backend.
- * Returns albums grouped by bar, filtered to the latest weekend.
+ * Parse a date token like "2-7" or "1/31" into a Date object (month-day).
+ * Assumes current year, but if that date is in the future, it rolls back to previous year.
  */
-export async function getLatestWeekendAlbums(): Promise<Album[]> {
-  // Code below is used for Cloudflare R2 fetch, but currently disabled until Cloudflare is ready.
+function parseFolderDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length !== 2) return null;
+
+  const month = parseInt(parts[0].trim(), 10) - 1;
+  const day = parseInt(parts[1].trim(), 10);
+  if (isNaN(month) || isNaN(day)) return null;
+
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, month, day);
+  if (candidate > now) candidate = new Date(year - 1, month, day);
+  return candidate;
+}
+
+/**
+ * Fetches albums from the backend & filters them using a 7-day rolling window
+ * with a day-of-week override to ensure only most relevant albums are displayed
+ */
+export async function getLatestWeekAlbums(): Promise<Album[]> {
+  let rawAlbums: Album[] = [];
+
   try {
     const url = `${BACKEND_URL}/r2/albums`;
     const res = await fetch(url, {
@@ -26,11 +47,39 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
 
     if (!res.ok) throw new Error(`Albums fetch failed: ${res.statusText}`);
     const albums: Album[] = await res.json();
-    if (albums && albums.length > 0) return albums;
+    if (albums && albums.length > 0) rawAlbums = albums;
   } catch (err) {
     console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
+    rawAlbums = await fetchSmugmugAlbums();
   }
-  return await fetchSmugmugAlbums();
+
+  if (!rawAlbums || rawAlbums.length === 0) return [];
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const latestPerBarAndDay = new Map<string, Album & { parsedDate: Date }>();
+
+  rawAlbums.forEach((album) => {
+    const d = parseFolderDate(album.date);
+    if (!d) return;
+    d.setHours(0, 0, 0, 0);
+
+    const diffTime = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Only consider albums whose date is within the last 7 days (0–7 days ago)
+    if (diffDays >= 0 && diffDays <= 7) {
+      const dayOfWeek = d.getDay();
+      const key = `${album.barName}-${dayOfWeek}`; // e.g. "Sips-5" for Sips on Friday
+      // Overwrite if we find a NEWER album for this same bar & day
+      const existing = latestPerBarAndDay.get(key);
+      if (!existing || d.getTime() > existing.parsedDate.getTime()) {
+        latestPerBarAndDay.set(key, { ...album, parsedDate: d });
+      }
+    }
+  });
+  // Strip parsedDate and return clean array of standard Albums
+  return Array.from(latestPerBarAndDay.values()).map(({ parsedDate, ...album }) => album);
 }
 
 /**

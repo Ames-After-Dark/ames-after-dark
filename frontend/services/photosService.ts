@@ -67,26 +67,6 @@ function extractFolderEndDate(folderName: string): string | null {
   return matches[matches.length - 1];
 }
 
-/**
- * Parse a date token like "2-7" or "1/31" into a Date object (month-day).
- * Assumes current year, but if that date is in the future, it rolls back to previous year.
- */
-function parseFolderDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-  const parts = dateStr.split(/[-\/]/);
-  if (parts.length !== 2) return null;
-
-  const month = parseInt(parts[0].trim(), 10) - 1;
-  const day = parseInt(parts[1].trim(), 10);
-  if (isNaN(month) || isNaN(day)) return null;
-
-  const now = new Date();
-  let year = now.getFullYear();
-  let candidate = new Date(year, month, day);
-  if (candidate > now) candidate = new Date(year - 1, month, day);
-  return candidate;
-}
-
 function xhrGet(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

@@ -8,7 +8,7 @@ import { fetchLocationById, MapLocation } from "@/services/locationService";
 import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
-import { getLatestWeekendAlbums, Album } from "@/services/galleryService";
+import { getLatestWeekAlbums, Album } from "@/services/galleryService";
 
 import {
   BarHeader,
@@ -52,7 +52,7 @@ export default function BarProfile() {
   useEffect(() => {
     const fetchLatestGalleryImage = async () => {
       try {
-        const albums = await getLatestWeekendAlbums();
+        const albums = await getLatestWeekAlbums();
 
         if (albums && albums.length > 0) {
           const nameMap: Record<string, string> = {
