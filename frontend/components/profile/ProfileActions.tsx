@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Theme } from '@/constants/theme';
+import FontAwesome from '@expo/vector-icons/build/FontAwesome';
 
 type Status = 'SELF' | 'FRIEND' | 'PENDING_SENT' | 'PENDING_RECEIVED' | 'STRANGER' | 'BLOCKED';
 
@@ -47,17 +48,29 @@ export const ProfileActions = ({ status, loading, userName, onAction }: ProfileA
                 {renderPrimaryButton()}
             </TouchableOpacity>
 
-            {status === 'FRIEND' && (
-                <View style={styles.secondaryRow}>
-                    <TouchableOpacity onPress={() => onAction('remove')}>
-                        <Text style={styles.dangerText}>Remove Friend</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.divider}>•</Text>
-                    <TouchableOpacity onPress={() => onAction('block')}>
-                        <Text style={styles.dangerText}>Block</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
+            <View style={styles.safetyFooter}>
+                {status === 'FRIEND' && (
+                    <>
+                        <TouchableOpacity
+                            onPress={() => onAction('remove')}
+                            style={styles.footerItem}
+                        >
+                            <FontAwesome name="user-times" size={12} color={Theme.container.inactiveText} style={styles.footerIcon} />
+                            <Text style={styles.dangerText}>Remove Account</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.footerDivider} />
+                    </>
+                )}
+
+                <TouchableOpacity
+                    onPress={() => onAction('block')}
+                    style={styles.footerItem}
+                >
+                    <FontAwesome name="shield" size={12} color={Theme.container.inactiveText} style={styles.footerIcon} />
+                    <Text style={styles.dangerText}>Block Account</Text>
+                </TouchableOpacity>
+            </View>
 
         </View>
     );
@@ -93,11 +106,40 @@ const styles = StyleSheet.create({
         marginTop: 20,
         opacity: 0.7
     },
+    safetyFooter: {
+        marginTop: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 12,
+        alignSelf: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    footerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+    },
+    footerIcon: {
+        marginRight: 6,
+        opacity: 0.8,
+    },
+    footerDivider: {
+        width: 1,
+        height: 14,
+        backgroundColor: Theme.container.mainBorder,
+        marginHorizontal: 4,
+    },
     dangerText: {
         color: Theme.container.inactiveText,
-        fontSize: 13, fontWeight: '600'
+        fontSize: 13,
+        fontWeight: '600',
     },
     divider: {
         color: Theme.container.inactiveText
-    },
+    }
 });
