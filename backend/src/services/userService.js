@@ -60,7 +60,7 @@ exports.getUserById = async (id) => {
         orderBy: {
           created_at: 'desc'
         },
-        take: 100
+        take: 500
       },
       user_favorite_locations: {
         include: {
