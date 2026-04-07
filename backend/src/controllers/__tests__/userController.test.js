@@ -290,6 +290,55 @@ describe('userController - Auth0 endpoints', () => {
     });
   });
 
+  describe('updateNameByAuth', () => {
+    test('updates display name for authenticated user', async () => {
+      const user = { id: 1, uid: 'auth0|123456', name: 'Old Name' };
+      userService.getUserByAuth0Id.mockResolvedValue(user);
+      userService.updateUserLimited = jest.fn().mockResolvedValue({ ...user, name: 'New Name' });
+
+      const req = {
+        auth: { sub: 'auth0|123456' },
+        body: { name: 'New Name' }
+      };
+      const res = createRes();
+
+      await userController.updateNameByAuth(req, res);
+
+      expect(userService.updateUserLimited).toHaveBeenCalledWith(1, { name: 'New Name' });
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Name updated successfully',
+        name: 'New Name'
+      });
+    });
+
+    test('returns 400 if name is not provided', async () => {
+      const req = {
+        auth: { sub: 'auth0|123456' },
+        body: { }
+      };
+      const res = createRes();
+
+      await userController.updateNameByAuth(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Name is required' });
+    });
+
+    test('returns 404 when authenticated user is not found', async () => {
+      userService.getUserByAuth0Id.mockResolvedValue(null);
+      const req = {
+        auth: { sub: 'auth0|123456' },
+        body: { name: 'New Name' }
+      };
+      const res = createRes();
+
+      await userController.updateNameByAuth(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'User not found' });
+    });
+  });
+
   describe('completeUserRegistration', () => {
     test('returns 401 when no auth0 ID', async () => {
       const req = { auth: {}, body: {} };

@@ -176,6 +176,7 @@ exports.updateUserLimited = async (id, updateData) => {
   const allowedFields = {};
   if (updateData.username !== undefined) allowedFields.username = updateData.username;
   if (updateData.email !== undefined) allowedFields.email = updateData.email;
+  if (updateData.name !== undefined) allowedFields.name = updateData.name;
   if (updateData.bio !== undefined) allowedFields.bio = updateData.bio;
   if (updateData.favorite_drink_id !== undefined) allowedFields.favorite_drink_id = updateData.favorite_drink_id;
   if (updateData.profile_photo_id !== undefined) allowedFields.profile_photo_id = updateData.profile_photo_id;

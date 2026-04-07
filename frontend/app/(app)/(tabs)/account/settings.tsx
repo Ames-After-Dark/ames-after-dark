@@ -57,6 +57,7 @@ export default function AccountSettingsScreen() {
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Account</Text>
         <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} />
+        <SettingsItem icon="id-card" text="Change Display Name" onPress={() => router.push('/account/change-name')} />
         <SettingsItem icon="edit" text="Edit Bio" onPress={() => router.push('/account/edit-bio')} />
         <SettingsItem icon="camera" text="Change Profile Picture" onPress={() => router.push('/account/change-profile-picture')} />
       </View>

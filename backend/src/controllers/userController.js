@@ -45,16 +45,17 @@ exports.getUserFriends = async (req, res) => {
   }
 };
 
-// PUT /api/users/:id - update username, email, bio only
+// PUT /api/users/:id - update username, email, name, bio only
 exports.updateUserLimited = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
-  // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
-  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
+  // Only allow username, email, name, bio, favorite_drink_id, profile_photo_id, and favorite_profile_location_id through this endpoint
+  const { username, email, name, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
   const updateData = {};
   if (username !== undefined) updateData.username = username;
   if (email !== undefined) updateData.email = email;
+  if (name !== undefined) updateData.name = name;
   if (bio !== undefined) updateData.bio = bio;
   if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
   if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
@@ -426,6 +427,51 @@ exports.updateUsernameByAuth = async (req, res) => {
       });
     }
 
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * PUT /api/users/auth/name
+ * Update display name for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { name: string }
+ */
+exports.updateNameByAuth = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { name } = req.body;
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+
+    if (!trimmedName) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    if (trimmedName.length > 100) {
+      return res.status(400).json({ message: 'Name must be 100 characters or less' });
+    }
+
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updatedUser = await userService.updateUserLimited(user.id, { name: trimmedName });
+
+    return res.json({
+      message: 'Name updated successfully',
+      name: updatedUser.name
+    });
+  } catch (err) {
+    console.error('Error updating name:', err);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
