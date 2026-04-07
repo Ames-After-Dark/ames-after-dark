@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { View, ScrollView, TouchableOpacity, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
@@ -20,12 +20,12 @@ import {
 } from "@/components/bars/bar-detail-components";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFavorites } from '@/context/FavoritesContext';
 
 export default function BarProfile() {
-  const { id, backTo } = useLocalSearchParams<{ id: string; backTo?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  // const { bar, loading } = useBarDetail(id);
 
   const [mapData, setMapData] = useState<MapLocation | null>(null);
   const [isMapVisible, setIsMapVisible] = useState(false);
@@ -36,24 +36,29 @@ export default function BarProfile() {
   const toggleGalleryOverlay = () => setIsGalleryVisible(!isGalleryVisible);
   const [latestGalleryImage, setLatestGalleryImage] = useState<string | null>(null);
   const [specificAlbum, setSpecificAlbum] = useState<Album | null>(null);
+
   const navigateToGallery = () => {
     setIsGalleryVisible(false);
     if (specificAlbum) {
-      router.push(`/gallery/${id}?albumUri=${encodeURIComponent(specificAlbum.albumUri)}&barName=${encodeURIComponent(bar?.name || '')}`);
+      router.replace(`/gallery/${id}?albumUri=${encodeURIComponent(specificAlbum.albumUri)}&barName=${encodeURIComponent(bar?.name || '')}` as any);
     } else {
-      router.push("/gallery");
+      router.replace("/gallery" as any);
     }
-  }
+  };
 
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
-  // const [mapData, setMapData] = useState<MapLocation | null>(null);
+  const { isFavorited, toggleFavorite } = useFavorites();
+  const barIdNumeric = Number(id);
+  const insets = useSafeAreaInsets();
+
+  // Height of the global TopHeader — must match TopHeader.tsx constants
+  const HEADER_SPACER = insets.top + 44;
 
   useEffect(() => {
     const fetchLatestGalleryImage = async () => {
       try {
         const albums = await getLatestWeekendAlbums();
-
         if (albums && albums.length > 0) {
           const nameMap: Record<string, string> = {
             "Cy's Roost": "Cy's",
@@ -85,63 +90,33 @@ export default function BarProfile() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (refetch) refetch();
-    }, 60000); // Refresh every minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, [refetch]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-
-      if (refetch) {
-        await refetch();
-      }
-
+      if (refetch) await refetch();
       if (id) {
         const data = await fetchLocationById(id);
         setMapData(data);
       }
-
       console.log("Bar page refreshed");
     } catch (error) {
       console.error("Refresh failed:", error);
     } finally {
       setRefreshing(false);
     }
-
   }, [id, refetch, setMapData]);
 
-  const ProfileSkeleton = () => (
-    <View style={styles.container}>
-
-      {/* Cover Photo */}
-      <Skeleton width="100%" height={180} borderRadius={0} />
-
-      <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-        <Skeleton width={70} height={70} borderRadius={12} />
-        <View style={{ marginLeft: 12, flex: 1, gap: 8 }}>
-          <Skeleton width="70%" height={24} />
-          <Skeleton width="90%" height={16} />
-          <Skeleton width={60} height={20} borderRadius={20} />
-        </View>
-      </View>
-
-      {/* Section Blocks */}
-      <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        <Skeleton width="100%" height={100} borderRadius={12} />
-        <Skeleton width="100%" height={100} borderRadius={12} />
-      </View>
-    </View>
-  );
-
-  const { isFavorited, toggleFavorite } = useFavorites();
-  const barIdNumeric = Number(id);
+  useEffect(() => {
+    if (id) fetchLocationById(id).then(setMapData);
+  }, [id]);
 
   const navigateToInternalMap = () => {
     setIsMapVisible(false);
-
-    router.push({
+    router.replace({
       pathname: "/(app)/(tabs)/map",
       params: { selectedId: id, focusToken: String(Date.now()) }
     });
@@ -152,12 +127,10 @@ export default function BarProfile() {
       Alert.alert("Location unavailable", "We couldn't find coordinates for this location yet.");
       return;
     }
-
     const lat = mapData.latitude;
     const lng = mapData.longitude;
     const query = encodeURIComponent(bar?.name ?? "Bar");
     const appleMapsUrl = `https://maps.apple.com/?ll=${lat},${lng}&q=${query}`;
-
     try {
       await Linking.openURL(appleMapsUrl);
     } catch {
@@ -170,15 +143,28 @@ export default function BarProfile() {
       Alert.alert("Location unavailable", "This location does not have map coordinates yet.");
       return;
     }
-
     setIsMapVisible(true);
   };
 
-  useEffect(() => {
-    if (id) fetchLocationById(id).then(setMapData);
-  }, [id]);
-
-  if (loading) return <ProfileSkeleton />;
+  if (loading) return (
+    <View style={styles.container}>
+      {/* Spacer so skeleton content clears the global TopHeader */}
+      <View style={{ height: HEADER_SPACER }} />
+      <Skeleton width="100%" height={180} borderRadius={0} />
+      <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <Skeleton width={70} height={70} borderRadius={12} />
+        <View style={{ marginLeft: 12, flex: 1, gap: 8 }}>
+          <Skeleton width="70%" height={24} />
+          <Skeleton width="90%" height={16} />
+          <Skeleton width={60} height={20} borderRadius={20} />
+        </View>
+      </View>
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
+        <Skeleton width="100%" height={100} borderRadius={12} />
+        <Skeleton width="100%" height={100} borderRadius={12} />
+      </View>
+    </View>
+  );
 
   if (!bar) return <ErrorState title="Bar not found" subtitle="Please try again later." />;
 
@@ -199,39 +185,19 @@ export default function BarProfile() {
     ? (bar.closingTime ? `Open • Closes at ${bar.closingTime}` : "Open")
     : (bar.openingTime ? `Closed • Opens at ${bar.openingTime}` : "Closed");
 
-  const handleBack = () => {
-    if (backTo === "home") router.replace("/(app)/(tabs)/tonight");
-    else if (backTo?.startsWith("tonight")) {
-      const tab = backTo.split('-')[1];
-      router.replace({ pathname: "/(app)/(tabs)/tonight", params: { tab } });
-    }
-    else if (backTo === "map") router.replace("/(app)/(tabs)/map");
-    else router.replace("/(app)/(tabs)/bars");
-  };
-
   return (
     <>
-      <Stack.Screen options={{
-        title: "",
-        headerLeft: () => (
-          <TouchableOpacity onPress={handleBack} style={{ paddingHorizontal: 12 }}>
-            <FontAwesome name="chevron-left" size={20} color={Theme.dark.secondary} />
-          </TouchableOpacity>
-        ),
-
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => toggleFavorite(barIdNumeric)}
-            style={{ paddingHorizontal: 16 }}
-          >
-            <FontAwesome
-              name={isFavorited(barIdNumeric) ? "star" : "star-o"}
-              size={22}
-              color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
-            />
-          </TouchableOpacity>
-        )
-      }} />
+      {/* Favorite button floats at the same level as TopHeader */}
+      <TouchableOpacity
+        onPress={() => toggleFavorite(barIdNumeric)}
+        style={[styles.favoriteButton, { top: insets.top + 10 }]}
+      >
+        <FontAwesome
+          name={isFavorited(barIdNumeric) ? "star" : "star-o"}
+          size={22}
+          color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
+        />
+      </TouchableOpacity>
 
       <ScrollView
         style={styles.container}
@@ -245,9 +211,10 @@ export default function BarProfile() {
           />
         }
       >
-        <BarHeader bar={bar} assets={assets} openNow={openNow} statusText={statusText} />
+        {/* Pushes all content below the globally-mounted TopHeader */}
+        <View style={{ height: HEADER_SPACER }} />
 
-        {/* <BarStats bar={bar} /> */}
+        <BarHeader bar={bar} assets={assets} openNow={openNow} statusText={statusText} />
 
         <TouchableOpacity
           style={styles.menuButton}
@@ -291,7 +258,6 @@ export default function BarProfile() {
         latestImage={latestGalleryImage}
         hasSpecificAlbum={!!specificAlbum}
       />
-
     </>
   );
 }
@@ -319,6 +285,11 @@ const styles = StyleSheet.create({
     color: Theme.dark.white,
     fontWeight: "700",
     fontSize: 14
+  },
+  favoriteButton: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 1001,
   },
   bottomRow: {
     flexDirection: "row",

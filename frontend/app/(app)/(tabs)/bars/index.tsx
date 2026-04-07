@@ -214,7 +214,7 @@ export default function Bars() {
               item={item}
               isFav={isFavorited(item.id)}
               onToggleFav={() => toggleFavorite(item.id)}
-              onPress={(id) => router.push({ pathname: "/(app)/(tabs)/bars/[id]", params: { id } })}
+              onPress={(id) => router.replace({ pathname: "/(app)/(tabs)/bars/[id]", params: { id } })}
             />
           )}
           ListEmptyComponent={
