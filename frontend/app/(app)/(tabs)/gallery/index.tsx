@@ -11,7 +11,7 @@ import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekAlbums } from "@/services/galleryService";
-import GalleryFallback from "./Galleryfallback";
+import GalleryFallback from "./galleryFallback";
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -183,9 +183,6 @@ export default function GalleryScreen() {
       </View>
     );
 
-  if (albums.length === 0)
-    return <GalleryFallback />;
-
   return (
     <View style={styles.container}>
       <View style={[
@@ -231,12 +228,15 @@ export default function GalleryScreen() {
           contentHeightRef.current = contentHeight;
         }}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {search.trim().length > 0 ? `No albums found matching "${search}"` 
-              : "No albums match your current filters."}
-            </Text>
-          </View>
+          search.trim().length > 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No albums found matching "{search}"
+              </Text>
+            </View>
+          ) : (
+            <GalleryFallback />
+          )
         }
         renderItem={({ item }) => {
           const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };

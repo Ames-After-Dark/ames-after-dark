@@ -7,54 +7,44 @@ import {
 import { FontAwesome } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
 
-const PREVIEW_ALBUMS = [
-  { name: "Outlaw's", barName: "Outlaw's", date: "2-28", weekday: "Saturday" },
-  { name: "Cy's", barName: "Cy's Bar", date: "2-28", weekday: "Saturday" },
-  { name: "Sip's", barName: "Sip's", date: "2-28", weekday: "Saturday" },
-  { name: "Paddy's", barName: "Paddy's", date: "2-28", weekday: "Saturday" },
-  { name: "Cy's", barName: "Cy's Bar", date: "2-27", weekday: "Friday" },
-  { name: "Outlaw's", barName: "Outlaw's", date: "2-27", weekday: "Friday" },
-  { name: "Sip's", barName: "Sip's", date: "2-26", weekday: "Thursday" },
-  { name: "Paddy's", barName: "Paddy's", date: "2-26", weekday: "Thursday" },
-];
-
-// Group by date
-const grouped = PREVIEW_ALBUMS.reduce((acc, album) => {
-  const key = album.date;
-  if (!acc[key]) acc[key] = { weekday: album.weekday, bars: [] };
-  acc[key].bars.push(album);
-  return acc;
-}, {} as Record<string, { weekday: string; bars: typeof PREVIEW_ALBUMS }>);
-
-function PlaceholderCard({ name }: { name: string }) {
+function SkeletonCard() {
   return (
     <View style={styles.albumCard}>
       <View style={styles.placeholderCover}>
-        <FontAwesome name="camera" size={24} color="#2a2a2a" />
+        <FontAwesome name="image" size={24} color={Theme.container.inactiveText} />
       </View>
-      <Text style={styles.albumName}>{name}</Text>
+      {/* Fake text bar */}
+      <View style={styles.skeletonTextContainer}>
+        <View style={styles.skeletonText} />
+      </View>
     </View>
   );
 }
 
 export default function GalleryFallback() {
+  // A quick array to generate 4 ghost cards for 2 days
+  const dummyCards = [1, 2, 3, 4];
+  const dummyDays = [1, 2];
+
   return (
     <View style={styles.container}>
-      {/* Coming soon banner */}
+      {/* Banner */}
       <View style={styles.banner}>
-        <FontAwesome name="camera" size={14} color={Theme.dark.primary} style={{ marginRight: 8 }} />
+        <FontAwesome name="camera" size={16} color={Theme.dark.primary} style={styles.bannerIcon} />
         <Text style={styles.bannerText}>
-          No photos available yet, but we're working on it!
+          No photos have been uploaded for this week yet. Check back soon!
         </Text>
       </View>
 
-      {/* Grouped placeholder albums matching real gallery layout */}
-      {Object.entries(grouped).map(([date, { weekday, bars }]) => (
-        <View key={date} style={{ marginBottom: 24 }}>
-          <Text style={styles.dateHeader}>{weekday} {date}</Text>
+      {/* Ghost Grid */}
+      {dummyDays.map((dayIndex) => (
+        <View key={dayIndex} style={styles.ghostGroup}>
+          {/* Fake Date Header */}
+          <View style={[styles.skeletonDateHeader, dayIndex === 2 && { width: 90 }]} />
+          
           <View style={styles.albumGrid}>
-            {bars.map((album, i) => (
-              <PlaceholderCard key={i} name={album.name} />
+            {dummyCards.map((_, i) => (
+              <SkeletonCard key={i} />
             ))}
           </View>
         </View>
@@ -65,10 +55,8 @@ export default function GalleryFallback() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: Theme.dark.background,
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    paddingBottom: 40,
   },
   banner: {
     flexDirection: "row",
@@ -77,22 +65,31 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: Theme.dark.primary,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 32,
+  },
+  bannerIcon: {
+    marginRight: 12,
   },
   bannerText: {
     color: Theme.container.titleText,
-    fontSize: 13,
+    fontSize: 14,
     flex: 1,
-    lineHeight: 18,
+    lineHeight: 20,
   },
-  dateHeader: {
-    color: Theme.container.titleText,
-    fontSize: 16,
-    fontWeight: "600",
+  ghostGroup: {
+    opacity: 0.6,
+  },
+  skeletonDateHeader: {
+    width: 120,
+    height: 16,
+    backgroundColor: Theme.container.titleText,
+    borderRadius: 4,
     marginVertical: 8,
     marginLeft: 4,
+    marginBottom: 16,
+    opacity: 0.5,
   },
   albumGrid: {
     flexDirection: "row",
@@ -109,14 +106,18 @@ const styles = StyleSheet.create({
   placeholderCover: {
     width: "100%",
     height: 140,
-    backgroundColor: Theme.dark.black ?? "#111",
+    backgroundColor: Theme.container.inactiveBorder,
     alignItems: "center",
     justifyContent: "center",
   },
-  albumName: {
-    color: Theme.container.titleText,
-    fontSize: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+  skeletonTextContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  skeletonText: {
+    width: "60%",
+    height: 10,
+    backgroundColor: Theme.container.titleText,
+    borderRadius: 4,
   },
 });

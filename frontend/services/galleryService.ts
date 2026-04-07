@@ -1,6 +1,3 @@
-import Constants from "expo-constants";
-import { getLatestWeekendAlbums as fetchSmugmugAlbums, getPhotosByAlbumUri as fetchSmugmugPhotos, Photo, Album } from "@/services/photosService";
-
 const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL;
 const RAW_DOMAIN = process.env.EXPO_PUBLIC_IMAGE_DOMAIN;
 const IMAGE_DOMAIN = `https://${RAW_DOMAIN}`;
@@ -10,7 +7,19 @@ if (!BACKEND_URL) {
 }
 
 // Photo and Album types are imported from photosService; re-export for consumers
-export { Photo, Album };
+export type Photo = {
+  id: string;
+  image: { uri: string };
+};
+
+export type Album = {
+  id: string;
+  name: string;
+  barName: string;
+  date: string;
+  coverUrl: string | null;
+  albumUri: string;
+};
 
 /**
  * Parse a date token like "2-7" or "1/31" into a Date object (month-day).
@@ -49,8 +58,7 @@ export async function getLatestWeekAlbums(): Promise<Album[]> {
     const albums: Album[] = await res.json();
     if (albums && albums.length > 0) rawAlbums = albums;
   } catch (err) {
-    console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
-    rawAlbums = await fetchSmugmugAlbums();
+    console.error("Cloudflare albums fetch failed: ", err);
   }
 
   if (!rawAlbums || rawAlbums.length === 0) return [];
@@ -97,9 +105,9 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
     const photos: Photo[] = await res.json();
     if (photos && photos.length > 0) return photos;
   } catch (err) {
-    console.warn("Cloudflare photos fetch failed, falling back to SmugMug:", err);
+    console.error("Cloudflare photos fetch failed: ", err);
   }
-  return await fetchSmugmugPhotos(albumUri);
+  return [];
 }
 
 /**
