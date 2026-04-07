@@ -11,7 +11,7 @@ import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
 import { getLatestWeekAlbums } from "@/services/galleryService";
-import GalleryFallback from "./galleryFallback";
+import GalleryFallback from "./Galleryfallback";
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
