@@ -51,6 +51,8 @@ exports.getUserById = async (id) => {
     where: { id: Number(id) },
     include: {
       roles: true,
+      user_settings: true,
+      location_permissions_location_permissions_owner_idTousers: true,
       user_favorite_locations: {
         include: {
           locations: {
