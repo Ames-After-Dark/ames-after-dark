@@ -87,6 +87,32 @@ export async function getUserFriends(userId: string | number): Promise<Friend[]>
   }
 }
 
+export async function searchUsers(query: string, excludeUserId?: string | number): Promise<Friend[]> {
+  try {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    const searchParam = encodeURIComponent(trimmed);
+    const excludeParam = excludeUserId !== undefined
+      ? `&excludeUserId=${encodeURIComponent(String(excludeUserId))}`
+      : '';
+
+    const results = await apiFetch(`/users?search=${searchParam}${excludeParam}`);
+    if (!Array.isArray(results)) return [];
+
+    return results.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      bio: user.bio,
+      avatar: user.profile_photo?.image_url || undefined,
+    }));
+  } catch (error) {
+    console.error(`Failed to search users for query ${query}:`, error);
+    throw error;
+  }
+}
+
 export async function getUserById(userId: string | number) {
   try {
     const user = await apiFetch(`/users/${userId}`);

@@ -32,6 +32,23 @@ describe('userService', () => {
     expect(res).toBe(sample);
   });
 
+  test('searchUsers queries prisma with search text and exclusion', async () => {
+    const sample = [{ id: 2, username: 'bob' }];
+    mockPrisma.users.findMany.mockResolvedValue(sample);
+
+    const res = await userService.searchUsers('bob', 1);
+
+    expect(mockPrisma.users.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.any(Array),
+        NOT: { id: 1 }
+      }),
+      select: expect.any(Object),
+      orderBy: { id: 'asc' }
+    }));
+    expect(res).toBe(sample);
+  });
+
   test('getUserById returns single user', async () => {
     const sample = { id: 2, username: 'bob' };
     mockPrisma.users.findUnique.mockResolvedValue(sample);

@@ -17,6 +17,7 @@ import {
     getMutualFriends,
     getRecommendedFriends,
     getPendingFriendRequests,
+    searchUsers,
     updateBioByAuth,
 } from '@/services/userService';
 import { apiFetch } from '@/services/apiClient';
@@ -392,6 +393,11 @@ export default function FriendProfileScreen() {
                 recommendedData={recommendedFriends}
                 onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                 currentUserId={userStatus?.userId || null}
+                existingFriendIds={friends.map(friend => Number(friend.id))}
+                onSearch={async (query: string) => {
+                    if (!userStatus?.userId) return [];
+                    return await searchUsers(query, userStatus.userId);
+                }}
 
                 onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
                 onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
