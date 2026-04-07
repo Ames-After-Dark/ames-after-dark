@@ -37,7 +37,7 @@ exports.createEvent = async (req, res) => {
 
     const { location_id } = req.body;
     if (!location_id) {
-       return res.status(400).json({ error: "location_id is required" });
+      return res.status(400).json({ error: "location_id is required" });
     }
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
@@ -73,7 +73,7 @@ exports.updateEvent = async (req, res) => {
 
     const existingEvent = await eventService.getEventById(id);
     if (!existingEvent) return res.status(404).json({ message: 'Event not found' });
-    
+
     const location_id = req.body.location_id || existingEvent.location_id;
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);

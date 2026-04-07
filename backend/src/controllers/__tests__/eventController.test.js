@@ -86,7 +86,7 @@ describe('eventController', () => {
       userService.getUserRolesByAuth0Id.mockResolvedValue({
         isAdmin: true,
         roles: { name: 'admin' },
-        location_admins: [{ location_id: 2 }] 
+        location_admins: [{ location_id: 2 }]
       });
 
       await eventController.createEvent(req, res);
@@ -101,7 +101,7 @@ describe('eventController', () => {
       userService.getUserRolesByAuth0Id.mockResolvedValue({
         isAdmin: true,
         roles: { name: 'admin' },
-        location_admins: [{ location_id: 1 }] 
+        location_admins: [{ location_id: 1 }]
       });
       eventService.createEvent.mockResolvedValue(mockResult);
 
@@ -120,7 +120,7 @@ describe('eventController', () => {
       userService.getUserRolesByAuth0Id.mockResolvedValue({
         isAdmin: true,
         roles: { name: 'admin' },
-        location_admins: [{ location_id: 2 }] 
+        location_admins: [{ location_id: 2 }]
       });
 
       await eventController.updateEvent(req, res);
@@ -137,7 +137,7 @@ describe('eventController', () => {
       userService.getUserRolesByAuth0Id.mockResolvedValue({
         isAdmin: true,
         roles: { name: 'admin' },
-        location_admins: [{ location_id: 2 }] 
+        location_admins: [{ location_id: 2 }]
       });
 
       await eventController.deleteEvent(req, res);

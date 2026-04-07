@@ -1,22 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const friendshipController = require('../controllers/friendshipController');
+const { checkJwt } = require('../middleware/auth');
 
 // Get all friends for a user
-router.get('/:userId/friends', friendshipController.getFriends);
+router.get('/friends', checkJwt, friendshipController.getFriends);
 // Send a friend request
-router.post('/:userId/friends/:friendId', friendshipController.sendFriendRequest);
+router.post('/friends/:friendId', checkJwt, friendshipController.sendFriendRequest);
 // Accept a friend request
-router.post('/:userId/friends/:friendId/accept', friendshipController.acceptFriendRequest);
+router.post('/friends/:friendId/accept', checkJwt, friendshipController.acceptFriendRequest);
 // Decline a friend request
-router.post('/:userId/friends/:friendId/decline', friendshipController.declineFriendRequest);
+router.post('/friends/:friendId/decline', checkJwt, friendshipController.declineFriendRequest);
 // Block a friend
-router.post('/:userId/friends/:friendId/block', friendshipController.blockFriend);
+router.post('/friends/:friendId/block', checkJwt, friendshipController.blockFriend);
 // Remove a friend
-router.delete('/:userId/friends/:friendId', friendshipController.removeFriend);
+router.delete('/friends/:friendId', checkJwt, friendshipController.removeFriend);
 // Get pending friend requests
-router.get('/:userId/friend-requests', friendshipController.getPendingRequests);
+router.get('/friend-requests', checkJwt, friendshipController.getPendingRequests);
 // Get recommended friends
-router.get('/:userId/recommended-friends', friendshipController.getRecommendedFriends);
+router.get('/recommended-friends', checkJwt, friendshipController.getRecommendedFriends);
 
 module.exports = router;
