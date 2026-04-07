@@ -35,6 +35,7 @@ export default function LocationVisibilityScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const extractSelectedFriendIds = (userData: any): string[] => {
     const permissions =
@@ -90,27 +91,64 @@ export default function LocationVisibilityScreen() {
     );
   };
 
+  // const handleSave = async () => {
+  //   if (!Number.isFinite(userId)) return;
+  //   setIsSaving(true);
+  //   try {
+  //     const prefMap: Record<VisibilityMode, LocationSharingPreference> = {
+  //       ALL: 'PUBLIC', SOME: 'SELECTIVE', NONE: 'PRIVATE',
+  //     };
+  //     await UserLocationService.updateSharingPreference(userId, prefMap[visibilityMode]);
+  //     await UserLocationService.setGhostMode(userId, visibilityMode === 'NONE' ? 24 : 0);
+  //     if (visibilityMode === 'SOME') {
+  //       const selectedSet = new Set(selectedFriends);
+  //       await Promise.all(
+  //         friends.map((friend) => UserLocationService.setViewerPermission(Number(friend.id), userId, selectedSet.has(String(friend.id))))
+  //       );
+  //     }
+  //     Alert.alert("Success", "Privacy settings updated!");
+  //     router.back();
+  //   } catch (err) {
+  //     Alert.alert('Error', 'Could not save settings.');
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
+
   const handleSave = async () => {
     if (!Number.isFinite(userId)) return;
+
     setIsSaving(true);
+    setShowSuccess(false); // Reset success state if they save again
+
     try {
       const prefMap: Record<VisibilityMode, LocationSharingPreference> = {
         ALL: 'PUBLIC', SOME: 'SELECTIVE', NONE: 'PRIVATE',
       };
+
+      // Run your API calls
       await UserLocationService.updateSharingPreference(userId, prefMap[visibilityMode]);
       await UserLocationService.setGhostMode(userId, visibilityMode === 'NONE' ? 24 : 0);
+
       if (visibilityMode === 'SOME') {
         const selectedSet = new Set(selectedFriends);
         await Promise.all(
-          friends.map((friend) => UserLocationService.setViewerPermission(Number(friend.id), userId, selectedSet.has(String(friend.id))))
+          friends.map((friend) =>
+            UserLocationService.setViewerPermission(Number(friend.id), userId, selectedSet.has(String(friend.id)))
+          )
         );
       }
-      Alert.alert("Success", "Privacy settings updated!");
-      router.back();
-    } catch (err) {
-      Alert.alert('Error', 'Could not save settings.');
-    } finally {
+
+      // 2. SUCCESS FEEDBACK (Instead of router.back())
       setIsSaving(false);
+      setShowSuccess(true);
+
+      // Hide the "Success" state after 3 seconds
+      setTimeout(() => setShowSuccess(false), 3000);
+
+    } catch (err) {
+      setIsSaving(false);
+      Alert.alert('Error', 'Could not save settings.');
     }
   };
 
@@ -141,11 +179,36 @@ export default function LocationVisibilityScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} keyboardVerticalOffset={100}>
       <View style={styles.container}>
-        <Stack.Screen options={{
+        {/* <Stack.Screen options={{
           title: 'Location Visibility',
           headerRight: () => (
             <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.headerButtonBubble}>
               {isSaving ? <ActivityIndicator size="small" color="#33CCFF" /> : <Text style={styles.saveText}>Save</Text>}
+            </TouchableOpacity>
+          ),
+        }} /> */}
+
+        <Stack.Screen options={{
+          title: 'Location Visibility',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={isSaving || showSuccess}
+              style={[
+                styles.headerButtonBubble,
+                showSuccess && { borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.1)' }
+              ]}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#33CCFF" />
+              ) : showSuccess ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <FontAwesome name="check" size={12} color="#4ADE80" style={{ marginRight: 4 }} />
+                  <Text style={[styles.saveText, { color: '#4ADE80' }]}>Saved</Text>
+                </View>
+              ) : (
+                <Text style={styles.saveText}>Save</Text>
+              )}
             </TouchableOpacity>
           ),
         }} />
