@@ -46,6 +46,39 @@ exports.getUsers = async () => {
   });
 };
 
+exports.searchUsers = async (search, excludeUserId) => {
+  if (!search || typeof search !== 'string' || !search.trim()) {
+    return [];
+  }
+
+  const where = {
+    OR: [
+      { username: { contains: search, mode: 'insensitive' } },
+      { name: { contains: search, mode: 'insensitive' } }
+    ]
+  };
+
+  if (excludeUserId !== undefined && excludeUserId !== null) {
+    where.NOT = { id: Number(excludeUserId) };
+  }
+
+  return prisma.users.findMany({
+    where,
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      bio: true,
+      profile_photo: {
+        select: {
+          image_url: true
+        }
+      }
+    },
+    orderBy: { id: 'asc' }
+  });
+};
+
 exports.getUserById = async (id) => {
   return prisma.users.findUnique({
     where: { id: Number(id) },
