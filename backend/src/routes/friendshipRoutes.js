@@ -17,6 +17,8 @@ router.post('/friends/:friendId/block', checkJwt, friendshipController.blockFrie
 router.delete('/friends/:friendId', checkJwt, friendshipController.removeFriend);
 // Get pending friend requests
 router.get('/friend-requests', checkJwt, friendshipController.getPendingRequests);
+// Get mutual friends with another user
+router.get('/mutual-friends/:friendId', checkJwt, friendshipController.getMutualFriends);
 // Get recommended friends
 router.get('/recommended-friends', checkJwt, friendshipController.getRecommendedFriends);
 

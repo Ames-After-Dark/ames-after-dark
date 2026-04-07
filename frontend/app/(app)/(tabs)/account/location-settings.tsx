@@ -20,7 +20,7 @@ import ErrorState from '@/components/ui/error-state';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function LocationVisibilityScreen() {
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
   const [shareWithAll, setShareWithAll] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
@@ -34,10 +34,10 @@ export default function LocationVisibilityScreen() {
       setLoading(true);
       setError(null);
       try {
-        if (!user?.id) return;
-        const currentUserId = user.id;
+        const token = await getAccessToken();
+        if (!token) return;
 
-        const friendsData = await getUserFriends(currentUserId);
+        const friendsData = await getUserFriends(token);
         setFriends(friendsData || []);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch friends'));
@@ -46,7 +46,7 @@ export default function LocationVisibilityScreen() {
       }
     };
     fetchFriends();
-  }, [user]);
+  }, [getAccessToken]);
 
   const filteredFriends = friends.filter((f: Friend) =>
     (f.name || '').toLowerCase().includes(search.toLowerCase())
