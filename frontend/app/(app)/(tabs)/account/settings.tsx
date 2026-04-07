@@ -18,6 +18,7 @@ interface SettingsItemProps {
   onPress: () => void;
   color?: string;
   showArrow?: boolean;
+  isFirst?: boolean;
 }
 
 export default function AccountSettingsScreen() {
@@ -28,9 +29,22 @@ export default function AccountSettingsScreen() {
     signOut();
   };
 
+  // const handleSignOut = () => {
+  //   Alert.alert(
+  //     "Log Out",
+  //     "Are you sure you want to log out of Ames After Dark?",
+  //     [
+  //       { text: "Cancel", style: "cancel" },
+  //       { text: "Log Out", style: "destructive", onPress: () => signOut() }
+  //     ]
+  //   );
+  // };
 
-  const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true }: SettingsItemProps) => (
-    <TouchableOpacity style={styles.settingItem} onPress={onPress}>
+  const SettingsItem = ({ icon, text, onPress, color = '#E5E5EE', showArrow = true, isFirst = false }: SettingsItemProps) => (
+    <TouchableOpacity style={[
+      styles.settingItem,
+      { borderTopWidth: isFirst ? 0 : 1 }
+    ]} onPress={onPress}>
       <FontAwesome name={icon} size={20} color={color} style={styles.icon} />
       <Text style={[styles.settingText, { color }]}>{text}</Text>
       {showArrow && <FontAwesome name="chevron-right" size={16} color="#555" />}
@@ -56,7 +70,7 @@ export default function AccountSettingsScreen() {
 
       {/* <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} />
+        <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} isFirst={true} />
         <SettingsItem icon="edit" text="Edit Bio" onPress={() => router.push('/account/edit-bio')} />
         <SettingsItem icon="camera" text="Change Profile Picture" onPress={() => router.push('/account/change-profile-picture')} />
       </View> */}
