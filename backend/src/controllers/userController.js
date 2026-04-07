@@ -6,7 +6,12 @@ const authService = require('../services/authService');
 // GET /api/users
 exports.getUsers = async (req, res) => {
   try {
-    const users = await userService.getUsers();
+    const search = req.query?.search?.toString();
+    const excludeUserId = req.query?.excludeUserId ? parseInt(req.query.excludeUserId, 10) : undefined;
+    const users = search
+      ? await userService.searchUsers(search, excludeUserId)
+      : await userService.getUsers();
+
     res.json(users);
   } catch (err) {
     console.error(err);

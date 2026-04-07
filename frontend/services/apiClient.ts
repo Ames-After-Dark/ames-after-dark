@@ -44,3 +44,31 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     throw error;
   }
 }
+
+export async function apiFetchAuth(endpoint: string, token: string, options: RequestInit = {}) {
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        ...(options.headers || {})
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API error: ${response.status} ${errorText}`);
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : null;
+  } catch (error) {
+    console.error("API Auth request failed:", error);
+    throw error;
+  }
+}

@@ -1,4 +1,5 @@
 const locationService = require('../services/locationService');
+const userService = require('../services/userService');
 
 // GET /api/locations
 exports.getLocations = async (req, res) => {
@@ -29,6 +30,23 @@ exports.getLocationById = async (req, res) => {
 // POST /api/locations
 exports.createLocation = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+
+    // For creation, they just need to be a developer or an admin (unattached to a location)
+    if (!isDeveloper && !userRoles.isAdmin) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
     const newLocation = await locationService.createLocation(req.body);
     res.status(201).json(newLocation);
   } catch (err) {
@@ -43,6 +61,23 @@ exports.updateLocation = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === id);
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
     const updatedLocation = await locationService.updateLocation(id, req.body);
     if (!updatedLocation) return res.status(404).json({ message: 'Location not found' });
     res.json(updatedLocation);
@@ -58,6 +93,23 @@ exports.deleteLocation = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === id);
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
     const deletedLocation = await locationService.deleteLocation(id);
     if (!deletedLocation) return res.status(404).json({ message: 'Location not found' });
     res.json(deletedLocation);
@@ -71,7 +123,7 @@ exports.getOpenLocations = async (req, res) => {
   try {
     // Get UTC from query parameter, fallback to current UTC if not provided
     const currentUtc = req.query.utc ? new Date(req.query.utc) : new Date();
-    
+
     const locations = await locationService.getOpenLocations(currentUtc);
     res.json(locations);
   } catch (err) {

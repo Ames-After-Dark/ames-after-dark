@@ -1,4 +1,5 @@
 const dealService = require('../services/dealService');
+const userService = require('../services/userService');
 
 // GET /api/deals
 exports.getDeals = async (req, res) => {
@@ -29,6 +30,28 @@ exports.getDealById = async (req, res) => {
 // POST /api/deals
 exports.createDeal = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { location_id } = req.body;
+    if (!location_id) {
+       return res.status(400).json({ error: "location_id is required" });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
     const deal = await dealService.createDeal(req.body);
     res.status(201).json(deal);
   } catch (err) {
@@ -43,8 +66,30 @@ exports.updateDeal = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    // We need to fetch the existing deal to know its location_id if location_id isn't in req.body
+    const existingDeal = await dealService.getDealById(id);
+    if (!existingDeal) return res.status(404).json({ message: 'Deal not found' });
+    
+    const location_id = req.body.location_id || existingDeal.location_id;
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
     const deal = await dealService.updateDeal(id, req.body);
-    if (!deal) return res.status(404).json({ message: 'Deal not found' });
     res.json(deal);
   } catch (err) {
     console.error(err);
@@ -58,6 +103,26 @@ exports.deleteDeal = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const existingDeal = await dealService.getDealById(id);
+    if (!existingDeal) return res.status(404).json({ message: 'Deal not found' });
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(existingDeal.location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
     await dealService.deleteDeal(id);
     res.status(204).send();
   } catch (err) {
@@ -89,7 +154,24 @@ exports.getDealsByLocationId = async (req, res) => {
 
 exports.createRecurringDeal = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const dealData = req.body;
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(dealData.location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
+    }
 
     // Validate required fields
     const requiredFields = ['name', 'location_id', 'start_time', 'end_time', 'start_date', 'end_date', 'weekdays'];
