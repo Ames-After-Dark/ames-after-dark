@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity, Image,
+  View, Text, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent
 } from "react-native";
+import { Image } from "expo-image";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
@@ -261,7 +262,7 @@ export default function GalleryScreen() {
                     }
                   >
                     {album.coverUrl ? (
-                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} resizeMode="cover" />
+                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
                     ) : (
                       <View style={styles.placeholderCover} />
                     )}

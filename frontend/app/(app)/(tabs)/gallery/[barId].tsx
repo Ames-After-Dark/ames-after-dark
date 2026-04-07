@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Image, FlatList, ActivityIndicator, Text,
+  View, FlatList, ActivityIndicator, Text,
   StyleSheet, Dimensions, Alert, TouchableOpacity,
 } from "react-native";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import type { Photo } from "@/services/galleryService.ts";
-import { getPhotosByAlbumUri } from "@/services/galleryService";
+import { getPhotosByAlbumUri, getResizedImageUri } from "@/services/galleryService";
 import { Theme } from "@/constants/theme";
 import ImageViewing from "react-native-image-viewing";
 import { FontAwesome } from "@expo/vector-icons";
@@ -175,7 +176,8 @@ export default function BarPhotosScreen() {
             setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);
           }}
             onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
-            <Image source={item.image} style={styles.photo} resizeMode="cover" resizeMethod="resize" />
+            <Image source={item.image}
+              style={styles.photo} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}

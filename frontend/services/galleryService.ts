@@ -1,7 +1,9 @@
 import Constants from "expo-constants";
 import { getLatestWeekendAlbums as fetchSmugmugAlbums, getPhotosByAlbumUri as fetchSmugmugPhotos, Photo, Album } from "@/services/photosService";
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL;
+const RAW_DOMAIN = process.env.EXPO_PUBLIC_IMAGE_DOMAIN;
+const IMAGE_DOMAIN = `https://${RAW_DOMAIN}`;
 
 if (!BACKEND_URL) {
   console.warn("Missing BACKEND_URL in app config — gallery will not load");
@@ -49,4 +51,26 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
     console.warn("Cloudflare photos fetch failed, falling back to SmugMug:", err);
   }
   return await fetchSmugmugPhotos(albumUri);
+}
+
+/**
+ * Transforms a standard R2 public URL into a Cloudflare Image Resizing URL.
+ * Syntax: https://<DOMAIN>/cdn-cgi/image/<OPTIONS>/<IMAGE_PATH>
+ */
+export function getResizedImageUri(originalUri: string, width: number = 400): string {
+  if (!originalUri) return originalUri;
+
+  try {
+    const urlObj = new URL(originalUri);
+    if (urlObj.hostname.includes(`${RAW_DOMAIN}`) || urlObj.hostname.includes("r2.cloudflarestorage.com")) {
+      // Extracts the path after the domain
+      const imagePath = urlObj.pathname;
+      // quality=80 and format=auto will drastically reduce file size for grid photos
+      return `${IMAGE_DOMAIN}/cdn-cgi/image/width=${width},quality=80,format=auto${imagePath}`;
+    }
+  } catch (err) {
+    // Ignore if invalid
+  }
+
+  return originalUri;
 }
