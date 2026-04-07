@@ -176,7 +176,7 @@ export default function BarPhotosScreen() {
             setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);
           }}
             onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
-            <Image source={item.image}
+            <Image source={{ uri: getResizedImageUri(item.image.uri, 400) }}
               style={styles.photo} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
           </TouchableOpacity>
         )}

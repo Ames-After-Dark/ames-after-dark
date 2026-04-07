@@ -58,7 +58,8 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
  * Syntax: https://<DOMAIN>/cdn-cgi/image/<OPTIONS>/<IMAGE_PATH>
  */
 export function getResizedImageUri(originalUri: string, width: number = 400): string {
-  if (!originalUri) return originalUri;
+  const USE_RESIZING = false; // toggle in case Cloudflare resizing doesn't work / is not available by build time
+  if (!originalUri || !USE_RESIZING) return originalUri;
 
   try {
     const urlObj = new URL(originalUri);
