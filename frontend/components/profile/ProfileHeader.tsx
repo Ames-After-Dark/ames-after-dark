@@ -8,7 +8,7 @@ import { Theme } from '@/constants/theme';
 import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
-import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/constants/profileAssets';
+import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
 import { router } from 'expo-router';
 
 // ─────────────────────────────────────────────────────────────────────────────

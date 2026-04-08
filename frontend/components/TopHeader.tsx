@@ -2,12 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Animated, Easing } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from '@expo/vector-icons';
-import { router, usePathname } from 'expo-router'; // Add usePathname
+import { router, usePathname } from 'expo-router';
 import { Theme } from "@/constants/theme";
 import { useAuth } from '@/hooks/use-auth';
+import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 
 const HEADER_CONTENT_HEIGHT = 44;
-const HEADER_HEIGHT = 44; // Adjust to your actual header height
+const HEADER_HEIGHT = 44;
 
 type TopHeaderProps = {
   visible?: boolean;
@@ -17,22 +18,14 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
   const pathname = usePathname();
   const { currentUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const { canGoBack, goBack } = useNavigationHistory();
   const animatedVisibility = React.useRef(new Animated.Value(visible ? 1 : 0)).current;
-
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // 1. Check if we are on ANY account-related page
   const isAccountPath = pathname.startsWith('/account');
-  const isBarsSubPage = pathname.startsWith('/bars/');
-  const accountIdMatch = pathname.match(/^\/account\/([^/]+)$/);
-  const viewedAccountId = accountIdMatch?.[1];
-  const currentUserId = currentUser?.id != null ? String(currentUser.id) : null;
-  const isFriendProfilePage = Boolean(viewedAccountId && currentUserId && viewedAccountId !== currentUserId);
-  const effectiveVisible = visible && !isBarsSubPage && !isFriendProfilePage;
+  const isGalleryPath = pathname.startsWith('/gallery');
 
-  // 2. Logic: If we are on a sub-page (like a friend's ID), show Back. 
-  // If we are on our own ID (isMe check) or the root, show Gear.
-  // For now, let's just make the Gear show up on any /account page:
+  const effectiveVisible = visible;
 
   React.useEffect(() => {
     Animated.timing(animatedVisibility, {
@@ -62,7 +55,6 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
 
   useEffect(() => {
     Animated.timing(slideAnim, {
-      // Slide up by the height of the header + status bar height
       toValue: effectiveVisible ? 0 : -(HEADER_HEIGHT + insets.top),
       duration: 250,
       useNativeDriver: true,
@@ -83,8 +75,19 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
     >
       <View style={styles.content}>
 
-        <View style={{ width: 24 }} />
+        {/* Left slot — back button when there's history, hidden on gallery pages */}
+        <View style={{ width: 24, alignItems: 'center' }}>
+          {canGoBack && !isGalleryPath && (
+            <TouchableOpacity
+              onPress={goBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <FontAwesome name="chevron-left" size={18} color={Theme.container.inactiveText} />
+            </TouchableOpacity>
+          )}
+        </View>
 
+        {/* Center — logo, tapping always goes to tonight */}
         <TouchableOpacity onPress={() => router.push('/tonight' as any)} activeOpacity={1}>
           <Image
             source={require("../assets/images/LogoTopBar.png")}
@@ -93,6 +96,7 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
           />
         </TouchableOpacity>
 
+        {/* Right slot — gear icon on account pages */}
         <View style={{ width: 24, alignItems: 'center' }}>
           {isAccountPath && (
             <TouchableOpacity onPress={() => router.push('/account/settings' as any)}>

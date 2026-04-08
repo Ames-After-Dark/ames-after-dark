@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Image, FlatList, ActivityIndicator, Text,
+  View, FlatList, ActivityIndicator, Text,
   StyleSheet, Dimensions, Alert, TouchableOpacity,
 } from "react-native";
+import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import type { Photo } from "@/services/galleryService.ts";
-import { getPhotosByAlbumUri } from "@/services/galleryService";
+import { getPhotosByAlbumUri, getResizedImageUri } from "@/services/galleryService";
 import { Theme } from "@/constants/theme";
 import ImageViewing from "react-native-image-viewing";
 import { FontAwesome } from "@expo/vector-icons";
@@ -162,6 +163,10 @@ export default function BarPhotosScreen() {
         data={photos}
         keyExtractor={(item) => String(item.id)}
         numColumns={3}
+        initialNumToRender={12}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews={true} // Unmount photos that are off-screen
         contentContainerStyle={{
           paddingTop: TOTAL_HEADER_HEIGHT + 60,
           paddingBottom: insets.bottom + TAB_BAR_HEIGHT
@@ -171,7 +176,8 @@ export default function BarPhotosScreen() {
             setCurrentIndex(index); setViewerVisible(true); setViewerIndex(index);
           }}
             onLongPress={() => handleGridDownload(index)} delayLongPress={400}>
-            <Image source={item.image} style={styles.photo} resizeMode="cover" />
+            <Image source={{ uri: getResizedImageUri(item.image.uri, 400) }}
+              style={styles.photo} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}
