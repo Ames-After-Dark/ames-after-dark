@@ -170,7 +170,7 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
         try {
             const token = await getAccessToken();
             if (!token) return;
-            await updateUser(token, userStatus.userId, { profile_photo_id: item.id } as any);
+            await updateUser(token, String(userStatus.userId), { profile_photo_id: item.id } as any);
         } catch (err) {
             console.error('Failed to save avatar:', err);
         }

@@ -370,7 +370,7 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         try {
             const token = await getAccessToken();
             if (!token) return;
-            await updateUser(token, userStatus.userId, { favorite_profile_location_id: bar.id } as any);
+            await updateUser(token, String(userStatus.userId), { favorite_profile_location_id: bar.id } as any);
         } catch (err) {
             console.error('Failed to save fav bar:', err);
         }
@@ -412,7 +412,7 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         try {
             const token = await getAccessToken();
             if (!token) return;
-            await updateUser(token, userStatus.userId, { favorite_drink_id: item.id } as any);
+            await updateUser(token, String(userStatus.userId), { favorite_drink_id: item.id } as any);
         } catch (err) {
             console.error('Failed to save drink:', err);
         }

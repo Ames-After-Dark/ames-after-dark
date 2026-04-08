@@ -22,7 +22,7 @@ router.get('/me', checkJwt, userController.getCurrentUser);       // Read curren
 router.get('/', checkJwt, userController.getUsers);               // Read all (Dev only)
 router.get('/:userId/friends', checkJwt, userController.getUserFriends);
 router.get('/:id', checkJwt, userController.getUserById);  // Read one
-router.put('/:id', userController.updateUserLimited);   // Update
+router.put('/:id', checkJwt, userController.updateUserLimited);   // Update
 
 router.get('/profile/favorite-drinks', userController.getUserProfileFavoriteDrinkOptions);
 router.get('/profile/favorite-drinks/:id', userController.getUserProfileFavoriteDrinkOptionsById);

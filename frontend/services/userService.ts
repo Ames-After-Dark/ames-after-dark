@@ -174,6 +174,9 @@ export interface UpdateUserPayload {
   username?: string;
   bio?: string;
   email?: string;
+  favorite_drink_id?: number;
+  favorite_profile_location_id?: number;
+  profile_photo_id?: number;
 }
 
 export const updateUser = async (
