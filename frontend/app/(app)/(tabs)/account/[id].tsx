@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -39,6 +40,7 @@ export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
+    const { goBack } = useNavigationHistory();
 
     const isMe = useMemo(() => {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
@@ -309,8 +311,8 @@ export default function FriendProfileScreen() {
                     headerTintColor: Theme.dark.white, // Ensure back button is white
                     headerLeft: () => (
                         <TouchableOpacity
-                            onPress={() => router.back()}
-                            style={{ marginLeft: 10, marginTop: 10 }} // Adjust for spacing
+                            onPress={() => goBack()}
+                            style={{ marginLeft: 10, marginTop: 10 }}
                         >
                             <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
                         </TouchableOpacity>
@@ -380,7 +382,7 @@ export default function FriendProfileScreen() {
 
             {!isMe && (
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={() => goBack()}
                     style={[styles.backButton, { top: insets.top + 10 }]}
                 >
                     <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />

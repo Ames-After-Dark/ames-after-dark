@@ -9,7 +9,7 @@ import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
 
-import { DRINK_OPTIONS, getDrinkById, ProfileAsset } from '@/constants/profileAssets';
+import { DRINK_OPTIONS, getDrinkById, ProfileAsset } from '@/utils/profileAssets';
 import { getBarAssets } from '@/utils/bar-assets';
 import { apiFetch } from '@/services/apiClient';
 
