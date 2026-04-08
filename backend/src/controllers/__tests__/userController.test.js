@@ -9,6 +9,7 @@ jest.mock('../../services/userService', () => ({
   getUserFriends: jest.fn(),
   isUsernameAvailable: jest.fn(),
   getUsernameByAuth0Id: jest.fn(),
+  getUserRolesByAuth0Id: jest.fn(),
 }));
 
 jest.mock('../../services/validationService', () => ({
@@ -34,15 +35,28 @@ const createRes = () => {
 describe('userController', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test('getUsers returns JSON list', async () => {
+  test('getUsers returns JSON list for developer', async () => {
     const sample = [{ id: 1 }];
     userService.getUsers.mockResolvedValue(sample);
+    userService.getUserRolesByAuth0Id.mockResolvedValue({ roles: { name: 'developer' } });
 
+    const req = { auth: { payload: { sub: 'auth0|dev1' } } };
     const res = createRes();
-    await userController.getUsers({}, res);
+    await userController.getUsers(req, res);
 
     expect(userService.getUsers).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(sample);
+  });
+
+  test('getUsers returns 403 for non-developer', async () => {
+    userService.getUserRolesByAuth0Id.mockResolvedValue({ roles: { name: 'user' } });
+
+    const req = { auth: { payload: { sub: 'auth0|user1' } } };
+    const res = createRes();
+    await userController.getUsers(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Insufficient permissions' });
   });
 
   test('getUserById handles invalid id with 400', async () => {
@@ -56,8 +70,12 @@ describe('userController', () => {
   });
 
   test('getUserById returns 404 when not found', async () => {
+    userService.getUserByAuth0Id.mockResolvedValue({ id: 3 });
     userService.getUserById.mockResolvedValue(null);
-    const req = { params: { id: '3' } };
+    const req = {
+      params: { id: '3' },
+      auth: { payload: { sub: 'auth0|test' } }
+    };
     const res = createRes();
 
     await userController.getUserById(req, res);
@@ -71,7 +89,7 @@ describe('userController', () => {
     test('updates user with valid fields', async () => {
       const updatedUser = { id: 1, username: 'newname', email: 'new@email.com', bio: 'new bio' };
       userService.updateUserLimited = jest.fn().mockResolvedValue(updatedUser);
-      
+
       const req = {
         params: { id: '1' },
         body: { username: 'newname', email: 'new@email.com', bio: 'new bio' }
@@ -119,7 +137,7 @@ describe('userController', () => {
     test('returns friends list', async () => {
       const friends = [{ id: 2, username: 'friend1' }, { id: 3, username: 'friend2' }];
       userService.getUserFriends = jest.fn().mockResolvedValue(friends);
-      
+
       const req = { params: { userId: '1' } };
       const res = createRes();
 
@@ -131,7 +149,7 @@ describe('userController', () => {
 
     test('handles service errors', async () => {
       userService.getUserFriends = jest.fn().mockRejectedValue(new Error('DB Error'));
-      
+
       const req = { params: { userId: '1' } };
       const res = createRes();
 
@@ -170,7 +188,7 @@ describe('userController - Auth0 endpoints', () => {
 
     test('returns requiresRegistration when user not in DB', async () => {
       userService.getUserByAuth0Id.mockResolvedValue(null);
-      
+
       const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
@@ -195,7 +213,7 @@ describe('userController - Auth0 endpoints', () => {
         username: 'testuser'
       };
       userService.getUserByAuth0Id.mockResolvedValue(user);
-      
+
       const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
@@ -229,7 +247,7 @@ describe('userController - Auth0 endpoints', () => {
         username: 'testuser'
       };
       userService.getUserByAuth0Id.mockResolvedValue(user);
-      
+
       const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
@@ -263,7 +281,7 @@ describe('userController - Auth0 endpoints', () => {
         username: 'testuser'
       };
       userService.getUserByAuth0Id.mockResolvedValue(user);
-      
+
       const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
@@ -277,7 +295,7 @@ describe('userController - Auth0 endpoints', () => {
 
     test('handles service errors gracefully', async () => {
       userService.getUserByAuth0Id.mockRejectedValue(new Error('DB Error'));
-      
+
       const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
@@ -307,7 +325,7 @@ describe('userController - Auth0 endpoints', () => {
         body: { birthday: '2000-01-15', username: 'testuser', name: 'Test' }
       };
       const res = createRes();
-      
+
       userService.getUserByAuth0Id.mockResolvedValue(null);
 
       await userController.completeUserRegistration(req, res);
@@ -330,7 +348,7 @@ describe('userController - Auth0 endpoints', () => {
         body: { phoneNumber: '123-456-7890', username: 'testuser', name: 'Test' }
       };
       const res = createRes();
-      
+
       userService.getUserByAuth0Id.mockResolvedValue(null);
 
       await userController.completeUserRegistration(req, res);
@@ -355,7 +373,7 @@ describe('userController - Auth0 endpoints', () => {
           birthday: 'You must be at least 21 years old to register'
         }
       });
-      
+
       userService.getUserByAuth0Id.mockResolvedValue(null);
 
       const req = {
@@ -392,10 +410,10 @@ describe('userController - Auth0 endpoints', () => {
         email: 'test@example.com'
       }
       userService.getUserByAuth0Id.mockResolvedValue(existingUser);
-      
+
       userService.updateUser.mockResolvedValue({
-          ...existingUser,
-          name: 'Updated Name',
+        ...existingUser,
+        name: 'Updated Name',
       });
 
       const req = {
@@ -427,7 +445,7 @@ describe('userController - Auth0 endpoints', () => {
       });
       userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue(null);
-      
+
       const newUser = {
         id: 10,
         auth0_id: 'auth0|123456',
@@ -441,7 +459,7 @@ describe('userController - Auth0 endpoints', () => {
       userSettingService.createUserSettings.mockResolvedValue({});
 
       const req = {
-        auth: { 
+        auth: {
           sub: 'auth0|123456',
           email: 'test@example.com',
           name: 'Test Token Name'
@@ -481,7 +499,7 @@ describe('userController - Auth0 endpoints', () => {
       });
       userService.isUsernameAvailable.mockResolvedValue(true);
       userService.getUserByAuth0Id.mockResolvedValue(null);
-      
+
       const newUser = {
         id: 11,
         auth0_id: 'auth0|789012',
@@ -524,7 +542,7 @@ describe('userController - Auth0 endpoints', () => {
       });
       userService.getUserByAuth0Id.mockResolvedValue(null);
       userService.isUsernameAvailable.mockResolvedValue(true);
-      
+
       const duplicateError = new Error('Unique constraint failed');
       duplicateError.code = 'P2002';
       duplicateError.meta = { target: ['email'] };

@@ -87,7 +87,7 @@ export async function getUserFriends(token: string): Promise<Friend[]> {
   }
 }
 
-export async function searchUsers(query: string, excludeUserId?: string | number): Promise<Friend[]> {
+export async function searchUsers(token: string, query: string, excludeUserId?: string | number): Promise<Friend[]> {
   try {
     const trimmed = query.trim();
     if (!trimmed) return [];
@@ -97,7 +97,7 @@ export async function searchUsers(query: string, excludeUserId?: string | number
       ? `&excludeUserId=${encodeURIComponent(String(excludeUserId))}`
       : '';
 
-    const results = await apiFetch(`/users?search=${searchParam}${excludeParam}`);
+    const results = await apiFetchAuth(`/users/search?search=${searchParam}${excludeParam}`, token);
     if (!Array.isArray(results)) return [];
 
     return results.map((user: any) => ({
@@ -113,12 +113,44 @@ export async function searchUsers(query: string, excludeUserId?: string | number
   }
 }
 
-export async function getUserById(userId: string | number) {
+export async function getUserById(token: string, userId: string | number) {
   try {
-    const user = await apiFetch(`/users/${userId}`);
+    const user = await apiFetchAuth(`/users/${userId}`, token);
     return user;
   } catch (error) {
     console.error(`Failed to fetch user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function getCurrentUser(token: string) {
+  try {
+    const user = await apiFetchAuth(`/users/me`, token);
+    return user;
+  } catch (error) {
+    console.error(`Failed to fetch current user:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Creates basic user profile internally during registration.
+ * This is separate from Auth0 registration and is used to initialize
+ * the user profile in our database.
+ */
+export async function createUserProfile(token: string, profileData: {
+  username: string;
+  bio?: string;
+  email?: string;
+}): Promise<{ id: number }> {
+  try {
+    const response = await apiFetchAuth(`/users`, token, {
+      method: 'POST',
+      body: JSON.stringify(profileData),
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to create user profile:', error);
     throw error;
   }
 }
@@ -135,6 +167,7 @@ export interface UpdateUserPayload {
 }
 
 export const updateUser = async (
+  token: string,
   userId: string | number,
   updates: UpdateUserPayload
 ) => {
@@ -144,11 +177,8 @@ export const updateUser = async (
   );
 
   // Call apiFetch (it should already handle JSON + errors)
-  const data = await apiFetch(`/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  const data = await apiFetchAuth(`/users/${userId}`, token, {
+    method: "PUT",
     body: JSON.stringify(filteredUpdates),
   });
 

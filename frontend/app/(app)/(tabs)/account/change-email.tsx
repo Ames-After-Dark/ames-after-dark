@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { Stack, router } from "expo-router";
 
-import { getUserById, updateUser } from "@/services/userService";
+import { getCurrentUser, updateUser } from "@/services/userService";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ChangeEmailScreen() {
   const [email, setEmail] = useState("");
@@ -19,8 +20,8 @@ export default function ChangeEmailScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Replace with real auth user ID later
-  const currentUserId = 10;
+  const { userStatus, getAccessToken } = useAuth();
+  const currentUserId = userStatus?.userId;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -28,7 +29,10 @@ export default function ChangeEmailScreen() {
         setLoading(true);
         setError(null);
 
-        const user = await getUserById(currentUserId);
+        const token = await getAccessToken();
+        if (!currentUserId || !token) return;
+
+        const user = await getCurrentUser(token);
 
         const fetchedEmail = user?.email ?? "";
 
@@ -41,7 +45,9 @@ export default function ChangeEmailScreen() {
       }
     };
 
-    fetchUser();
+    if (currentUserId) {
+      fetchUser();
+    }
   }, [currentUserId]);
 
   const validateEmail = (value: string): string | null => {
@@ -75,7 +81,10 @@ export default function ChangeEmailScreen() {
       setSaving(true);
       setError(null);
 
-      await updateUser(currentUserId, { email: normalizedEmail });
+      const token = await getAccessToken();
+      if (!currentUserId || !token) return;
+
+      await updateUser(token, currentUserId, { email: normalizedEmail });
 
       // Update local state after successful save
       setOriginalEmail(normalizedEmail);

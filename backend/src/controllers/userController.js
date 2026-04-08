@@ -6,13 +6,56 @@ const authService = require('../services/authService');
 // GET /api/users
 exports.getUsers = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const users = await userService.getUsers();
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/search
+exports.searchUsers = async (req, res) => {
+  try {
     const search = req.query?.search?.toString();
     const excludeUserId = req.query?.excludeUserId ? parseInt(req.query.excludeUserId, 10) : undefined;
-    const users = search
-      ? await userService.searchUsers(search, excludeUserId)
-      : await userService.getUsers();
 
+    if (!search || !search.trim()) {
+      return res.json([]);
+    }
+
+    const users = await userService.searchUsers(search, excludeUserId);
     res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/me
+exports.getCurrentUser = async (req, res) => {
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
+  try {
+    const user = await userService.getUserByAuth0Id(authId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -24,9 +67,25 @@ exports.getUserById = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
     const user = await userService.getUserById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Determine if the requested user is the authenticated user
+    const dbUser = await userService.getUserByAuth0Id(authId);
+    const isSelf = dbUser && dbUser.id === id;
+
+    // Filter out sensitive data if the user is viewing someone else's profile
+    if (!isSelf) {
+      delete user.email;
+      delete user.phone_number;
+      delete user.auth0_id;
+      // We can also delete other sensitive fields here if needed
+    }
+
     res.json(user);
   } catch (err) {
     console.error(err);
@@ -618,7 +677,7 @@ exports.getUserProfilePhotoOptionsById = async (req, res) => {
 };
 
 // DELETE /api/users/auth/account
-// Delete a user from both our DB and Auth0. Protected endpoint (requires Auth0 JWT)
+// Delete a user from both our DB and Auth0.
 exports.deleteAccount = async (req, res) => {
   try {
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
