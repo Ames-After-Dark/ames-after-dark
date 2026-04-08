@@ -32,7 +32,7 @@ function BarPickerModal({ visible, selectedName, bars, onSelect, onClose }: BarP
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={pickerStyles.overlay}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={pickerStyles.sheet}>
                             <View style={pickerStyles.header}>
                                 <Text style={pickerStyles.title}>Choose Favorite Bar</Text>
@@ -85,7 +85,7 @@ function ImagePickerModal({ visible, options, selectedId, onSelect, onClose }: I
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={pickerStyles.overlay}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={pickerStyles.sheet}>
                             <View style={pickerStyles.header}>
                                 <Text style={pickerStyles.title}>Choose Favorite Drink</Text>
@@ -190,7 +190,7 @@ function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrin
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={zoomStyles.overlay}>
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={zoomStyles.card}>
                             {/* Pink X close button */}
                             <TouchableOpacity style={zoomStyles.closeBtn} onPress={onClose}>
@@ -317,7 +317,7 @@ const zoomStyles = StyleSheet.create({
 // PROFILE GRID
 // ─────────────────────────────────────────────────────────────────────────────
 export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boolean; isEditing?: boolean }) => {
-    const { userStatus } = useAuth();
+    const { userStatus, getAccessToken } = useAuth();
 
     const [selectedDrink, setSelectedDrink] = useState<ProfileAsset>(() => getDrinkById(user?.favorite_drink_id));
     const [isDrinkPickerVisible, setDrinkPickerVisible] = useState(false);
@@ -368,7 +368,9 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         setFavBarLocationId(bar.id);
         if (!userStatus?.userId) return;
         try {
-            await updateUser(userStatus.userId, { favorite_profile_location_id: bar.id } as any);
+            const token = await getAccessToken();
+            if (!token) return;
+            await updateUser(token, userStatus.userId, { favorite_profile_location_id: bar.id } as any);
         } catch (err) {
             console.error('Failed to save fav bar:', err);
         }
@@ -408,7 +410,9 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
         setSelectedDrink(item);
         if (!userStatus?.userId) return;
         try {
-            await updateUser(userStatus.userId, { favorite_drink_id: item.id } as any);
+            const token = await getAccessToken();
+            if (!token) return;
+            await updateUser(token, userStatus.userId, { favorite_drink_id: item.id } as any);
         } catch (err) {
             console.error('Failed to save drink:', err);
         }

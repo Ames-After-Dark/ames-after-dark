@@ -20,7 +20,7 @@ router.delete('/auth/cancel-registration', checkJwt, userController.cancelRegist
 router.get('/search', checkJwt, userController.searchUsers);      // Search users
 router.get('/me', checkJwt, userController.getCurrentUser);       // Read current user
 router.get('/', checkJwt, userController.getUsers);               // Read all (Dev only)
-router.get('/:userId/friends', userController.getUserFriends);
+router.get('/:userId/friends', checkJwt, userController.getUserFriends);
 router.get('/:id', checkJwt, userController.getUserById);  // Read one
 router.put('/:id', userController.updateUserLimited);   // Update
 

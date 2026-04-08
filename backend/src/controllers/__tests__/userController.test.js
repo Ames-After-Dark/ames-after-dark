@@ -86,15 +86,28 @@ describe('userController', () => {
   });
 
   describe('updateUserLimited', () => {
-    test('updates user with valid fields', async () => {
-      const updatedUser = { id: 1, username: 'newname', email: 'new@email.com', bio: 'new bio' };
-      userService.updateUserLimited = jest.fn().mockResolvedValue(updatedUser);
+    let req, res;
 
-      const req = {
-        params: { id: '1' },
-        body: { username: 'newname', email: 'new@email.com', bio: 'new bio' }
+    beforeEach(() => {
+      req = {
+        params: {},
+        body: {},
+        auth: {}
       };
-      const res = createRes();
+      res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      };
+    });
+
+    it('updates user with valid fields', async () => {
+      req.params = { id: '1' };
+      req.auth = { payload: { sub: 'auth1' } };
+      req.body = { username: 'newname', email: 'new@email.com', bio: 'new bio' };
+      const updatedUser = { id: 1, username: 'newname', email: 'new@email.com', bio: 'new bio' };
+
+      userService.updateUserLimited = jest.fn().mockResolvedValue(updatedUser);
+      userService.getUserByAuth0Id = jest.fn().mockResolvedValue({ id: 1, auth0_id: 'auth1' });
 
       await userController.updateUserLimited(req, res);
 
@@ -106,12 +119,12 @@ describe('userController', () => {
       expect(res.json).toHaveBeenCalledWith(updatedUser);
     });
 
-    test('returns 400 when no valid fields provided', async () => {
-      const req = {
-        params: { id: '1' },
-        body: { invalidField: 'value' }
-      };
-      const res = createRes();
+    it('returns 400 when no valid fields provided', async () => {
+      req.params = { id: '1' };
+      req.auth = { payload: { sub: 'auth1' } };
+      req.body = { foo: 'bar' };
+
+      userService.getUserByAuth0Id = jest.fn().mockResolvedValue({ id: 1, auth0_id: 'auth1' });
 
       await userController.updateUserLimited(req, res);
 
@@ -119,12 +132,32 @@ describe('userController', () => {
       expect(res.json).toHaveBeenCalledWith({ message: 'No valid fields to update' });
     });
 
-    test('returns 400 for invalid id', async () => {
-      const req = {
-        params: { id: 'invalid' },
-        body: { username: 'test' }
-      };
-      const res = createRes();
+    it('returns 401 when no valid token provided', async () => {
+      req.params = { id: '1' };
+      req.body = { username: 'newname' };
+
+      await userController.updateUserLimited(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Missing authentication token' });
+    });
+
+    it('returns 403 when updating another user\'s profile', async () => {
+      req.params = { id: '2' };
+      req.auth = { payload: { sub: 'auth1' } };
+      req.body = { username: 'newname' };
+
+      userService.getUserByAuth0Id = jest.fn().mockResolvedValue({ id: 1, auth0_id: 'auth1' });
+
+      await userController.updateUserLimited(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Cannot update another user\'s profile' });
+    });
+
+    it('returns 400 for invalid ID', async () => {
+      req.params = { id: 'abc' };
+      req.body = { username: 'newname' };
 
       await userController.updateUserLimited(req, res);
 
@@ -135,10 +168,14 @@ describe('userController', () => {
 
   describe('getUserFriends', () => {
     test('returns friends list', async () => {
-      const friends = [{ id: 2, username: 'friend1' }, { id: 3, username: 'friend2' }];
-      userService.getUserFriends = jest.fn().mockResolvedValue(friends);
+      const friends = [{ id: 2 }];
+      userService.getUserFriends.mockResolvedValue(friends);
+      userService.getUserByAuth0Id.mockResolvedValue({ id: 1 });
 
-      const req = { params: { userId: '1' } };
+      const req = {
+        params: { userId: '1' },
+        auth: { payload: { sub: 'auth0|test' } }
+      };
       const res = createRes();
 
       await userController.getUserFriends(req, res);
@@ -148,9 +185,13 @@ describe('userController', () => {
     });
 
     test('handles service errors', async () => {
-      userService.getUserFriends = jest.fn().mockRejectedValue(new Error('DB Error'));
+      userService.getUserFriends.mockRejectedValue(new Error('DB Error'));
+      userService.getUserByAuth0Id.mockResolvedValue({ id: 1 });
 
-      const req = { params: { userId: '1' } };
+      const req = {
+        params: { userId: '1' },
+        auth: { payload: { sub: 'auth0|test' } }
+      };
       const res = createRes();
 
       await userController.getUserFriends(req, res);
@@ -158,432 +199,447 @@ describe('userController', () => {
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ message: 'Internal server error' });
     });
-  });
-});
 
-describe('userController - Auth0 endpoints', () => {
-  beforeEach(() => jest.clearAllMocks());
+    test('returns 403 when requesting someone elses friends', async () => {
+      userService.getUserByAuth0Id.mockResolvedValue({ id: 2 }); // Auth ID matches user 2
 
-  const createRes = () => {
-    const res = {};
-    res.status = jest.fn(() => res);
-    res.json = jest.fn(() => res);
-    res.send = jest.fn(() => res);
-    return res;
-  };
-
-  describe('checkUserStatus', () => {
-    test('returns not registered when no auth0 ID in request', async () => {
-      const req = { auth: {} };
-      const res = createRes();
-
-      await userController.checkUserStatus(req, res);
-
-      expect(res.json).toHaveBeenCalledWith({
-        registered: false,
-        profileComplete: false,
-        requiresRegistration: true
-      });
-    });
-
-    test('returns requiresRegistration when user not in DB', async () => {
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-
-      const req = { auth: { sub: 'auth0|123456' } };
-      const res = createRes();
-
-      await userController.checkUserStatus(req, res);
-
-      expect(userService.getUserByAuth0Id).toHaveBeenCalledWith('auth0|123456');
-      expect(res.json).toHaveBeenCalledWith({
-        registered: false,
-        profileComplete: false,
-        requiresRegistration: true
-      });
-    });
-
-    test('returns profileComplete true when user has all data', async () => {
-      const user = {
-        id: 1,
-        uid: 'auth0|123456',
-        phone_number: '123-456-7890',
-        birthday: new Date('2000-01-15'),
-        email: 'test@example.com',
-        name: 'Test User',
-        username: 'testuser'
+      const req = {
+        params: { userId: '1' }, // Requesting friends of user 1
+        auth: { payload: { sub: 'auth0|test' } }
       };
-      userService.getUserByAuth0Id.mockResolvedValue(user);
-
-      const req = { auth: { sub: 'auth0|123456' } };
       const res = createRes();
 
-      await userController.checkUserStatus(req, res);
+      await userController.getUserFriends(req, res);
 
-      expect(res.json).toHaveBeenCalledWith({
-        registered: true,
-        profileComplete: true,
-        requiresRegistration: false,
-        userId: 1,
-        user: {
-          id: 1,
-          email: 'test@example.com',
-          name: 'Test User',
-          hasPhoneNumber: true,
-          hasBirthday: true,
-          hasUsername: true,
-          hasName: true
-        }
-      });
-    });
-
-    test('returns profileComplete false when missing phone number', async () => {
-      const user = {
-        id: 1,
-        uid: 'auth0|123456',
-        phone_number: null,
-        birthday: new Date('2000-01-15'),
-        email: 'test@example.com',
-        name: 'Test User',
-        username: 'testuser'
-      };
-      userService.getUserByAuth0Id.mockResolvedValue(user);
-
-      const req = { auth: { sub: 'auth0|123456' } };
-      const res = createRes();
-
-      await userController.checkUserStatus(req, res);
-
-      expect(res.json).toHaveBeenCalledWith({
-        registered: true,
-        profileComplete: false,
-        requiresRegistration: true,
-        userId: 1,
-        user: {
-          id: 1,
-          email: 'test@example.com',
-          name: 'Test User',
-          hasPhoneNumber: false,
-          hasBirthday: true,
-          hasUsername: true,
-          hasName: true
-        }
-      });
-    });
-
-    test('returns profileComplete false when missing birthday', async () => {
-      const user = {
-        id: 1,
-        uid: 'auth0|123456',
-        phone_number: '123-456-7890',
-        birthday: null,
-        email: 'test@example.com',
-        name: 'Test User',
-        username: 'testuser'
-      };
-      userService.getUserByAuth0Id.mockResolvedValue(user);
-
-      const req = { auth: { sub: 'auth0|123456' } };
-      const res = createRes();
-
-      await userController.checkUserStatus(req, res);
-
-      const call = res.json.mock.calls[0][0];
-      expect(call.profileComplete).toBe(false);
-      expect(call.requiresRegistration).toBe(true);
-      expect(call.user.hasBirthday).toBe(false);
-    });
-
-    test('handles service errors gracefully', async () => {
-      userService.getUserByAuth0Id.mockRejectedValue(new Error('DB Error'));
-
-      const req = { auth: { sub: 'auth0|123456' } };
-      const res = createRes();
-
-      await userController.checkUserStatus(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Internal server error' })
-      );
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Can only access your own friends list' });
     });
   });
 
-  describe('completeUserRegistration', () => {
-    test('returns 401 when no auth0 ID', async () => {
-      const req = { auth: {}, body: {} };
-      const res = createRes();
+  describe('userController - Auth0 endpoints', () => {
+    beforeEach(() => jest.clearAllMocks());
 
-      await userController.completeUserRegistration(req, res);
+    const createRes = () => {
+      const res = {};
+      res.status = jest.fn(() => res);
+      res.json = jest.fn(() => res);
+      res.send = jest.fn(() => res);
+      return res;
+    };
 
-      expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
-    });
+    describe('checkUserStatus', () => {
+      test('returns not registered when no auth0 ID in request', async () => {
+        const req = { auth: {} };
+        const res = createRes();
 
-    test('returns 400 when missing phone number', async () => {
-      const req = {
-        auth: { sub: 'auth0|123456' },
-        body: { birthday: '2000-01-15', username: 'testuser', name: 'Test' }
-      };
-      const res = createRes();
+        await userController.checkUserStatus(req, res);
 
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Phone number, birthday, username, and name are required',
-        errors: {
-          phoneNumber: 'Phone number is required',
-          birthday: undefined,
-          username: undefined,
-          name: undefined
-        }
-      });
-    });
-
-    test('returns 400 when missing birthday', async () => {
-      const req = {
-        auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890', username: 'testuser', name: 'Test' }
-      };
-      const res = createRes();
-
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Phone number, birthday, username, and name are required',
-        errors: {
-          phoneNumber: undefined,
-          birthday: 'Birthday is required',
-          username: undefined,
-          name: undefined
-        }
-      });
-    });
-
-    test('returns 400 when validation fails', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: false,
-        errors: {
-          phoneNumber: 'Phone number must be 10-11 digits',
-          birthday: 'You must be at least 21 years old to register'
-        }
+        expect(res.json).toHaveBeenCalledWith({
+          registered: false,
+          profileComplete: false,
+          requiresRegistration: true
+        });
       });
 
-      userService.getUserByAuth0Id.mockResolvedValue(null);
+      test('returns requiresRegistration when user not in DB', async () => {
+        userService.getUserByAuth0Id.mockResolvedValue(null);
 
-      const req = {
-        auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123', birthday: '2010-01-01', username: 'test', name: 'Test' }
-      };
-      const res = createRes();
+        const req = { auth: { sub: 'auth0|123456' } };
+        const res = createRes();
 
-      await userController.completeUserRegistration(req, res);
+        await userController.checkUserStatus(req, res);
 
-      expect(validationService.validateUserRegistrationData).toHaveBeenCalledWith('123', '2010-01-01', 'test', 'Test', false);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Validation failed',
-        errors: {
-          phoneNumber: 'Phone number must be 10-11 digits',
-          birthday: 'You must be at least 21 years old to register'
-        }
-      });
-    });
-
-    test('returns 409 when user already exists', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: true,
-        errors: null
-      });
-      userService.isUsernameAvailable.mockResolvedValue(true);
-      const existingUser = {
-        id: 1,
-        uid: 'auth0|123456',
-        phone_number: '123-456-7890',
-        birthday: new Date('2000-01-15'),
-        username: 'testuser',
-        email: 'test@example.com'
-      }
-      userService.getUserByAuth0Id.mockResolvedValue(existingUser);
-
-      userService.updateUser.mockResolvedValue({
-        ...existingUser,
-        name: 'Updated Name',
+        expect(userService.getUserByAuth0Id).toHaveBeenCalledWith('auth0|123456');
+        expect(res.json).toHaveBeenCalledWith({
+          registered: false,
+          profileComplete: false,
+          requiresRegistration: true
+        });
       });
 
-      const req = {
-        auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Updated Name' }
-      };
-      const res = createRes();
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Profile completed successfully',
-        user: {
+      test('returns profileComplete true when user has all data', async () => {
+        const user = {
           id: 1,
+          uid: 'auth0|123456',
+          phone_number: '123-456-7890',
+          birthday: new Date('2000-01-15'),
           email: 'test@example.com',
-          name: 'Updated Name',
-          phoneNumber: '123-456-7890',
-          birthday: existingUser.birthday,
+          name: 'Test User',
           username: 'testuser'
-        }
+        };
+        userService.getUserByAuth0Id.mockResolvedValue(user);
+
+        const req = { auth: { sub: 'auth0|123456' } };
+        const res = createRes();
+
+        await userController.checkUserStatus(req, res);
+
+        expect(res.json).toHaveBeenCalledWith({
+          registered: true,
+          profileComplete: true,
+          requiresRegistration: false,
+          userId: 1,
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            name: 'Test User',
+            hasPhoneNumber: true,
+            hasBirthday: true,
+            hasUsername: true,
+            hasName: true
+          }
+        });
       });
-    });
 
-    test('successfully creates user with all data', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: true,
-        errors: null
-      });
-      userService.isUsernameAvailable.mockResolvedValue(true);
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-
-      const newUser = {
-        id: 10,
-        auth0_id: 'auth0|123456',
-        username: 'testuser',
-        phone_number: '123-456-7890',
-        birthday: new Date('2000-01-15'),
-        email: 'test@example.com',
-        name: 'Test User'
-      };
-      userService.createUserWithAuth0.mockResolvedValue(newUser);
-      userSettingService.createUserSettings.mockResolvedValue({});
-
-      const req = {
-        auth: {
-          sub: 'auth0|123456',
-          email: 'test@example.com',
-          name: 'Test Token Name'
-        },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
-      };
-      const res = createRes();
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(userService.createUserWithAuth0).toHaveBeenCalledWith({
-        auth0Id: 'auth0|123456',
-        phoneNumber: '123-456-7890',
-        birthday: '2000-01-15',
-        username: 'testuser',
-        email: 'test@example.com',
-        name: 'Test User'
-      });
-      expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Registration completed successfully',
-        user: {
-          id: 10,
+      test('returns profileComplete false when missing phone number', async () => {
+        const user = {
+          id: 1,
+          uid: 'auth0|123456',
+          phone_number: null,
+          birthday: new Date('2000-01-15'),
           email: 'test@example.com',
           name: 'Test User',
+          username: 'testuser'
+        };
+        userService.getUserByAuth0Id.mockResolvedValue(user);
+
+        const req = { auth: { sub: 'auth0|123456' } };
+        const res = createRes();
+
+        await userController.checkUserStatus(req, res);
+
+        expect(res.json).toHaveBeenCalledWith({
+          registered: true,
+          profileComplete: false,
+          requiresRegistration: true,
+          userId: 1,
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            name: 'Test User',
+            hasPhoneNumber: false,
+            hasBirthday: true,
+            hasUsername: true,
+            hasName: true
+          }
+        });
+      });
+
+      test('returns profileComplete false when missing birthday', async () => {
+        const user = {
+          id: 1,
+          uid: 'auth0|123456',
+          phone_number: '123-456-7890',
+          birthday: null,
+          email: 'test@example.com',
+          name: 'Test User',
+          username: 'testuser'
+        };
+        userService.getUserByAuth0Id.mockResolvedValue(user);
+
+        const req = { auth: { sub: 'auth0|123456' } };
+        const res = createRes();
+
+        await userController.checkUserStatus(req, res);
+
+        const call = res.json.mock.calls[0][0];
+        expect(call.profileComplete).toBe(false);
+        expect(call.requiresRegistration).toBe(true);
+        expect(call.user.hasBirthday).toBe(false);
+      });
+
+      test('handles service errors gracefully', async () => {
+        userService.getUserByAuth0Id.mockRejectedValue(new Error('DB Error'));
+
+        const req = { auth: { sub: 'auth0|123456' } };
+        const res = createRes();
+
+        await userController.checkUserStatus(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'Internal server error' })
+        );
+      });
+    });
+
+    describe('completeUserRegistration', () => {
+      test('returns 401 when no auth0 ID', async () => {
+        const req = { auth: {}, body: {} };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
+      });
+
+      test('returns 400 when missing phone number', async () => {
+        const req = {
+          auth: { sub: 'auth0|123456' },
+          body: { birthday: '2000-01-15', username: 'testuser', name: 'Test' }
+        };
+        const res = createRes();
+
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'Phone number, birthday, username, and name are required',
+          errors: {
+            phoneNumber: 'Phone number is required',
+            birthday: undefined,
+            username: undefined,
+            name: undefined
+          }
+        });
+      });
+
+      test('returns 400 when missing birthday', async () => {
+        const req = {
+          auth: { sub: 'auth0|123456' },
+          body: { phoneNumber: '123-456-7890', username: 'testuser', name: 'Test' }
+        };
+        const res = createRes();
+
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'Phone number, birthday, username, and name are required',
+          errors: {
+            phoneNumber: undefined,
+            birthday: 'Birthday is required',
+            username: undefined,
+            name: undefined
+          }
+        });
+      });
+
+      test('returns 400 when validation fails', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: false,
+          errors: {
+            phoneNumber: 'Phone number must be 10-11 digits',
+            birthday: 'You must be at least 21 years old to register'
+          }
+        });
+
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+
+        const req = {
+          auth: { sub: 'auth0|123456' },
+          body: { phoneNumber: '123', birthday: '2010-01-01', username: 'test', name: 'Test' }
+        };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(validationService.validateUserRegistrationData).toHaveBeenCalledWith('123', '2010-01-01', 'test', 'Test', false);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'Validation failed',
+          errors: {
+            phoneNumber: 'Phone number must be 10-11 digits',
+            birthday: 'You must be at least 21 years old to register'
+          }
+        });
+      });
+
+      test('returns 409 when user already exists', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        userService.isUsernameAvailable.mockResolvedValue(true);
+        const existingUser = {
+          id: 1,
+          uid: 'auth0|123456',
+          phone_number: '123-456-7890',
+          birthday: new Date('2000-01-15'),
           username: 'testuser',
-          phoneNumber: '123-456-7890',
-          birthday: newUser.birthday
+          email: 'test@example.com'
         }
+        userService.getUserByAuth0Id.mockResolvedValue(existingUser);
+
+        userService.updateUser.mockResolvedValue({
+          ...existingUser,
+          name: 'Updated Name',
+        });
+
+        const req = {
+          auth: { sub: 'auth0|123456' },
+          body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Updated Name' }
+        };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'Profile completed successfully',
+          user: {
+            id: 1,
+            email: 'test@example.com',
+            name: 'Updated Name',
+            phoneNumber: '123-456-7890',
+            birthday: existingUser.birthday,
+            username: 'testuser'
+          }
+        });
       });
-    });
 
-    test('successfully creates user with minimal data', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: true,
-        errors: null
+      test('successfully creates user with all data', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        userService.isUsernameAvailable.mockResolvedValue(true);
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+
+        const newUser = {
+          id: 10,
+          auth0_id: 'auth0|123456',
+          username: 'testuser',
+          phone_number: '123-456-7890',
+          birthday: new Date('2000-01-15'),
+          email: 'test@example.com',
+          name: 'Test User'
+        };
+        userService.createUserWithAuth0.mockResolvedValue(newUser);
+        userSettingService.createUserSettings.mockResolvedValue({});
+
+        const req = {
+          auth: {
+            sub: 'auth0|123456',
+            email: 'test@example.com',
+            name: 'Test Token Name'
+          },
+          body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
+        };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(userService.createUserWithAuth0).toHaveBeenCalledWith({
+          auth0Id: 'auth0|123456',
+          phoneNumber: '123-456-7890',
+          birthday: '2000-01-15',
+          username: 'testuser',
+          email: 'test@example.com',
+          name: 'Test User'
+        });
+        expect(res.status).toHaveBeenCalledWith(201);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'Registration completed successfully',
+          user: {
+            id: 10,
+            email: 'test@example.com',
+            name: 'Test User',
+            username: 'testuser',
+            phoneNumber: '123-456-7890',
+            birthday: newUser.birthday
+          }
+        });
       });
-      userService.isUsernameAvailable.mockResolvedValue(true);
-      userService.getUserByAuth0Id.mockResolvedValue(null);
 
-      const newUser = {
-        id: 11,
-        auth0_id: 'auth0|789012',
-        email: null,
-        phone_number: '555-123-4567',
-        birthday: '1995-06-20',
-        username: 'minimaluser',
-        name: 'minimal'
-      };
-      userService.createUserWithAuth0.mockResolvedValue(newUser);
-      userSettingService.createUserSettings.mockResolvedValue({});
+      test('successfully creates user with minimal data', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        userService.isUsernameAvailable.mockResolvedValue(true);
+        userService.getUserByAuth0Id.mockResolvedValue(null);
 
-      const req = {
-        auth: { sub: 'auth0|789012' },
-        body: { phoneNumber: '555-123-4567', birthday: '1995-06-20', username: 'minimaluser', name: 'minimal' }
-      };
-      const res = createRes();
+        const newUser = {
+          id: 11,
+          auth0_id: 'auth0|789012',
+          email: null,
+          phone_number: '555-123-4567',
+          birthday: '1995-06-20',
+          username: 'minimaluser',
+          name: 'minimal'
+        };
+        userService.createUserWithAuth0.mockResolvedValue(newUser);
+        userSettingService.createUserSettings.mockResolvedValue({});
 
-      await userController.completeUserRegistration(req, res);
+        const req = {
+          auth: { sub: 'auth0|789012' },
+          body: { phoneNumber: '555-123-4567', birthday: '1995-06-20', username: 'minimaluser', name: 'minimal' }
+        };
+        const res = createRes();
 
-      expect(userService.createUserWithAuth0).toHaveBeenCalledWith({
-        auth0Id: 'auth0|789012',
-        phoneNumber: '555-123-4567',
-        birthday: '1995-06-20',
-        username: 'minimaluser',
-        email: null,
-        name: 'minimal'
+        await userController.completeUserRegistration(req, res);
+
+        expect(userService.createUserWithAuth0).toHaveBeenCalledWith({
+          auth0Id: 'auth0|789012',
+          phoneNumber: '555-123-4567',
+          birthday: '1995-06-20',
+          username: 'minimaluser',
+          email: null,
+          name: 'minimal'
+        });
+        expect(res.status).toHaveBeenCalledWith(201);
       });
-      expect(res.status).toHaveBeenCalledWith(201);
-    });
 
-    test('handles duplicate email error (P2002)', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: true,
-        errors: null
+      test('handles duplicate email error (P2002)', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        validationService.validateUsername.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+        userService.isUsernameAvailable.mockResolvedValue(true);
+
+        const duplicateError = new Error('Unique constraint failed');
+        duplicateError.code = 'P2002';
+        duplicateError.meta = { target: ['email'] };
+        userService.createUserWithAuth0.mockRejectedValue(duplicateError);
+
+        const req = {
+          auth: { sub: 'auth0|123456', email: 'duplicate@example.com' },
+          body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
+        };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(409);
+        expect(res.json).toHaveBeenCalledWith({
+          message: 'User with this information already exists',
+          field: ['email']
+        });
       });
-      validationService.validateUsername.mockReturnValue({
-        valid: true,
-        errors: null
+
+      test('handles general service errors', async () => {
+        validationService.validateUserRegistrationData.mockReturnValue({
+          valid: true,
+          errors: null
+        });
+        userService.isUsernameAvailable.mockResolvedValue(true);
+        userService.getUserByAuth0Id.mockResolvedValue(null);
+        userService.createUserWithAuth0.mockRejectedValue(new Error('DB Connection Failed'));
+
+        const req = {
+          auth: { sub: 'auth0|123456' },
+          body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
+        };
+        const res = createRes();
+
+        await userController.completeUserRegistration(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'Internal server error' })
+        );
       });
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-      userService.isUsernameAvailable.mockResolvedValue(true);
-
-      const duplicateError = new Error('Unique constraint failed');
-      duplicateError.code = 'P2002';
-      duplicateError.meta = { target: ['email'] };
-      userService.createUserWithAuth0.mockRejectedValue(duplicateError);
-
-      const req = {
-        auth: { sub: 'auth0|123456', email: 'duplicate@example.com' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
-      };
-      const res = createRes();
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'User with this information already exists',
-        field: ['email']
-      });
-    });
-
-    test('handles general service errors', async () => {
-      validationService.validateUserRegistrationData.mockReturnValue({
-        valid: true,
-        errors: null
-      });
-      userService.isUsernameAvailable.mockResolvedValue(true);
-      userService.getUserByAuth0Id.mockResolvedValue(null);
-      userService.createUserWithAuth0.mockRejectedValue(new Error('DB Connection Failed'));
-
-      const req = {
-        auth: { sub: 'auth0|123456' },
-        body: { phoneNumber: '123-456-7890', birthday: '2000-01-15', username: 'testuser', name: 'Test User' }
-      };
-      const res = createRes();
-
-      await userController.completeUserRegistration(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Internal server error' })
-      );
     });
   });
 });

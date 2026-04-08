@@ -80,7 +80,17 @@ export async function removeFriend(token: string, friendId: string | number) {
 export async function getUserFriends(token: string): Promise<Friend[]> {
   try {
     const friends = await apiFetchAuth(`/friendships/friends`, token);
-    return Array.isArray(friends) ? friends : [];
+
+    if (!Array.isArray(friends)) return [];
+
+    // Map the returned database fields into the Friend frontend format
+    return friends.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || undefined,
+      bio: user.bio,
+      avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
+    }));
   } catch (error) {
     console.error(`Failed to fetch friends:`, error);
     throw error;

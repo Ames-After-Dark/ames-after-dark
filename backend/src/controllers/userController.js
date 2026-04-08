@@ -71,20 +71,17 @@ exports.getUserById = async (req, res) => {
   if (!authId) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
-    const user = await userService.getUserById(id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Determine if the requested user is the authenticated user
     const dbUser = await userService.getUserByAuth0Id(authId);
     const isSelf = dbUser && dbUser.id === id;
 
-    // Filter out sensitive data if the user is viewing someone else's profile
-    if (!isSelf) {
-      delete user.email;
-      delete user.phone_number;
-      delete user.auth0_id;
-      // We can also delete other sensitive fields here if needed
+    let user;
+    if (isSelf) {
+      user = await userService.getUserById(id);
+    } else {
+      user = await userService.getPublicUserById(id);
     }
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
   } catch (err) {
@@ -95,7 +92,15 @@ exports.getUserById = async (req, res) => {
 
 exports.getUserFriends = async (req, res) => {
   const userId = req.params.userId;
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
+    const dbUser = await userService.getUserByAuth0Id(authId);
+    if (!dbUser || dbUser.id !== parseInt(userId, 10)) {
+      return res.status(403).json({ message: 'Forbidden: Can only access your own friends list' });
+    }
+
     const friends = await userService.getUserFriends(userId);
     res.json(friends);
   } catch (err) {
@@ -109,21 +114,32 @@ exports.updateUserLimited = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
-  // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
-  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
-  const updateData = {};
-  if (username !== undefined) updateData.username = username;
-  if (email !== undefined) updateData.email = email;
-  if (bio !== undefined) updateData.bio = bio;
-  if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
-  if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
-  if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
-
-  if (Object.keys(updateData).length === 0) {
-    return res.status(400).json({ message: 'No valid fields to update' });
-  }
-
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Missing authentication token' });
+    }
+
+    const requestingUser = await userService.getUserByAuth0Id(authId);
+    if (!requestingUser || requestingUser.id !== id) {
+      return res.status(403).json({ message: 'Forbidden: Cannot update another user\'s profile' });
+    }
+
+    // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through th
+    // is endpoint
+    const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
+    const updateData = {};
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) updateData.email = email;
+    if (bio !== undefined) updateData.bio = bio;
+    if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
+    if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
+    if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
+
     const updatedUser = await userService.updateUserLimited(id, updateData);
     res.json(updatedUser);
   } catch (err) {
