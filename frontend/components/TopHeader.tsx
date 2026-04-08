@@ -23,9 +23,8 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const isAccountPath = pathname.startsWith('/account');
+  const isGalleryPath = pathname.startsWith('/gallery');
 
-  // Header visibility is fully controlled by the `visible` prop passed from the tab layout.
-  // canGoBack / path-based hiding is handled per-slot below, not at the container level.
   const effectiveVisible = visible;
 
   React.useEffect(() => {
@@ -76,9 +75,9 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
     >
       <View style={styles.content}>
 
-        {/* Left slot — back button when there's history, otherwise spacer */}
+        {/* Left slot — back button when there's history, hidden on gallery pages */}
         <View style={{ width: 24, alignItems: 'center' }}>
-          {canGoBack && (
+          {canGoBack && !isGalleryPath && (
             <TouchableOpacity
               onPress={goBack}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
