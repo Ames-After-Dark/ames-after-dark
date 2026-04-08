@@ -4,7 +4,7 @@ import { useAuth } from './use-auth';
 
 export function useFavorites() {
 
-    const { currentUser } = useAuth();
+    const { currentUser, getAccessToken } = useAuth();
     const USER_ID = currentUser?.id ? Number(currentUser.id) : null;
 
     const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -48,13 +48,15 @@ export function useFavorites() {
         setFavorites(prev => ({ ...prev, [idStr]: !prev[idStr] }));
 
         try {
+            const token = await getAccessToken();
+            if (!token) return;
 
-            const result = await favoriteService.toggleFavorite(USER_ID, idNum);
+            const result = await favoriteService.toggleFavorite(token, idNum);
             setFavorites(prev => ({ ...prev, [idStr]: result.favorited }));
         } catch (error) {
-            setFavorites(prev => ({ ...prev, [idStr]: !prev[idStr] }));
+            setFavorites((prev: Record<string, boolean>) => ({ ...prev, [idStr]: !prev[idStr] }));
         }
-    }, [USER_ID]);
+    }, [USER_ID, getAccessToken]);
 
     const isFavorited = (locationId: number | string) => !!favorites[String(locationId)];
 

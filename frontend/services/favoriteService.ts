@@ -1,4 +1,4 @@
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiFetchAuth } from "./apiClient";
 
 export interface FavoriteRecord {
     location_id: number;
@@ -13,10 +13,10 @@ export const favoriteService = {
         return responseData;
     },
 
-    toggleFavorite: async (userId: number, locationId: number): Promise<{ favorited: boolean }> => {
-        const result = await apiFetch(`/userfavorites/toggle`, {
+    toggleFavorite: async (token: string, locationId: number): Promise<{ favorited: boolean }> => {
+        const result = await apiFetchAuth(`/userfavorites/toggle`, token, {
             method: 'POST',
-            body: JSON.stringify({ userId, locationId }),
+            body: JSON.stringify({ locationId }),
         });
         return result;
     }
