@@ -198,7 +198,7 @@ function TabLayoutInner() {
         options={{
           title: "Account",
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-          tabBarIconStyle: { marginTop: 6 },
+          // tabBarIconStyle: { marginTop: 6 },
         }}
         listeners={() => ({
           tabPress: (e) => {
