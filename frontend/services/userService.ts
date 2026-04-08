@@ -430,10 +430,9 @@ export const toggleGhostMode = async (currentUserId: number, token: string, isGh
 
   return Promise.all(
     allFriends.map((friend) =>
-      apiFetch(`/userlocations/permissions/${friend.id}`, {
+      apiFetchAuth(`/userlocations/permissions/${friend.id}`, token, {
         method: 'POST',
         body: JSON.stringify({
-          ownerId: currentUserId,
           enabled: nextVisibility,
         }),
       })

@@ -4,6 +4,7 @@ import MapView, { Marker, Circle } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from '@/hooks/use-auth';
 
 // Context & Services
 import { useUser } from '@/context/user-context';
@@ -30,9 +31,13 @@ const ZOOM_THRESHOLD = 0.005;
 const GHOST_MODE_DURATION_HOURS = 1;
 
 export default function MapScreen() {
+    const { getAccessToken } = useAuth();
     const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
+
+    const currentUserId = user?.id ? Number(user.id) : undefined;
+
     const mapRef = useRef<MapView>(null);
     const ghostModeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const { selectedId, selectedFriendId } = useLocalSearchParams<{ selectedId?: string; selectedFriendId?: string }>();
@@ -45,8 +50,6 @@ export default function MapScreen() {
     const [isGhostModeLoading, setIsGhostModeLoading] = useState(false);
     const [mapReady, setMapReady] = useState(false);
     const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
-
-    const currentUserId = user?.id;
 
     // --- Data Hooks ---
     const { locations, isLoading, error } = useMapLocations();
@@ -161,7 +164,10 @@ export default function MapScreen() {
         setIsGhostModeEnabled(nextGhostValue);
 
         try {
-            const result = await UserLocationService.setGhostMode(currentUserId, hours);
+            const token = await getAccessToken();
+            if (!token) return;
+
+            const result = await UserLocationService.setGhostMode(token, hours);
             const expiresAt = result?.ghost_mode_expires_at;
 
             if (ghostModeTimeoutRef.current) {
