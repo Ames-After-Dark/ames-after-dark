@@ -126,7 +126,7 @@ export default function FriendProfileScreen() {
 
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
                 getUserById(token, id),
-                getUserFriends(id),
+                getUserFriends(token),
                 isMe ? Promise.resolve([]) : getMutualFriends(token, id),
                 isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
             ]);
