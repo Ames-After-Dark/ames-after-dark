@@ -16,9 +16,12 @@ jest.mock('../../services/validationService', () => ({
   validateUsername: jest.fn(),
 }));
 
-const userService = require('../../services/userService');
-const validationService = require('../../services/validationService');
+jest.mock('../../services/userSettingService');
+
 const userController = require('../userController');
+const userService = require('../../services/userService');
+const userSettingService = require('../../services/userSettingService');
+const validationService = require('../../services/validationService');
 
 const createRes = () => {
   const res = {};
@@ -427,7 +430,7 @@ describe('userController - Auth0 endpoints', () => {
       
       const newUser = {
         id: 10,
-        uid: 'auth0|123456',
+        auth0_id: 'auth0|123456',
         username: 'testuser',
         phone_number: '123-456-7890',
         birthday: new Date('2000-01-15'),
@@ -435,6 +438,7 @@ describe('userController - Auth0 endpoints', () => {
         name: 'Test User'
       };
       userService.createUserWithAuth0.mockResolvedValue(newUser);
+      userSettingService.createUserSettings.mockResolvedValue({});
 
       const req = {
         auth: { 
@@ -480,14 +484,15 @@ describe('userController - Auth0 endpoints', () => {
       
       const newUser = {
         id: 11,
-        uid: 'auth0|789012',
-        username: 'minimaluser',
-        phone_number: '555-123-4567',
-        birthday: new Date('1995-06-20'),
+        auth0_id: 'auth0|789012',
         email: null,
+        phone_number: '555-123-4567',
+        birthday: '1995-06-20',
+        username: 'minimaluser',
         name: 'minimal'
       };
       userService.createUserWithAuth0.mockResolvedValue(newUser);
+      userSettingService.createUserSettings.mockResolvedValue({});
 
       const req = {
         auth: { sub: 'auth0|789012' },

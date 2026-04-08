@@ -18,6 +18,7 @@ import {
     getMutualFriends,
     getRecommendedFriends,
     getPendingFriendRequests,
+    searchUsers,
     updateBioByAuth,
 } from '@/services/userService';
 import { apiFetch } from '@/services/apiClient';
@@ -122,12 +123,14 @@ export default function FriendProfileScreen() {
         setError(null);
 
         try {
+            const token = await getAccessToken();
+            if (!token) throw new Error("No token available");
 
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
                 getUserById(id),
-                getUserFriends(id),
-                isMe ? Promise.resolve([]) : getMutualFriends(userStatus.userId, id),
-                isMe ? getPendingFriendRequests(userStatus.userId) : Promise.resolve([]),
+                getUserFriends(token),
+                isMe ? Promise.resolve([]) : getMutualFriends(token, id),
+                isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
             ]);
 
             const formattedPending = (pendingRequestsData || []).map(req => {
@@ -152,7 +155,7 @@ export default function FriendProfileScreen() {
 
             if (isMe) {
 
-                const recs = await getRecommendedFriends(userStatus.userId);
+                const recs = await getRecommendedFriends(token);
                 setRecommendedFriends(recs || []);
 
                 setRelationship({
@@ -162,7 +165,7 @@ export default function FriendProfileScreen() {
                     receivedRequest: false,
                 });
             } else {
-                const myFriends = await getUserFriends(userStatus.userId);
+                const myFriends = await getUserFriends(token);
                 const isFriend = myFriends.some(f => f.id.toString() === id);
                 const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
                 const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
@@ -229,7 +232,6 @@ export default function FriendProfileScreen() {
             if (status === 'STRANGER' || isRecommendedAdd) {
 
                 await handleAdd(
-                    myId,
                     friendId,
                     () => {
                         triggerToast(`Friend request sent to ${targetName}`);
@@ -241,18 +243,18 @@ export default function FriendProfileScreen() {
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
 
             if (status === 'BLOCKED') {
-                await handleUnblock(myId, friendId, fetchProfile);
+                await handleUnblock(friendId, fetchProfile);
             }
         } else if (type === 'respond') {
             setIsRespondModalVisible(true);
         } else if (type === 'accept' || type === 'decline') {
-            await handlePendingDecision(myId, friendId, type, fetchProfile);
+            await handlePendingDecision(friendId, type, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'block') {
-            handleConfirmBlock(myId, friendId, user.name, fetchProfile);
+            handleConfirmBlock(friendId, user.name, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'remove') {
-            handleRemove(myId, friendId, targetName, fetchProfile);
+            handleRemove(friendId, targetName, fetchProfile);
         } else if (type === 'cancel') {
             Alert.alert(
                 "Cancel Request",
@@ -272,7 +274,7 @@ export default function FriendProfileScreen() {
                                 };
                             });
 
-                            await handleCancelRequest(myId, friendId, targetName, fetchProfile);
+                            await handleCancelRequest(friendId, targetName, fetchProfile);
                         }
                     }
                 ]
@@ -394,6 +396,11 @@ export default function FriendProfileScreen() {
                 recommendedData={recommendedFriends}
                 onClose={() => setModalConfig(prev => ({ ...prev, visible: false }))}
                 currentUserId={userStatus?.userId || null}
+                existingFriendIds={friends.map(friend => Number(friend.id))}
+                onSearch={async (query: string) => {
+                    if (!userStatus?.userId) return [];
+                    return await searchUsers(query, userStatus.userId);
+                }}
 
                 onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
                 onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}

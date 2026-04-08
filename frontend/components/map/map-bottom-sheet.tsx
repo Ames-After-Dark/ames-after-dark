@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, Animated, PanResponder, Dimensions
 import { Theme } from '@/constants/theme';
 import { formatLastActive } from '@/utils/location-utils';
 import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { BarLocation, FriendLocation, GroupLocation } from '@/types/locations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -64,13 +64,6 @@ export const MapBottomSheet = ({
     const selfSubtitle = isSelf(location)
         ? (location.atBarName ? `You are currently at ${location.atBarName}` : 'You are not currently at a tracked bar')
         : '';
-    // const title = isFriend(location)
-    //     ? location.name
-    //     : isGroup(location)
-    //         ? `${location.friends.length} Friends`
-    //         : isSelf(location)
-    //             ? 'You'
-    //             : location?.name;
 
     const title = isFriend(location)
         ? location.name
@@ -87,13 +80,6 @@ export const MapBottomSheet = ({
             : isSelf(location)
                 ? selfSubtitle
                 : location?.hours;
-    // const displayImage = isFriend(location)
-    //     ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=7b61ff&color=fff` }
-    //     : isSelf(location)
-    //         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=00EAFF&color=fff` }
-    //         : isGroup(location)
-    //             ? location.bar.logo
-    //             : location?.logo;
 
     const displayImage = (isFriend(location) || isSelf(location))
         ? { uri: location.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(location.name)}&background=${isSelf(location) ? '00EAFF' : '7b61ff'}&color=fff` }
@@ -115,6 +101,27 @@ export const MapBottomSheet = ({
             },
         })
     ).current;
+
+    const [previousGroup, setPreviousGroup] = React.useState<GroupLocation | null>(null);
+    useEffect(() => {
+
+        if (previousGroup) {
+            const isFriendFromPreviousGroup =
+                isFriend(location) &&
+                previousGroup.friends.some(friend => friend.id === location.id);
+            if (!isFriendFromPreviousGroup) {
+                setPreviousGroup(null);
+            }
+        }
+
+    }, [location, previousGroup]);
+
+    const handleBack = () => {
+        if (previousGroup) {
+            onSelectLocation(previousGroup);
+            setPreviousGroup(null);
+        }
+    };
 
     useEffect(() => {
         Animated.spring(slideAnim, {
@@ -145,6 +152,13 @@ export const MapBottomSheet = ({
                 </View>
 
                 <View style={styles.sheetHeader}>
+                    {/* Only show if coming from a group */}
+                    {previousGroup && isFriend(location) && (
+                        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color="#FFF" />
+                        </TouchableOpacity>
+                    )}
+
                     <Image
                         source={displayImage}
                         style={[
@@ -170,7 +184,10 @@ export const MapBottomSheet = ({
                                 <TouchableOpacity
                                     key={f.id}
                                     style={styles.friendListRow}
-                                    onPress={() => onSelectLocation({ ...f, atBarName: location.bar.name })}
+                                    onPress={() => {
+                                        setPreviousGroup(location as GroupLocation);
+                                        onSelectLocation({ ...f, atBarName: location.bar.name });
+                                    }}
                                 >
                                     <Image
                                         source={{ uri: f.profile_pic_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=7b61ff&color=fff` }}
@@ -196,19 +213,6 @@ export const MapBottomSheet = ({
                         <Text style={styles.buttonText}>View {location.name}'s Profile</Text>
                     </TouchableOpacity>
                 ) : isSelf(location) ? (
-                    // <TouchableOpacity
-                    //     style={[styles.button, { backgroundColor: isGhostModeEnabled ? '#8B5CF6' : Theme.dark.accent, opacity: isGhostModeLoading ? 0.7 : 1 }]}
-                    //     onPress={onToggleGhostMode}
-                    //     disabled={isGhostModeLoading}
-                    // >
-                    //     <Text style={styles.buttonText}>
-                    //         {isGhostModeLoading
-                    //             ? 'Updating Ghost Mode...'
-                    //             : isGhostModeEnabled
-                    //                 ? 'Turn Ghost Mode Off'
-                    //                 : 'Turn Ghost Mode On'}
-                    //     </Text>
-                    // </TouchableOpacity>
                     <TouchableOpacity
                         style={[
                             styles.button,
@@ -300,6 +304,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: 2,
         borderColor: Theme.dark.primary,
+        marginLeft: 0,
     },
     friendAvatar: {
         borderRadius: 16,
@@ -375,5 +380,10 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         backgroundColor: '#222',
-    }
+    },
+    backButton: {
+        paddingRight: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

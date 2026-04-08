@@ -43,6 +43,8 @@ interface ProfileListModalProps {
     onDeclineRequest?: (id: number, name: string) => void;
     onCancelRequest?: (id: number, name: string) => void;
     onAddRecommended?: (id: number, name: string) => void;
+    onSearch?: (query: string) => Promise<any[]>;
+    existingFriendIds?: number[];
 }
 
 export const ProfileListModal = ({
@@ -57,20 +59,59 @@ export const ProfileListModal = ({
     onCancelRequest,
     onAcceptRequest,
     onDeclineRequest,
+    onSearch,
+    existingFriendIds = [],
 }: ProfileListModalProps) => {
     const [search, setSearch] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+    const isSearchActive = title === 'Friends' && search.trim().length > 0 && typeof onSearch === 'function';
+
+    useEffect(() => {
+        if (!onSearch || !isSearchActive) return;
+
+        const trimmed = search.trim();
+        if (trimmed.length === 0) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        let active = true;
+        setIsSearching(true);
+
+        onSearch(trimmed)
+            .then(results => {
+                if (!active) return;
+                setSearchResults(Array.isArray(results) ? results : []);
+            })
+            .catch(() => {
+                if (!active) return;
+                setSearchResults([]);
+            })
+            .finally(() => {
+                if (!active) return;
+                setIsSearching(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [search, onSearch, isSearchActive]);
 
     // logic to split and group the data
     const sections = useMemo(() => {
         const searchStr = search.toLowerCase();
 
-        // Filter based on search first
-        const filtered = data.filter(item => {
-            const name = (item.name || '').toLowerCase();
-            const username = (item.username || '').toLowerCase();
-            return name.includes(searchStr) || username.includes(searchStr);
-        });
+        const filtered = isSearchActive
+            ? searchResults
+            : data.filter(item => {
+                const name = (item.name || '').toLowerCase();
+                const username = (item.username || '').toLowerCase();
+                return name.includes(searchStr) || username.includes(searchStr);
+            });
 
         if (title !== 'Pending Requests') return filtered;
 
@@ -167,6 +208,8 @@ export const ProfileListModal = ({
         }
 
         const isOutgoing = item.type === 'SENT';
+        const isExistingFriend = existingFriendIds?.includes(Number(item.id));
+        const canAddSearchResult = title === 'Friends' && isSearchActive && onAddRecommended && Number(item.id) !== currentUserId && !isExistingFriend;
 
         return (
             <View style={styles.itemRow}>
@@ -187,7 +230,7 @@ export const ProfileListModal = ({
                     </View>
                 </TouchableOpacity>
 
-                {title === 'Pending Requests' && (
+                {title === 'Pending Requests' ? (
                     <View style={styles.actionGroup}>
                         {isOutgoing ? (
                             <TouchableOpacity
@@ -213,7 +256,19 @@ export const ProfileListModal = ({
                             </>
                         )}
                     </View>
-                )}
+                ) : canAddSearchResult ? (
+                    <TouchableOpacity
+                        style={[styles.addButton, actionLoadingId === Number(item.id) && styles.disabledButton]}
+                        onPress={() => onAddRecommended?.(Number(item.id), item.name || 'this user')}
+                        disabled={actionLoadingId === Number(item.id)}
+                    >
+                        {actionLoadingId === Number(item.id) ? (
+                            <ActivityIndicator size="small" color="white" />
+                        ) : (
+                            <Text style={styles.addButtonText}>Add</Text>
+                        )}
+                    </TouchableOpacity>
+                ) : null}
             </View>
         );
     };
@@ -256,6 +311,33 @@ export const ProfileListModal = ({
                         ListHeaderComponent={renderHeader}
                         renderItem={renderItem}
                         stickyHeaderIndices={title === 'Pending Requests' ? sections.map((item, index) => item.isHeader ? index : -1).filter(i => i !== -1) : []}
+                        ListEmptyComponent={() => {
+                            if (isSearching) {
+                                return (
+                                    <View style={{ paddingVertical: 40 }}>
+                                        <ActivityIndicator size="large" color={Theme.dark.primary} />
+                                    </View>
+                                );
+                            }
+
+                            if (isSearchActive) {
+                                return (
+                                    <View style={{ paddingVertical: 40 }}>
+                                        <Text style={styles.emptyText}>No users found.</Text>
+                                    </View>
+                                );
+                            }
+
+                            if (title === 'Friends' && recommendedData.length > 0) {
+                                return null;
+                            }
+
+                            return (
+                                <View style={{ paddingVertical: 40 }}>
+                                    <Text style={styles.emptyText}>No users found.</Text>
+                                </View>
+                            );
+                        }}
                     />
                 </Animated.View>
             </View>

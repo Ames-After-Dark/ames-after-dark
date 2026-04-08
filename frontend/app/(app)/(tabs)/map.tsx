@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { StyleSheet, View, Image } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Image, Text } from 'react-native';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -70,30 +70,44 @@ export default function MapScreen() {
 
     // 2. Initial Map Focus & User Location Sync
     useEffect(() => {
+        // Note: We still keep this check, but the logic inside the async IIFE is the real fix
         if (!hasPermission) return;
 
         let subscription: Location.LocationSubscription | null = null;
 
         (async () => {
+            try {
+                // RE-CHECK permissions explicitly before the heavy lifting
+                const { status } = await Location.getForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    console.warn("Permission not granted yet, skipping position fetch.");
+                    return;
+                }
 
-            // Get current pos once for initial zoom
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            setUserLocation(pos.coords);
+                // Now it's safe to call
+                const pos = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced
+                });
 
-            if (mapReady && !selectedId && !selectedFriendId) {
-                mapRef.current?.animateToRegion({
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
+                setUserLocation(pos.coords);
+
+                if (mapReady && !selectedId && !selectedFriendId) {
+                    mapRef.current?.animateToRegion({
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                    }, 1000);
+                }
+
+                // Watch for movement
+                subscription = await Location.watchPositionAsync(
+                    { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
+                    (loc) => setUserLocation(loc.coords)
+                );
+            } catch (err) {
+                console.error("Location fetch failed:", err);
             }
-
-            // Watch for movement
-            subscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
-                (loc) => setUserLocation(loc.coords)
-            );
         })();
 
         return () => subscription?.remove();
@@ -217,10 +231,13 @@ export default function MapScreen() {
     };
 
     useEffect(() => {
-        if (!mapReady || !selectedFriendId || !friends.length || !locations.length) return;
+        if (!mapReady || !selectedFriendId || !activeFriends.length || !locations.length) return;
 
-        const targetFriend = friends.find((friend) => String(friend.id) === selectedFriendId);
-        if (!targetFriend) return;
+        const targetFriend = activeFriends.find((friend) => String(friend.id) === selectedFriendId);
+        if (!targetFriend) {
+            setSelectedLocation(null);
+            return;
+        }
 
         const friendLoc = getFriendLocation(targetFriend);
         const latitude = Number(friendLoc?.latitude);
@@ -262,7 +279,7 @@ export default function MapScreen() {
                 { duration: 700 }
             );
         }
-    }, [friends, locations, mapReady, selectedFriendId]);
+    }, [activeFriends, locations, mapReady, selectedFriendId]);
 
     if (isLoading) return <MapSkeleton />;
     if (error || shouldForceErrorPage('map')) {
@@ -309,6 +326,54 @@ export default function MapScreen() {
                             locations={locations}
                             onSelectFriend={setSelectedLocation}
                         />
+
+                        <Circle
+                            // 42.0255627805003, -93.65721506480799
+                            center={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
+                            radius={200} // Meters
+                            fillColor="rgba(0, 234, 255, 0.1)"
+                            strokeColor="#00EAFF"
+                            strokeWidth={2}
+                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                        />
+
+                        <Marker
+                            key="coming-soon-ames"
+                            coordinate={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
+                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                        >
+                            <View style={styles.comingSoonBubble}>
+                                <View style={styles.comingSoonContent}>
+                                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                                </View>
+                                {/* The tail goes below the content to point at the map coordinate */}
+                                <View style={styles.comingSoonTail} />
+                            </View>
+                        </Marker>
+
+                        <Circle
+                            // 42.02550266479028, -93.61474917818076
+                            center={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
+                            radius={500} // Meters
+                            fillColor="rgba(0, 234, 255, 0.1)"
+                            strokeColor="#00EAFF"
+                            strokeWidth={2}
+                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                        />
+
+                        <Marker
+                            key="coming-soon-ames-main-street"
+                            coordinate={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
+                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                        >
+                            <View style={styles.comingSoonBubble}>
+                                <View style={styles.comingSoonContent}>
+                                    <Text style={styles.comingSoonText}>Coming Soon</Text>
+                                </View>
+                                {/* The tail goes below the content to point at the map coordinate */}
+                                <View style={styles.comingSoonTail} />
+                            </View>
+                        </Marker>
 
                         {userLocation && (
                             <Marker
@@ -387,5 +452,40 @@ const styles = StyleSheet.create({
         backgroundColor: '#00EAFF',
         opacity: 0.6,
         transform: [{ translateY: 5 }],
+    },
+    comingSoonBubble: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    comingSoonContent: {
+        backgroundColor: Theme.dark.background,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#00EAFF', // Match your user marker cyan
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    comingSoonText: {
+        color: '#00EAFF',
+        fontWeight: 'bold',
+        fontSize: 14,
+        textTransform: 'uppercase',
+    },
+    comingSoonTail: {
+        width: 0,
+        height: 0,
+        borderLeftWidth: 8,
+        borderRightWidth: 8,
+        borderTopWidth: 10,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: '#00EAFF',
+        marginBottom: -2, // Pulls the bubble down onto the tail
+        zIndex: 1,
     },
 });

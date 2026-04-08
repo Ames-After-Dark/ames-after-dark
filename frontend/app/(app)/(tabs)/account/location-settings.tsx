@@ -17,8 +17,10 @@ import { Friend } from '@/types/types';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { getUserFriends } from '@/services/userService';
 import ErrorState from '@/components/ui/error-state';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function LocationVisibilityScreen() {
+  const { user, getAccessToken } = useAuth();
   const [shareWithAll, setShareWithAll] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
@@ -32,8 +34,10 @@ export default function LocationVisibilityScreen() {
       setLoading(true);
       setError(null);
       try {
-        const currentUserId = 'YOUR_USER_ID'; // get this from auth context/state
-        const friendsData = await getUserFriends(currentUserId);
+        const token = await getAccessToken();
+        if (!token) return;
+
+        const friendsData = await getUserFriends(token);
         setFriends(friendsData || []);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch friends'));
@@ -42,17 +46,17 @@ export default function LocationVisibilityScreen() {
       }
     };
     fetchFriends();
-  }, []);
+  }, [getAccessToken]);
 
-  const filteredFriends = friends.filter((f) =>
+  const filteredFriends = friends.filter((f: Friend) =>
     (f.name || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const toggleFriendSelection = (id: string | number) => {
     const idString = String(id);
-    setSelectedFriends((prev) =>
+    setSelectedFriends((prev: string[]) =>
       prev.includes(idString)
-        ? prev.filter((fid) => fid !== idString)
+        ? prev.filter((fid: string) => fid !== idString)
         : [...prev, idString]
     );
   };
@@ -139,10 +143,10 @@ export default function LocationVisibilityScreen() {
           {filteredFriends.length > 0 ? (
             <FlatList
               data={filteredFriends}
-              keyExtractor={(item) => String(item.id)}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const selected = selectedFriends.includes(String(item.id));
+              keyExtractor={(item: Friend) => String(item.id)}
+              renderItem={({ item }: { item: Friend }) => {
+                const idString = String(item.id);
+                const selected = selectedFriends.includes(idString);
                 return (
                   <TouchableOpacity
                     style={[styles.friendItem, selected && styles.selectedFriend]}
