@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Text, RefreshControl, Linking, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { FontAwesome } from "@expo/vector-icons";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { fetchLocationById, MapLocation } from "@/services/locationService";
