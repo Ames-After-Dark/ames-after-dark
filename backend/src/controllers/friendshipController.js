@@ -192,16 +192,12 @@ exports.getPendingRequests = async (req, res) => {
 };
 
 exports.getRecommendedFriends = async (req, res) => {
-  const auth0Id = req.auth?.payload?.sub;
-  if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) return res.status(400).json({ message: 'Invalid userId' });
 
   const limit = parseInt(req.query.limit, 10) || 10;
 
   try {
-    const user = await userService.getUserByAuth0Id(auth0Id);
-    if (!user) return res.status(403).json({ message: 'Forbidden' });
-    const userId = user.id;
-
     const recommendations = await friendshipService.getRecommendedFriends(userId, limit);
 
     // Flatten the response to return just user objects with mutualCount

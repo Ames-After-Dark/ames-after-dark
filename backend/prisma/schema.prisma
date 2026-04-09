@@ -135,7 +135,7 @@ model users {
   name                                                       String?                @db.VarChar(255)
   birthday                                                   DateTime?              @db.Date
   favorite_profile_location_id                               Int?
-  favorite_drink_id                                          Int?
+  favorite_drink_id            Int?
   phone_number                                               String?                @db.VarChar(25)
   streak                                                     Int?                   @default(0)
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
@@ -307,17 +307,6 @@ model user_profile_photos {
   name      String   @unique @db.VarChar(100)
   image_url String   @db.VarChar(512)         // path
   users     users[]  // Back-relation
-
-  @@schema("app")
-}
-
-model banners {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique @db.VarChar(100)
-  image_url String   @db.VarChar(512)         // path
-  
-  events    events[]
-  deals     deals[]
 
   @@schema("app")
 }
