@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Animated, Easing } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { Theme } from "@/constants/theme";
-import { useAuth } from '@/hooks/use-auth';
 import { useNavigationHistory } from '@/context/NavigationHistoryContext';
+import { useLocalSearchParams } from 'expo-router';
+import { useFavorites } from '@/context/FavoritesContext';
 
-const HEADER_CONTENT_HEIGHT = 44;
 const HEADER_HEIGHT = 44;
 
 type TopHeaderProps = {
@@ -16,50 +16,36 @@ type TopHeaderProps = {
 
 export default function TopHeader({ visible = true }: TopHeaderProps) {
   const pathname = usePathname();
-  const { currentUser } = useAuth();
   const insets = useSafeAreaInsets();
   const { canGoBack, goBack } = useNavigationHistory();
-  const animatedVisibility = React.useRef(new Animated.Value(visible ? 1 : 0)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const params = useLocalSearchParams();
+  let id = params.id as string;
+
+  if (!id && pathname.startsWith('/bars/')) {
+    const parts = pathname.split('/');
+    id = parts[2];
+  }
+  const { isFavorited, toggleFavorite } = useFavorites();
+
+  // console.log('TopHeader - Pathname:', pathname);
+  // console.log('TopHeader - Bar ID param:', id);
 
   const isAccountPath = pathname.startsWith('/account');
   const isGalleryPath = pathname.startsWith('/gallery');
+  const isBarProfile = pathname.includes('/bars/') && id;
 
-  const effectiveVisible = visible;
-
-  React.useEffect(() => {
-    Animated.timing(animatedVisibility, {
-      toValue: effectiveVisible ? 1 : 0,
-      duration: effectiveVisible ? 240 : 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [animatedVisibility, effectiveVisible]);
-
-  const expandedHeight = insets.top + HEADER_CONTENT_HEIGHT;
-
-  const animatedHeight = animatedVisibility.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, expandedHeight],
-  });
-
-  const animatedOpacity = animatedVisibility.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
-
-  const animatedTranslateY = animatedVisibility.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-12, 0],
-  });
+  const barIdNumeric = id ? Number(id) : NaN;
+  const hasValidId = !isNaN(barIdNumeric);
 
   useEffect(() => {
     Animated.timing(slideAnim, {
-      toValue: effectiveVisible ? 0 : -(HEADER_HEIGHT + insets.top),
+      toValue: visible ? 0 : -(HEADER_HEIGHT + insets.top),
       duration: 250,
       useNativeDriver: true,
     }).start();
-  }, [effectiveVisible, insets.top]);
+  }, [visible, insets.top]);
 
   return (
     <Animated.View
@@ -71,23 +57,20 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
           transform: [{ translateY: slideAnim }]
         }
       ]}
-      pointerEvents={effectiveVisible ? 'auto' : 'none'}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
       <View style={styles.content}>
 
-        {/* Left slot — back button when there's history, hidden on gallery pages */}
-        <View style={{ width: 24, alignItems: 'center' }}>
+        {/* Left slot - back arrow */}
+        <View style={styles.slot}>
           {canGoBack && !isGalleryPath && (
-            <TouchableOpacity
-              onPress={goBack}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
+            <TouchableOpacity onPress={goBack} hitSlop={12}>
               <FontAwesome name="chevron-left" size={18} color={Theme.container.inactiveText} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Center — logo, tapping always goes to tonight */}
+        {/* Center - logo */}
         <TouchableOpacity onPress={() => router.push('/tonight' as any)} activeOpacity={1}>
           <Image
             source={require("../assets/images/LogoTopBar.png")}
@@ -96,13 +79,26 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
           />
         </TouchableOpacity>
 
-        {/* Right slot — gear icon on account pages */}
-        <View style={{ width: 24, alignItems: 'center' }}>
-          {isAccountPath && (
+        {/* Right slot - Conditional Rendering using Ternaries 
+                          account - gear for settings 
+                          individual bar profile - favorite button */}
+        <View style={styles.slot}>
+          {isBarProfile && hasValidId ? (
+            <TouchableOpacity
+              onPress={() => toggleFavorite(barIdNumeric)}
+              hitSlop={10}
+            >
+              <FontAwesome
+                name={isFavorited(barIdNumeric) ? "star" : "star-o"}
+                size={22}
+                color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.container.inactiveText}
+              />
+            </TouchableOpacity>
+          ) : isAccountPath ? (
             <TouchableOpacity onPress={() => router.push('/account/settings' as any)}>
               <FontAwesome name="gear" size={24} color={Theme.container.inactiveText} />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
 
       </View>
@@ -113,9 +109,7 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     backgroundColor: 'rgba(11, 12, 18, 1)',
     borderBottomWidth: 1,
     borderBottomColor: Theme.container.mainBorder,
@@ -128,9 +122,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
-  title: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+  slot: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 });
