@@ -31,7 +31,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: backend/node_modules
-          key: backend-${{ hashFiles('backend/package-lock.json') }}
+          key: backend-${{ hashFiles('backend/package-lock.json', 'backend/prisma/schema.prisma') }}
       - run: |
           cd backend
           npm install
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: backend/node_modules
-          key: backend-${{ hashFiles('backend/package-lock.json') }}
+          key: backend-${{ hashFiles('backend/package-lock.json', 'backend/prisma/schema.prisma') }}
       - run: cd backend && npm run lint
 
   test_frontend:
@@ -98,5 +98,5 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: backend/node_modules
-          key: backend-${{ hashFiles('backend/package-lock.json') }}
+          key: backend-${{ hashFiles('backend/package-lock.json', 'backend/prisma/schema.prisma') }}
       - run: cd backend && npm test
