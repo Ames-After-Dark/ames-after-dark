@@ -21,7 +21,6 @@ import {
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFavorites } from '@/context/FavoritesContext';
 
 export default function BarProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,8 +47,6 @@ export default function BarProfile() {
 
   const { bar, loading, refetch } = useBarDetail(id);
   const [refreshing, setRefreshing] = useState(false);
-  const { isFavorited, toggleFavorite } = useFavorites();
-  const barIdNumeric = Number(id);
   const insets = useSafeAreaInsets();
 
   // Height of the global TopHeader — must match TopHeader.tsx constants
@@ -188,18 +185,6 @@ export default function BarProfile() {
 
   return (
     <>
-      {/* Favorite button floats at the same level as TopHeader */}
-      <TouchableOpacity
-        onPress={() => toggleFavorite(barIdNumeric)}
-        style={[styles.favoriteButton, { top: insets.top + 10 }]}
-      >
-        <FontAwesome
-          name={isFavorited(barIdNumeric) ? "star" : "star-o"}
-          size={22}
-          color={isFavorited(barIdNumeric) ? Theme.dark.tertiary : Theme.dark.secondary}
-        />
-      </TouchableOpacity>
-
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 80 }}
@@ -286,11 +271,6 @@ const styles = StyleSheet.create({
     color: Theme.dark.white,
     fontWeight: "700",
     fontSize: 14
-  },
-  favoriteButton: {
-    position: 'absolute',
-    right: 16,
-    zIndex: 1001,
   },
   bottomRow: {
     flexDirection: "row",
