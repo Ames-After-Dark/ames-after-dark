@@ -127,7 +127,7 @@ export default function FriendProfileScreen() {
             if (!token) throw new Error("No token available");
 
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
-                getUserById(id),
+                getUserById(token, id),
                 getUserFriends(token),
                 isMe ? Promise.resolve([]) : getMutualFriends(token, id),
                 isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
@@ -398,8 +398,9 @@ export default function FriendProfileScreen() {
                 currentUserId={userStatus?.userId || null}
                 existingFriendIds={friends.map(friend => Number(friend.id))}
                 onSearch={async (query: string) => {
-                    if (!userStatus?.userId) return [];
-                    return await searchUsers(query, userStatus.userId);
+                    const token = await getAccessToken();
+                    if (!userStatus?.userId || !token) return [];
+                    return await searchUsers(token, query, userStatus.userId);
                 }}
 
                 onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}

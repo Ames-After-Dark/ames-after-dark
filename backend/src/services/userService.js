@@ -215,8 +215,26 @@ exports.getUserFriends = async (userId) => {
       // friendship_status_id: 2 // if 2 means "accepted"
     },
     include: {
-      users_friendships_user_id_1Tousers: true,
-      users_friendships_user_id_2Tousers: true
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          username: true,
+          profile_picture_url: true,
+          bio: true
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          username: true,
+          profile_picture_url: true,
+          bio: true
+        }
+      }
     }
   });
 
@@ -378,4 +396,38 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
     role: isAdmin,
     location_ids: manageableLocations
   };
+};
+
+exports.getPublicUserById = async (id) => {
+  return prisma.users.findUnique({
+    where: { id: Number(id) },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      username: true,
+      profile_picture_url: true,
+      bio: true,
+      favorite_drink_id: true,
+      favorite_profile_location_id: true,
+      roles: true,
+      user_settings: true,
+      user_favorite_locations: {
+        include: {
+          locations: {
+            include: {
+              location_types: true,
+              deals: true,
+              events: true,
+              location_hours: {
+                include: {
+                  weekdays: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
 };

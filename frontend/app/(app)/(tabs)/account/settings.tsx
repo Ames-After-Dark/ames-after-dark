@@ -36,24 +36,31 @@ const SettingsItem = ({ icon, text, onPress, color = Theme.dark.white, showArrow
 );
 
 export default function AccountSettingsScreen() {
-  const { signOut, user, username, userStatus } = useAuth();
+  const { signOut, user, username, userStatus, getAccessToken } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [fullUser, setFullUser] = useState<any>(null);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
 
   useEffect(() => {
-    const userId = userStatus?.userId;
-    if (!userId) return;
-    getUserById(String(userId))
-      .then((data) => {
+    const fetchUser = async () => {
+      const userId = userStatus?.userId;
+      if (!userId) return;
+
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+
+        const data = await getUserById(token, String(userId));
         setFullUser(data);
         setAvatarLoaded(true);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Settings: failed to load user', err);
         setAvatarLoaded(true); // still show fallback
-      });
+      }
+    };
+
+    fetchUser();
   }, [userStatus?.userId]);
 
   // getAvatarById always returns a valid asset (falls back to AVATAR_OPTIONS[0])

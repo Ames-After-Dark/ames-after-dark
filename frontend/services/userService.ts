@@ -80,14 +80,24 @@ export async function removeFriend(token: string, friendId: string | number) {
 export async function getUserFriends(token: string): Promise<Friend[]> {
   try {
     const friends = await apiFetchAuth(`/friendships/friends`, token);
-    return Array.isArray(friends) ? friends : [];
+
+    if (!Array.isArray(friends)) return [];
+
+    // Map the returned database fields into the Friend frontend format
+    return friends.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || undefined,
+      bio: user.bio,
+      avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
+    }));
   } catch (error) {
     console.error(`Failed to fetch friends:`, error);
     throw error;
   }
 }
 
-export async function searchUsers(query: string, excludeUserId?: string | number): Promise<Friend[]> {
+export async function searchUsers(token: string, query: string, excludeUserId?: string | number): Promise<Friend[]> {
   try {
     const trimmed = query.trim();
     if (!trimmed) return [];
@@ -97,7 +107,7 @@ export async function searchUsers(query: string, excludeUserId?: string | number
       ? `&excludeUserId=${encodeURIComponent(String(excludeUserId))}`
       : '';
 
-    const results = await apiFetch(`/users?search=${searchParam}${excludeParam}`);
+    const results = await apiFetchAuth(`/users/search?search=${searchParam}${excludeParam}`, token);
     if (!Array.isArray(results)) return [];
 
     return results.map((user: any) => ({
@@ -113,12 +123,44 @@ export async function searchUsers(query: string, excludeUserId?: string | number
   }
 }
 
-export async function getUserById(userId: string | number) {
+export async function getUserById(token: string, userId: string | number) {
   try {
-    const user = await apiFetch(`/users/${userId}`);
+    const user = await apiFetchAuth(`/users/${userId}`, token);
     return user;
   } catch (error) {
     console.error(`Failed to fetch user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function getCurrentUser(token: string) {
+  try {
+    const user = await apiFetchAuth(`/users/me`, token);
+    return user;
+  } catch (error) {
+    console.error(`Failed to fetch current user:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Creates basic user profile internally during registration.
+ * This is separate from Auth0 registration and is used to initialize
+ * the user profile in our database.
+ */
+export async function createUserProfile(token: string, profileData: {
+  username: string;
+  bio?: string;
+  email?: string;
+}): Promise<{ id: number }> {
+  try {
+    const response = await apiFetchAuth(`/users`, token, {
+      method: 'POST',
+      body: JSON.stringify(profileData),
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to create user profile:', error);
     throw error;
   }
 }
@@ -132,9 +174,13 @@ export interface UpdateUserPayload {
   username?: string;
   bio?: string;
   email?: string;
+  favorite_drink_id?: number;
+  favorite_profile_location_id?: number;
+  profile_photo_id?: number;
 }
 
 export const updateUser = async (
+  token: string,
   userId: string | number,
   updates: UpdateUserPayload
 ) => {
@@ -144,11 +190,8 @@ export const updateUser = async (
   );
 
   // Call apiFetch (it should already handle JSON + errors)
-  const data = await apiFetch(`/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  const data = await apiFetchAuth(`/users/${userId}`, token, {
+    method: "PUT",
     body: JSON.stringify(filteredUpdates),
   });
 
@@ -387,10 +430,9 @@ export const toggleGhostMode = async (currentUserId: number, token: string, isGh
 
   return Promise.all(
     allFriends.map((friend) =>
-      apiFetch(`/userlocations/permissions/${friend.id}`, {
+      apiFetchAuth(`/userlocations/permissions/${friend.id}`, token, {
         method: 'POST',
         body: JSON.stringify({
-          ownerId: currentUserId,
           enabled: nextVisibility,
         }),
       })
