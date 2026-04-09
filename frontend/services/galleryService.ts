@@ -45,21 +45,49 @@ function parseFolderDate(dateStr: string): Date | null {
  * Fetches albums from the backend & filters them using a 7-day rolling window
  * with a day-of-week override to ensure only most relevant albums are displayed
  */
-export async function getLatestWeekendAlbums(): Promise<Album[]> {
-  // Code below is used for Cloudflare R2 fetch, but currently disabled until Cloudflare is ready.
+export async function getLatestWeekAlbums(): Promise<Album[]> {
+  let rawAlbums: Album[] = [];
+
   try {
-    const url = `${BACKEND_URL}/api/r2/albums`;
+    const url = `${BACKEND_URL}/r2/albums`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
     });
 
     if (!res.ok) throw new Error(`Albums fetch failed: ${res.statusText}`);
     const albums: Album[] = await res.json();
-    if (albums && albums.length > 0) return albums;
+    if (albums && albums.length > 0) rawAlbums = albums;
   } catch (err) {
-    console.warn("Cloudflare fetch failed, falling back to SmugMug:", err);
+    console.error("Cloudflare albums fetch failed: ", err);
   }
-  return await fetchSmugmugAlbums();
+
+  if (!rawAlbums || rawAlbums.length === 0) return [];
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const latestPerBarAndDay = new Map<string, Album & { parsedDate: Date }>();
+
+  rawAlbums.forEach((album) => {
+    const d = parseFolderDate(album.date);
+    if (!d) return;
+    d.setHours(0, 0, 0, 0);
+
+    const diffTime = now.getTime() - d.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Only consider albums whose date is within the last 7 days (0–7 days ago)
+    if (diffDays >= 0 && diffDays <= 7) {
+      const dayOfWeek = d.getDay();
+      const key = `${album.barName}-${dayOfWeek}`; // e.g. "Sips-5" for Sips on Friday
+      // Overwrite if we find a NEWER album for this same bar & day
+      const existing = latestPerBarAndDay.get(key);
+      if (!existing || d.getTime() > existing.parsedDate.getTime()) {
+        latestPerBarAndDay.set(key, { ...album, parsedDate: d });
+      }
+    }
+  });
+  // Strip parsedDate and return clean array of standard Albums
+  return Array.from(latestPerBarAndDay.values()).map(({ parsedDate, ...album }) => album);
 }
 
 /**
@@ -68,7 +96,7 @@ export async function getLatestWeekendAlbums(): Promise<Album[]> {
  */
 export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
   try {
-    const url = `${BACKEND_URL}/api/r2/photos?prefix=${encodeURIComponent(albumUri)}`;
+    const url = `${BACKEND_URL}/r2/photos?prefix=${encodeURIComponent(albumUri)}`;
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
     });
@@ -77,7 +105,30 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
     const photos: Photo[] = await res.json();
     if (photos && photos.length > 0) return photos;
   } catch (err) {
-    console.warn("Cloudflare photos fetch failed, falling back to SmugMug:", err);
+    console.error("Cloudflare photos fetch failed: ", err);
   }
-  return await fetchSmugmugPhotos(albumUri);
+  return [];
+}
+
+/**
+ * Transforms a standard R2 public URL into a Cloudflare Image Resizing URL.
+ * Syntax: https://<DOMAIN>/cdn-cgi/image/<OPTIONS>/<IMAGE_PATH>
+ */
+export function getResizedImageUri(originalUri: string, width: number = 400): string {
+  const USE_RESIZING = false; // toggle in case Cloudflare resizing doesn't work / is not available by build time
+  if (!originalUri || !USE_RESIZING) return originalUri;
+
+  try {
+    const urlObj = new URL(originalUri);
+    if (urlObj.hostname.includes(`${RAW_DOMAIN}`) || urlObj.hostname.includes("r2.cloudflarestorage.com")) {
+      // Extracts the path after the domain
+      const imagePath = urlObj.pathname;
+      // quality=80 and format=auto will drastically reduce file size for grid photos
+      return `${IMAGE_DOMAIN}/cdn-cgi/image/width=${width},quality=80,format=auto${imagePath}`;
+    }
+  } catch (err) {
+    // Ignore if invalid
+  }
+
+  return originalUri;
 }
