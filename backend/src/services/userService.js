@@ -294,7 +294,7 @@ exports.createUserWithAuth0 = async (userData) => {
 /**
  * Check if a username is already taken
  * @param {string} username - The username to check
- * @returns {Promise<boolean} True if username is available, false if taken
+ * @returns {Promise<boolean>} True if username is available, false if taken
  */
 exports.isUsernameAvailable = async (username) => {
   const user = await prisma.users.findFirst({
