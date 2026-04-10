@@ -212,20 +212,18 @@ describe('userService', () => {
           users_friendships_user_id_1Tousers: {
             select: {
               id: true,
+              name: true,
               username: true,
-              first_name: true,
-              last_name: true,
-              profile_picture_url: true,
+              profile_photo: true,
               bio: true
             }
           },
           users_friendships_user_id_2Tousers: {
             select: {
               id: true,
+              name: true,
               username: true,
-              first_name: true,
-              last_name: true,
-              profile_picture_url: true,
+              profile_photo: true,
               bio: true
             }
           }
@@ -260,20 +258,18 @@ describe('userService', () => {
           users_friendships_user_id_1Tousers: {
             select: {
               id: true,
+              name: true,
               username: true,
-              first_name: true,
-              last_name: true,
-              profile_picture_url: true,
+              profile_photo: true,
               bio: true
             }
           },
           users_friendships_user_id_2Tousers: {
             select: {
               id: true,
+              name: true,
               username: true,
-              first_name: true,
-              last_name: true,
-              profile_picture_url: true,
+              profile_photo: true,
               bio: true
             }
           }
