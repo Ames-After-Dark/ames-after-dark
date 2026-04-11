@@ -236,7 +236,7 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                 )}
 
                 <View style={styles.infoContainer}>
-                    <View style={styles.nameRow}>
+                    {/* <View style={styles.nameRow}>
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
                         {isMe && (
                             isEditing ? (
@@ -245,7 +245,14 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                                 </TouchableOpacity>
                             ) : null
                         )}
+                    </View> */}
+
+                    <View style={styles.nameRow}>
+                        <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
+                            {user?.name || 'Loading...'}
+                        </Text>
                     </View>
+
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
                     {shouldShowStats && (
                         <View style={styles.statsRow}>

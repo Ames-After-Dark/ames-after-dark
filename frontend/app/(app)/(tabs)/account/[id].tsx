@@ -28,6 +28,8 @@ import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileActions } from '@/components/profile/ProfileActions';
 import { ProfileListModal } from '@/components/profile/ProfileListModal';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
+import TopHeader from '@/components/TopHeader';
+import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 
 export default function FriendProfileScreen() {
 
@@ -41,6 +43,7 @@ export default function FriendProfileScreen() {
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
     const { goBack } = useNavigationHistory();
+    const { setTopHeaderVisible } = useTopHeaderVisibility();
 
     const isMe = useMemo(() => {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
@@ -75,6 +78,11 @@ export default function FriendProfileScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [isBioModalVisible, setIsBioModalVisible] = useState(false);
     const [bioText, setBioText] = useState('');
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        fetchProfile();
+    };
 
     const [modalConfig, setModalConfig] = useState({
         visible: false,
@@ -190,6 +198,13 @@ export default function FriendProfileScreen() {
     }, [id, isMe]);
 
     useEffect(() => {
+        // This screen renders its own TopHeader with edit controls.
+        // Hide the tab-level header to avoid overlapping/competing headers.
+        setTopHeaderVisible(false);
+        return () => setTopHeaderVisible(true);
+    }, [setTopHeaderVisible]);
+
+    useEffect(() => {
         if (!modalConfig.visible) return;
 
         if (modalConfig.title === 'Friends') {
@@ -297,28 +312,16 @@ export default function FriendProfileScreen() {
     return (
         <View style={styles.container}>
 
-            <Stack.Screen options={{ headerShown: false }} />
-
-            <Stack.Screen
-                // options={{
-                //     headerShown: !isMe,
-                //     headerShadowVisible: false,
-                // }}
-                options={{
-                    // headerShown: !isMe, // Only show for friends
-                    headerTransparent: true,
-                    headerTitle: "",
-                    headerTintColor: Theme.dark.white, // Ensure back button is white
-                    headerLeft: () => (
-                        <TouchableOpacity
-                            onPress={() => goBack()}
-                            style={{ marginLeft: 10, marginTop: 10 }}
-                        >
-                            <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
-                        </TouchableOpacity>
-                    ),
+            <TopHeader
+                isEditing={isEditing}
+                onCancel={() => {
+                    setIsEditing(false);
+                    fetchProfile(); // Reset any unsaved local changes
                 }}
+                onSave={() => setIsEditing(false)}
             />
+
+            <Stack.Screen options={{ headerShown: false }} />
 
             <ScrollView
                 contentContainerStyle={{

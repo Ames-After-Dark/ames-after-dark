@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity, Animated, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
@@ -12,13 +12,22 @@ const HEADER_HEIGHT = 44;
 
 type TopHeaderProps = {
   visible?: boolean;
+  isEditing?: boolean;
+  onCancel?: () => void;
+  onSave?: () => void;
 };
 
-export default function TopHeader({ visible = true }: TopHeaderProps) {
+export default function TopHeader({
+  visible = true,
+  isEditing = false,
+  onCancel,
+  onSave
+}: TopHeaderProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { canGoBack, goBack } = useNavigationHistory();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const currentSlotWidth = isEditing ? 70 : 32;
 
   const params = useLocalSearchParams();
   let id = params.id as string;
@@ -50,6 +59,12 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
   return (
     <Animated.View
       style={[
+        // styles.container,
+        // {
+        //   height: HEADER_HEIGHT + insets.top,
+        //   paddingTop: insets.top,
+        //   transform: [{ translateY: slideAnim }]
+        // }
         styles.container,
         {
           height: HEADER_HEIGHT + insets.top,
@@ -62,11 +77,25 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
       <View style={styles.content}>
 
         {/* Left slot - back arrow */}
-        <View style={styles.slot}>
+        {/* <View style={styles.slot}>
           {canGoBack && !isGalleryPath && (
             <TouchableOpacity onPress={goBack} hitSlop={12}>
               <FontAwesome name="chevron-left" size={18} color={Theme.container.inactiveText} />
             </TouchableOpacity>
+          )}
+        </View> */}
+
+        <View style={[styles.slot, { width: currentSlotWidth }]}>
+          {isEditing ? (
+            <TouchableOpacity onPress={onCancel} hitSlop={12}>
+              <Text style={{ color: Theme.container.inactiveText, fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+          ) : (
+            canGoBack && !isGalleryPath && (
+              <TouchableOpacity onPress={goBack} hitSlop={12}>
+                <FontAwesome name="chevron-left" size={18} color={Theme.container.inactiveText} />
+              </TouchableOpacity>
+            )
           )}
         </View>
 
@@ -80,10 +109,15 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
         </TouchableOpacity>
 
         {/* Right slot - Conditional Rendering using Ternaries 
+                          editing mode - save button
                           account - gear for settings 
                           individual bar profile - favorite button */}
-        <View style={styles.slot}>
-          {isBarProfile && hasValidId ? (
+        <View style={[styles.slot, { width: currentSlotWidth }]}>
+          {isEditing ? (
+            <TouchableOpacity onPress={onSave} hitSlop={12}>
+              <Text style={{ color: Theme.dark.primary, fontWeight: '700' }}>Save</Text>
+            </TouchableOpacity>
+          ) : isBarProfile && hasValidId ? (
             <TouchableOpacity
               onPress={() => toggleFavorite(barIdNumeric)}
               hitSlop={10}
@@ -124,6 +158,11 @@ const styles = StyleSheet.create({
   },
   slot: {
     width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editSlot: {
+    width: 70,
     alignItems: 'center',
     justifyContent: 'center',
   }
