@@ -12,28 +12,21 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Friend } from '@/types/types';
-import { shouldForceErrorPage } from '@/utils/dev-error-pages';
 import { getUserById, getUserFriends } from '@/services/userService';
 import { UserLocationService, type LocationSharingPreference } from '@/services/userLocationService';
-import ErrorState from '@/components/ui/error-state';
-import { useUser } from '@/context/user-context';
+import { useAuth } from '@/hooks/use-auth';
 
 type VisibilityMode = 'ALL' | 'SOME' | 'NONE';
 
 export default function LocationVisibilityScreen() {
-<<<<<<< HEAD
-  const { user } = useUser();
-  const userId = Number(user?.id);
 
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('ALL');
-=======
-  const { user, getAccessToken } = useAuth();
-  const [shareWithAll, setShareWithAll] = useState(true);
->>>>>>> bb891552d3367168e860413050080ca47428059d
+  const { currentUser, userStatus, getAccessToken } = useAuth();
+  const userId = currentUser?.id ? Number(currentUser.id) : userStatus?.userId ?? null;
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -52,47 +45,51 @@ export default function LocationVisibilityScreen() {
 
   useEffect(() => {
     const initData = async () => {
-      if (!Number.isFinite(userId)) {
+      if (!userId) {
         setLoading(false);
         return;
       }
+
       try {
-<<<<<<< HEAD
+        console.log('[DEBUG] initData: Starting fetch for userId:', userId);
         setLoading(true);
+
+        const token = await getAccessToken();
+        if (!token) {
+          console.log('[DEBUG] No token found');
+          setLoading(false);
+          return;
+        }
+
         const [friendsData, currentUserData] = await Promise.all([
-          getUserFriends(userId),
-          getUserById(userId),
+          getUserFriends(token),
+          getUserById(token, userId),
         ]);
 
-=======
-        const token = await getAccessToken();
-        if (!token) return;
-
-        const friendsData = await getUserFriends(token);
->>>>>>> bb891552d3367168e860413050080ca47428059d
         setFriends(friendsData || []);
-        const settings = currentUserData?.user_settings || currentUserData;
 
-        const ghostActive = !!settings?.ghost_mode_expires_at && new Date(settings.ghost_mode_expires_at).getTime() > Date.now();
+        // Handle the Visibility Mode Logic
+        const settings = currentUserData?.user_settings || currentUserData;
+        const ghostActive = !!settings?.ghost_mode_expires_at &&
+          new Date(settings.ghost_mode_expires_at).getTime() > Date.now();
+
         if (ghostActive) setVisibilityMode('NONE');
         else if (settings?.location_sharing_preference === 'PUBLIC') setVisibilityMode('ALL');
         else if (settings?.location_sharing_preference === 'PRIVATE') setVisibilityMode('NONE');
         else setVisibilityMode('SOME');
 
         setSelectedFriends(extractSelectedFriendIds(currentUserData));
+
       } catch (err) {
+        console.error('[DEBUG] Fetch Error:', err);
         setError(err instanceof Error ? err : new Error('Failed to load settings'));
       } finally {
         setLoading(false);
       }
     };
-<<<<<<< HEAD
-    initData();
-  }, [userId]);
-=======
-    fetchFriends();
-  }, [getAccessToken]);
->>>>>>> bb891552d3367168e860413050080ca47428059d
+
+    void initData();
+  }, [getAccessToken, userId]);
 
   const filteredFriends = useMemo(() => {
     return friends.filter((f) =>
@@ -133,34 +130,36 @@ export default function LocationVisibilityScreen() {
   // };
 
   const handleSave = async () => {
-    if (!Number.isFinite(userId)) return;
+    if (!userId) return;
 
     setIsSaving(true);
-    setShowSuccess(false); // Reset success state if they save again
+    setShowSuccess(false);
 
     try {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Missing auth token');
+      }
+
       const prefMap: Record<VisibilityMode, LocationSharingPreference> = {
         ALL: 'PUBLIC', SOME: 'SELECTIVE', NONE: 'PRIVATE',
       };
 
-      // Run your API calls
-      await UserLocationService.updateSharingPreference(userId, prefMap[visibilityMode]);
-      await UserLocationService.setGhostMode(userId, visibilityMode === 'NONE' ? 24 : 0);
+      await UserLocationService.updateSharingPreference(token, prefMap[visibilityMode]);
+      await UserLocationService.setGhostMode(token, visibilityMode === 'NONE' ? 24 : 0);
 
       if (visibilityMode === 'SOME') {
         const selectedSet = new Set(selectedFriends);
         await Promise.all(
           friends.map((friend) =>
-            UserLocationService.setViewerPermission(Number(friend.id), userId, selectedSet.has(String(friend.id)))
+            UserLocationService.setViewerPermission(token, Number(friend.id), selectedSet.has(String(friend.id)))
           )
         );
       }
 
-      // 2. SUCCESS FEEDBACK (Instead of router.back())
       setIsSaving(false);
       setShowSuccess(true);
 
-      // Hide the "Success" state after 3 seconds
       setTimeout(() => setShowSuccess(false), 3000);
 
     } catch (err) {
@@ -193,110 +192,226 @@ export default function LocationVisibilityScreen() {
 
   if (loading) return <View style={[styles.container, styles.center]}><ActivityIndicator size="large" color="#33CCFF" /></View>;
 
+  // return (
+  //   <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} keyboardVerticalOffset={100}>
+  //     <View style={styles.container}>
+  //       {/* <Stack.Screen options={{
+  //         title: 'Location Visibility',
+  //         headerRight: () => (
+  //           <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.headerButtonBubble}>
+  //             {isSaving ? <ActivityIndicator size="small" color="#33CCFF" /> : <Text style={styles.saveText}>Save</Text>}
+  //           </TouchableOpacity>
+  //         ),
+  //       }} /> */}
+
+  //       <Stack.Screen options={{
+  //         title: 'Location Visibility',
+  //         headerRight: () => (
+  //           <TouchableOpacity
+  //             onPress={handleSave}
+  //             disabled={isSaving || showSuccess}
+  //             style={[
+  //               styles.headerButtonBubble,
+  //               showSuccess && { borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.1)' }
+  //             ]}
+  //           >
+  //             {isSaving ? (
+  //               <ActivityIndicator size="small" color="#33CCFF" />
+  //             ) : showSuccess ? (
+  //               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  //                 <FontAwesome name="check" size={12} color="#4ADE80" style={{ marginRight: 4 }} />
+  //                 <Text style={[styles.saveText, { color: '#4ADE80' }]}>Saved</Text>
+  //               </View>
+  //             ) : (
+  //               <Text style={styles.saveText}>Save</Text>
+  //             )}
+  //           </TouchableOpacity>
+  //         ),
+  //       }} />
+
+  //       <FlatList
+  //         data={visibilityMode === 'SOME' ? filteredFriends : []}
+  //         keyExtractor={(item) => String(item.id)}
+  //         showsVerticalScrollIndicator={false}
+  //         contentContainerStyle={styles.listContent}
+  //         ListHeaderComponent={
+  //           <View>
+  //             <Text style={styles.sectionHeader}>PRIVACY MODE</Text>
+  //             <View style={styles.sectionGroup}>
+  //               <ModeRow mode="ALL" title="Share with All" icon="users" description="Visible to all friends." />
+  //               <ModeRow mode="SOME" title="Share with Some" icon="user-plus" description="Pick specific friends below." />
+  //               <ModeRow mode="NONE" title="Ghost Mode" icon="eye-slash" description="Completely invisible." isLast />
+  //             </View>
+
+  //             {visibilityMode === 'SOME' && (
+  //               <View style={{ marginTop: 10 }}>
+  //                 <Text style={styles.sectionHeader}>SELECT FRIENDS ({selectedFriends.length})</Text>
+  //                 <View style={styles.searchContainer}>
+  //                   <FontAwesome name="search" size={16} color="#4b5563" />
+  //                   <TextInput style={styles.input} placeholder="Search friends..." placeholderTextColor="#4b5563" value={search} onChangeText={setSearch} />
+  //                 </View>
+  //               </View>
+  //             )}
+  //           </View>
+  //         }
+  //         renderItem={({ item }) => {
+  //           const isSelected = selectedFriends.includes(String(item.id));
+  //           return (
+  //             <TouchableOpacity style={[styles.friendItem, isSelected && styles.selectedFriend]} onPress={() => toggleFriendSelection(item.id)}>
+  //               <Image source={item.avatar ? { uri: item.avatar } : require('../../../../assets/images/Logo.png')} style={styles.friendAvatar} />
+  //               <View style={{ flex: 1 }}>
+  //                 <Text style={styles.friendName}>{item.name}</Text>
+  //                 <Text style={styles.friendStatus}>@{item.username}</Text>
+  //               </View>
+  //               <FontAwesome name={isSelected ? "check-circle" : "circle-thin"} size={22} color={isSelected ? "#33CCFF" : "#1f2937"} />
+  //             </TouchableOpacity>
+  //           );
+  //         }}
+  //         ListFooterComponent={(() => {
+  //           if (visibilityMode === 'NONE') {
+  //             return (
+  //               <View style={styles.statusContainer}>
+  //                 <MaterialCommunityIcons name="moon-waning-crescent" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
+  //                 <Text style={styles.statusTitle}>Ghost Mode Active</Text>
+  //                 <Text style={styles.statusSub}>You're off the grid. No one can see you.</Text>
+  //               </View>
+  //             );
+  //           }
+  //           if (visibilityMode === 'ALL') {
+  //             return (
+  //               <View style={styles.statusContainer}>
+  //                 <MaterialCommunityIcons name="radar" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
+  //                 <Text style={styles.statusTitle}>Broadcasting Location</Text>
+  //                 <Text style={styles.statusSub}>All your friends can see where you are.</Text>
+  //               </View>
+  //             );
+  //           }
+  //           return null;
+  //         })()}
+  //       />
+  //     </View>
+  //   </KeyboardAvoidingView>
+  // );
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} keyboardVerticalOffset={100}>
-      <View style={styles.container}>
-        {/* <Stack.Screen options={{
-          title: 'Location Visibility',
-          headerRight: () => (
-            <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.headerButtonBubble}>
-              {isSaving ? <ActivityIndicator size="small" color="#33CCFF" /> : <Text style={styles.saveText}>Save</Text>}
-            </TouchableOpacity>
-          ),
-        }} /> */}
+    <View style={{ flex: 1, backgroundColor: "#0b0b12" }}>
+      <Stack.Screen options={{ title: 'Location Visibility' }} />
 
-        <Stack.Screen options={{
-          title: 'Location Visibility',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={isSaving || showSuccess}
-              style={[
-                styles.headerButtonBubble,
-                showSuccess && { borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.1)' }
-              ]}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#33CCFF" />
-              ) : showSuccess ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <FontAwesome name="check" size={12} color="#4ADE80" style={{ marginRight: 4 }} />
-                  <Text style={[styles.saveText, { color: '#4ADE80' }]}>Saved</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {/* Wrap FlatList in a View with flex: 1 to ensure it occupies the remaining space */}
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={visibilityMode === 'SOME' ? filteredFriends : []}
+            keyExtractor={(item) => String(item.id)}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.listContent, { paddingHorizontal: 16 }]}
+            style={{ flex: 1, paddingTop: 110 }}
+            ListHeaderComponent={
+              <View>
+                <Text style={styles.sectionHeader}>PRIVACY MODE</Text>
+                <View style={styles.sectionGroup}>
+                  <ModeRow mode="ALL" title="Share with All" icon="users" description="Visible to all friends." />
+                  <ModeRow mode="SOME" title="Share with Some" icon="user-plus" description="Pick specific friends below." />
+                  <ModeRow mode="NONE" title="Ghost Mode" icon="eye-slash" description="Completely invisible." isLast />
                 </View>
-              ) : (
-                <Text style={styles.saveText}>Save</Text>
-              )}
-            </TouchableOpacity>
-          ),
-        }} />
 
-        <FlatList
-          data={visibilityMode === 'SOME' ? filteredFriends : []}
-          keyExtractor={(item) => String(item.id)}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <View>
-              <Text style={styles.sectionHeader}>PRIVACY MODE</Text>
-              <View style={styles.sectionGroup}>
-                <ModeRow mode="ALL" title="Share with All" icon="users" description="Visible to all friends." />
-                <ModeRow mode="SOME" title="Share with Some" icon="user-plus" description="Pick specific friends below." />
-                <ModeRow mode="NONE" title="Ghost Mode" icon="eye-slash" description="Completely invisible." isLast />
-              </View>
-
-              {visibilityMode === 'SOME' && (
-                <View style={{ marginTop: 10 }}>
-                  <Text style={styles.sectionHeader}>SELECT FRIENDS ({selectedFriends.length})</Text>
-                  <View style={styles.searchContainer}>
-                    <FontAwesome name="search" size={16} color="#4b5563" />
-                    <TextInput style={styles.input} placeholder="Search friends..." placeholderTextColor="#4b5563" value={search} onChangeText={setSearch} />
+                {visibilityMode === 'SOME' && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={styles.sectionHeader}>SELECT FRIENDS ({selectedFriends.length})</Text>
+                    <View style={styles.searchContainer}>
+                      <FontAwesome name="search" size={16} color="#4b5563" />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Search friends..."
+                        placeholderTextColor="#4b5563"
+                        value={search}
+                        onChangeText={setSearch}
+                      />
+                    </View>
                   </View>
-                </View>
-              )}
-            </View>
-          }
-          renderItem={({ item }) => {
-            const isSelected = selectedFriends.includes(String(item.id));
-            return (
-              <TouchableOpacity style={[styles.friendItem, isSelected && styles.selectedFriend]} onPress={() => toggleFriendSelection(item.id)}>
-                <Image source={item.avatar ? { uri: item.avatar } : require('../../../../assets/images/Logo.png')} style={styles.friendAvatar} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.friendName}>{item.name}</Text>
-                  <Text style={styles.friendStatus}>@{item.username}</Text>
-                </View>
-                <FontAwesome name={isSelected ? "check-circle" : "circle-thin"} size={22} color={isSelected ? "#33CCFF" : "#1f2937"} />
-              </TouchableOpacity>
-            );
-          }}
-          ListFooterComponent={(() => {
-            if (visibilityMode === 'NONE') {
-              return (
-                <View style={styles.statusContainer}>
-                  <MaterialCommunityIcons name="moon-waning-crescent" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
-                  <Text style={styles.statusTitle}>Ghost Mode Active</Text>
-                  <Text style={styles.statusSub}>You're off the grid. No one can see you.</Text>
-                </View>
-              );
+                )}
+              </View>
             }
-            if (visibilityMode === 'ALL') {
+            renderItem={({ item }) => {
+              const isSelected = selectedFriends.includes(String(item.id));
               return (
-                <View style={styles.statusContainer}>
-                  <MaterialCommunityIcons name="radar" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
-                  <Text style={styles.statusTitle}>Broadcasting Location</Text>
-                  <Text style={styles.statusSub}>All your friends can see where you are.</Text>
-                </View>
+                <TouchableOpacity
+                  style={[styles.friendItem, isSelected && styles.selectedFriend]}
+                  onPress={() => toggleFriendSelection(item.id)}
+                >
+                  <Image
+                    source={item.avatar ? { uri: item.avatar } : require('../../../../assets/images/Logo.png')}
+                    style={styles.friendAvatar}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.friendName}>{item.name}</Text>
+                    <Text style={styles.friendStatus}>@{item.username}</Text>
+                  </View>
+                  <FontAwesome
+                    name={isSelected ? "check-circle" : "circle-thin"}
+                    size={22}
+                    color={isSelected ? "#33CCFF" : "#1f2937"}
+                  />
+                </TouchableOpacity>
               );
-            }
-            return null;
-          })()}
-        />
-      </View>
-    </KeyboardAvoidingView>
+            }}
+            ListFooterComponent={(() => {
+              if (visibilityMode === 'NONE') {
+                return (
+                  <View style={styles.statusContainer}>
+                    <FontAwesome name="eye-slash" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
+                    <Text style={styles.statusTitle}>Ghost Mode Active</Text>
+                    <Text style={styles.statusSub}>You're off the grid. No one can see you.</Text>
+                  </View>
+                );
+              }
+              if (visibilityMode === 'ALL') {
+                return (
+                  <View style={styles.statusContainer}>
+                    <MaterialCommunityIcons name="radar" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
+                    <Text style={styles.statusTitle}>Broadcasting Location</Text>
+                    <Text style={styles.statusSub}>All your friends can see where you are.</Text>
+                  </View>
+                );
+              }
+              return null;
+            })()}
+          />
+        </View>
+
+        {/* Solid Footer Save Button - Sitting outside the scroll view */}
+        <View style={styles.footerButtonContainer}>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isSaving || showSuccess}
+            style={[
+              styles.saveButton,
+              showSuccess && styles.successButton
+            ]}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#0b0b12" />
+            ) : showSuccess ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <FontAwesome name="check" size={18} color="#0b0b12" style={{ marginRight: 8 }} />
+                <Text style={styles.saveButtonText}>Saved</Text>
+              </View>
+            ) : (
+              <Text style={styles.saveButtonText}>Update Settings</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b12", paddingHorizontal: 16 },
+  container: { flex: 1, backgroundColor: "#0b0b12", paddingHorizontal: 16, paddingTop: 110 },
+  // container: { flex: 1, backgroundColor: "#0b0b12", paddingHorizontal: 16 },
   center: { justifyContent: 'center', alignItems: 'center' },
   // Header
   headerButtonBubble: { backgroundColor: 'rgba(51, 204, 255, 0.1)', height: 32, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: '#33CCFF', justifyContent: 'center', alignItems: 'center' },
@@ -323,5 +438,66 @@ const styles = StyleSheet.create({
   statusContainer: { marginTop: 60, alignItems: 'center' },
   statusTitle: { color: 'white', fontSize: 20, fontWeight: '700', marginTop: 20 },
   statusSub: { color: '#666', fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 20 },
-  listContent: { paddingBottom: 140 }
+  // footerButtonContainer: {
+  //   position: 'absolute',
+  //   bottom: 100,
+  //   left: 20,
+  //   right: 20,
+  //   alignItems: 'center',
+  //   zIndex: 10,
+  // },
+  floatingSaveButton: {
+    backgroundColor: '#33CCFF',
+    width: '100%',
+    height: 56,
+    borderRadius: 16, // Matching your grouped section radius
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#33CCFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  // successButton: {
+  //   backgroundColor: '#4ADE80',
+  //   shadowColor: '#4ADE80',
+  // },
+  floatingSaveText: {
+    color: '#0b0b12',
+    fontSize: 16,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  listContent: {
+    paddingBottom: 70 // Added extra space so the list can scroll past the button
+  },
+  footerButtonContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+
+    paddingBottom: 100,
+    backgroundColor: '#0f172a',
+    borderTopWidth: 1,
+    borderColor: '#1f2937',
+  },
+  saveButton: {
+    backgroundColor: '#33CCFF',
+    height: 54,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successButton: {
+    backgroundColor: '#4ADE80',
+  },
+  saveButtonText: {
+    color: '#0b0b12',
+    fontSize: 16,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
 });

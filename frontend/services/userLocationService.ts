@@ -36,17 +36,17 @@ export const UserLocationService = {
         });
     },
 
-    updateSharingPreference: async (userId: number, preference: LocationSharingPreference): Promise<SharingPreferenceResponse> => {
-        return await apiFetch(`/userlocations/${userId}/preference`, {
+    updateSharingPreference: async (token: string, preference: LocationSharingPreference): Promise<SharingPreferenceResponse> => {
+        return await apiFetchAuth(`/userlocations/me/preference`, token, {
             method: "PATCH",
             body: JSON.stringify({ preference }),
         });
     },
 
-    setViewerPermission: async (viewerId: number, ownerId: number, enabled: boolean) => {
-        return await apiFetch(`/userlocations/permissions/${viewerId}`, {
+    setViewerPermission: async (token: string, viewerId: number, enabled: boolean) => {
+        return await apiFetchAuth(`/userlocations/permissions/${viewerId}`, token, {
             method: "POST",
-            body: JSON.stringify({ ownerId, enabled }),
+            body: JSON.stringify({ enabled }),
         });
     },
 };
