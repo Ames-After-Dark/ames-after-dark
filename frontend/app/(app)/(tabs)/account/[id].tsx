@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { View, ScrollView, StyleSheet, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,6 @@ import {
     searchUsers,
     updateBioByAuth,
 } from '@/services/userService';
-import { apiFetch } from '@/services/apiClient';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
@@ -32,10 +31,7 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 export default function FriendProfileScreen() {
 
     const insets = useSafeAreaInsets();
-    const MAIN_HEADER_HEIGHT = 0;
-    const TOTAL_TOP_PADDING = insets.top + MAIN_HEADER_HEIGHT;
     const BOTTOM_TAB_HEIGHT = 60;
-    const TOP_OFFSET = insets.top + MAIN_HEADER_HEIGHT;
 
     const { id } = useLocalSearchParams<{ id: string }>();
 
