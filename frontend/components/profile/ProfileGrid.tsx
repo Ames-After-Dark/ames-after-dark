@@ -258,7 +258,7 @@ const zoomStyles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: '#FF2D78',
+        backgroundColor: Theme.dark.primary, // '#FF2D78',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
@@ -279,7 +279,7 @@ const zoomStyles = StyleSheet.create({
         resizeMode: 'contain',
     },
     changeDrinkBtn: {
-        backgroundColor: '#FF2D78',
+        backgroundColor: Theme.dark.primary, // '#FF2D78',
         paddingVertical: 14,
         paddingHorizontal: 40,
         borderRadius: 14,
