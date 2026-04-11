@@ -218,20 +218,18 @@ exports.getUserFriends = async (userId) => {
       users_friendships_user_id_1Tousers: {
         select: {
           id: true,
-          first_name: true,
-          last_name: true,
+          name: true,
           username: true,
-          profile_picture_url: true,
+          profile_photo: true,
           bio: true
         }
       },
       users_friendships_user_id_2Tousers: {
         select: {
           id: true,
-          first_name: true,
-          last_name: true,
+          name: true,
           username: true,
-          profile_picture_url: true,
+          profile_photo: true,
           bio: true
         }
       }
@@ -403,10 +401,9 @@ exports.getPublicUserById = async (id) => {
     where: { id: Number(id) },
     select: {
       id: true,
-      first_name: true,
-      last_name: true,
+      name: true,
       username: true,
-      profile_picture_url: true,
+      profile_photo: true,
       bio: true,
       favorite_drink_id: true,
       favorite_profile_location_id: true,

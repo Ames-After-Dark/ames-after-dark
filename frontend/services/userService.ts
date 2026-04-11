@@ -87,7 +87,7 @@ export async function getUserFriends(token: string): Promise<Friend[]> {
     return friends.map((user: any) => ({
       id: user.id,
       username: user.username,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || undefined,
+      name: user.name,
       bio: user.bio,
       avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
     }));
