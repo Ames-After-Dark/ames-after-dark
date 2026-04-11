@@ -1,22 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const userLocationController = require('../controllers/userLocationController');
+const { checkJwt } = require('../middleware/authMiddleware');
 
 // Get user location
-router.get('/:userId', userLocationController.getUserLocation);
+router.get('/me', checkJwt, userLocationController.getUserLocation);
 // Update user location
-router.put('/:userId', userLocationController.updateUserLocation);
+router.put('/me', checkJwt, userLocationController.updateUserLocation);
 
 // Get friends' locations
-router.get('/:userId/friends/locations', userLocationController.getFriendsLocations);
+router.get('/me/friends/locations', checkJwt, userLocationController.getFriendsLocations);
 
 // Toggle location sharing for a specific friend
-router.post('/permissions/:viewerId', userLocationController.toggleLocationPermission);
+router.post('/permissions/:viewerId', checkJwt, userLocationController.toggleLocationPermission);
 
 // Toggle Ghost Mode (POST with { hours: X } in body)
-router.post('/:userId/ghost', userLocationController.setGhostMode);
+router.post('/me/ghost', checkJwt, userLocationController.setGhostMode);
 
 // Update general sharing preference (PATCH with { preference: 'PUBLIC'|'PRIVATE'|'SELECTIVE' } in body)
-router.patch('/:userId/preference', userLocationController.updateSharingPreference);
+router.patch('/me/preference', checkJwt, userLocationController.updateSharingPreference);
 
 module.exports = router;

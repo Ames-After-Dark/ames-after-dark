@@ -8,7 +8,7 @@ import { Theme } from '@/constants/theme';
 import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
-import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/constants/profileAssets';
+import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
 import { router } from 'expo-router';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
-    const { userStatus } = useAuth();
+    const { userStatus, getAccessToken } = useAuth();
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
     const [isPickerVisible, setPickerVisible] = useState(false);
@@ -168,7 +168,9 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
         setSelectedAvatar(item);
         if (!userStatus?.userId) return;
         try {
-            await updateUser(userStatus.userId, { profile_photo_id: item.id } as any);
+            const token = await getAccessToken();
+            if (!token) return;
+            await updateUser(token, String(userStatus.userId), { profile_photo_id: item.id } as any);
         } catch (err) {
             console.error('Failed to save avatar:', err);
         }

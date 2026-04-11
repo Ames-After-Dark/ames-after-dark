@@ -1,4 +1,4 @@
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiFetchAuth } from "./apiClient";
 
 export interface UserLocationData {
     latitude: number;
@@ -22,15 +22,15 @@ export const UserLocationService = {
     /**
      * Updates the current user's location in the database
      */
-    updateLocation: async (userId: number, data: UserLocationData) => {
-        return await apiFetch(`/userlocations/${userId}`, {
+    updateLocation: async (token: string, data: UserLocationData) => {
+        return await apiFetchAuth(`/userlocations/me`, token, {
             method: "PUT",
             body: JSON.stringify(data),
         });
     },
 
-    setGhostMode: async (userId: number, hours: number): Promise<GhostModeResponse> => {
-        return await apiFetch(`/userlocations/${userId}/ghost`, {
+    setGhostMode: async (token: string, hours: number): Promise<GhostModeResponse> => {
+        return await apiFetchAuth(`/userlocations/me/ghost`, token, {
             method: "POST",
             body: JSON.stringify({ hours }),
         });
@@ -52,8 +52,7 @@ export const UserLocationService = {
 };
 
 export const FriendLocationService = {
-    getFriendsLocations: async (userId: number) => {
-
-        return await apiFetch(`/userlocations/${userId}/friends/locations`);
+    getFriendsLocations: async (token: string) => {
+        return await apiFetchAuth(`/userlocations/me/friends/locations`, token);
     }
 };

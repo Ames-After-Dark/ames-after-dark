@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
+import { useAuth } from './use-auth';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+    const { getAccessToken } = useAuth();
 
     useEffect(() => {
         if (userId === undefined || !hasPermission) return;
@@ -28,7 +30,10 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                     return;
                 }
 
-                await UserLocationService.updateLocation(userId, {
+                const token = await getAccessToken();
+                if (!token) return;
+
+                await UserLocationService.updateLocation(token, {
                     latitude: initial.coords.latitude,
                     longitude: initial.coords.longitude,
                 });
@@ -45,13 +50,16 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                     async (location) => {
                         try {
 
-                if (!isMounted) {
-                    subscription.remove();
-                    return;
-                }
+                            if (!isMounted) {
+                                subscription.remove();
+                                return;
+                            }
 
-                subscriptionRef.current = subscription;
-                            await UserLocationService.updateLocation(userId, {
+                            subscriptionRef.current = subscription;
+                            const token = await getAccessToken();
+                            if (!token) return;
+
+                            await UserLocationService.updateLocation(token, {
                                 latitude: location.coords.latitude,
                                 longitude: location.coords.longitude,
                             });
@@ -79,6 +87,7 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
 export function useFriendsLocations(userId: number | undefined) {
     const [friends, setFriends] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { getAccessToken } = useAuth();
 
     const fetchFriends = async () => {
         if (userId === undefined) {
@@ -87,7 +96,10 @@ export function useFriendsLocations(userId: number | undefined) {
             return;
         }
         try {
-            const data = await FriendLocationService.getFriendsLocations(userId);
+            const token = await getAccessToken();
+            if (!token) return;
+
+            const data = await FriendLocationService.getFriendsLocations(token);
 
             // console.log("Fetched friends count:", data.length);
             // console.log("Sample friend data:", data);

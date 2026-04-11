@@ -25,10 +25,15 @@ import { useUser } from '@/context/user-context';
 type VisibilityMode = 'ALL' | 'SOME' | 'NONE';
 
 export default function LocationVisibilityScreen() {
+<<<<<<< HEAD
   const { user } = useUser();
   const userId = Number(user?.id);
 
   const [visibilityMode, setVisibilityMode] = useState<VisibilityMode>('ALL');
+=======
+  const { user, getAccessToken } = useAuth();
+  const [shareWithAll, setShareWithAll] = useState(true);
+>>>>>>> bb891552d3367168e860413050080ca47428059d
   const [search, setSearch] = useState("");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -52,12 +57,19 @@ export default function LocationVisibilityScreen() {
         return;
       }
       try {
+<<<<<<< HEAD
         setLoading(true);
         const [friendsData, currentUserData] = await Promise.all([
           getUserFriends(userId),
           getUserById(userId),
         ]);
 
+=======
+        const token = await getAccessToken();
+        if (!token) return;
+
+        const friendsData = await getUserFriends(token);
+>>>>>>> bb891552d3367168e860413050080ca47428059d
         setFriends(friendsData || []);
         const settings = currentUserData?.user_settings || currentUserData;
 
@@ -74,8 +86,13 @@ export default function LocationVisibilityScreen() {
         setLoading(false);
       }
     };
+<<<<<<< HEAD
     initData();
   }, [userId]);
+=======
+    fetchFriends();
+  }, [getAccessToken]);
+>>>>>>> bb891552d3367168e860413050080ca47428059d
 
   const filteredFriends = useMemo(() => {
     return friends.filter((f) =>

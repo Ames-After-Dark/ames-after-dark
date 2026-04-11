@@ -6,35 +6,18 @@ export default function BarsLayout() {
   return (
     <Stack
       screenOptions={{
+        headerShown: false,
+        animation: 'none',         // No slide animation — prevents flash of bar screens
+        gestureEnabled: false,     // Disable native swipe-back — our context owns back nav
         headerStyle: {
           backgroundColor: Theme.dark.background,
         },
         headerTintColor: Theme.dark.secondary,
       }}
     >
-      {/* Main directory/search page — hide its header */}
-      <Stack.Screen
-        name="index"
-        options={{ headerShown: false }}
-      />
-
-      {/* Bar detail screen */}
-      <Stack.Screen
-        name="[id]"
-        options={{
-          title: "",
-          headerBackTitle: "Bars",
-        }}
-      />
-
-      {/* Bar menu screen: / (tabs) /bars/menu */}
-      <Stack.Screen
-        name="menu"
-        options={{
-          title: "Menu",
-          headerBackTitle: "Back",
-        }}
-      />
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[id]" />
+      <Stack.Screen name="menu" />
     </Stack>
   );
 }

@@ -6,8 +6,56 @@ const authService = require('../services/authService');
 // GET /api/users
 exports.getUsers = async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
     const users = await userService.getUsers();
     res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/search
+exports.searchUsers = async (req, res) => {
+  try {
+    const search = req.query?.search?.toString();
+    const excludeUserId = req.query?.excludeUserId ? parseInt(req.query.excludeUserId, 10) : undefined;
+
+    if (!search || !search.trim()) {
+      return res.json([]);
+    }
+
+    const users = await userService.searchUsers(search, excludeUserId);
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/users/me
+exports.getCurrentUser = async (req, res) => {
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
+  try {
+    const user = await userService.getUserByAuth0Id(authId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -19,9 +67,22 @@ exports.getUserById = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
-    const user = await userService.getUserById(id);
+    const dbUser = await userService.getUserByAuth0Id(authId);
+    const isSelf = dbUser && dbUser.id === id;
+
+    let user;
+    if (isSelf) {
+      user = await userService.getUserById(id);
+    } else {
+      user = await userService.getPublicUserById(id);
+    }
+
     if (!user) return res.status(404).json({ message: 'User not found' });
+
     res.json(user);
   } catch (err) {
     console.error(err);
@@ -31,7 +92,15 @@ exports.getUserById = async (req, res) => {
 
 exports.getUserFriends = async (req, res) => {
   const userId = req.params.userId;
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
+    const dbUser = await userService.getUserByAuth0Id(authId);
+    if (!dbUser || dbUser.id !== parseInt(userId, 10)) {
+      return res.status(403).json({ message: 'Forbidden: Can only access your own friends list' });
+    }
+
     const friends = await userService.getUserFriends(userId);
     res.json(friends);
   } catch (err) {
@@ -45,21 +114,32 @@ exports.updateUserLimited = async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
-  // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through this endpoint
-  const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
-  const updateData = {};
-  if (username !== undefined) updateData.username = username;
-  if (email !== undefined) updateData.email = email;
-  if (bio !== undefined) updateData.bio = bio;
-  if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
-  if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
-  if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
-
-  if (Object.keys(updateData).length === 0) {
-    return res.status(400).json({ message: 'No valid fields to update' });
-  }
-
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Missing authentication token' });
+    }
+
+    const requestingUser = await userService.getUserByAuth0Id(authId);
+    if (!requestingUser || requestingUser.id !== id) {
+      return res.status(403).json({ message: 'Forbidden: Cannot update another user\'s profile' });
+    }
+
+    // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through th
+    // is endpoint
+    const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
+    const updateData = {};
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) updateData.email = email;
+    if (bio !== undefined) updateData.bio = bio;
+    if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
+    if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
+    if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
+
     const updatedUser = await userService.updateUserLimited(id, updateData);
     res.json(updatedUser);
   } catch (err) {
@@ -613,7 +693,7 @@ exports.getUserProfilePhotoOptionsById = async (req, res) => {
 };
 
 // DELETE /api/users/auth/account
-// Delete a user from both our DB and Auth0. Protected endpoint (requires Auth0 JWT)
+// Delete a user from both our DB and Auth0.
 exports.deleteAccount = async (req, res) => {
   try {
     const auth0Id = req.auth?.payload?.sub || req.auth?.sub;

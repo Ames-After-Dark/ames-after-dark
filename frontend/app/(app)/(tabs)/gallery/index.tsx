@@ -1,37 +1,22 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity, Image,
+  View, Text, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent
 } from "react-native";
+import { Image } from "expo-image";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
-import { getLatestWeekendAlbums } from "@/services/galleryService";
+import { getLatestWeekAlbums } from "@/services/galleryService";
 import GalleryFallback from "./Galleryfallback";
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const EDGE_TRIGGER_PX = 16;
 const EDGE_UNLOCK_PX = 40;
-
-function parseDateToken(token: string): Date | null {
-  if (!token) return null;
-  const parts = token.split(/[-\\/]/).map((p) => p.trim());
-  if (parts.length !== 2) return null;
-
-  const month = parseInt(parts[0], 10) - 1;
-  const day = parseInt(parts[1], 10);
-  if (isNaN(month) || isNaN(day)) return null;
-
-  const now = new Date();
-  let year = now.getFullYear();
-  let candidate = new Date(year, month, day);
-  if (candidate > now) candidate = new Date(year - 1, month, day);
-  return candidate;
-}
 
 export default function GalleryScreen() {
   const router = useRouter();
@@ -67,7 +52,7 @@ export default function GalleryScreen() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getLatestWeekendAlbums();
+        const data = await getLatestWeekAlbums();
         setAlbums(data);
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Failed to load gallery"));
@@ -93,23 +78,37 @@ export default function GalleryScreen() {
   }, [albums, search]);
 
   const grouped = useMemo(() => {
-    const byDate: Record<string, any[]> = {};
-    const dateObjMap: Record<string, Date | null> = {};
+    let data = albums;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter((a) => a.barName?.toLowerCase().includes(q) || 
+        a.name?.toLowerCase().includes(q));
+    }
 
-    for (const a of filteredAlbums) {
-      if (!a.date) continue;
+    const byDate: Record<string, any[]> = {};
+    const dateObjMap: Record<string, Date> = {};
+
+    for (const a of data) {
       const key = a.date;
       if (!byDate[key]) byDate[key] = [];
       byDate[key].push(a);
+
       if (!dateObjMap[key]) {
-        dateObjMap[key] = parseDateToken(a.date) || null;
+        const parts = key.split(/[-\\/]/).map((p: string) => parseInt(p.trim(), 10));
+        const d = new Date();
+        if (parts.length == 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          d.setMonth(parts[0] - 1);
+          d.setDate(parts[1]);
+          if (d > new Date()) d.setFullYear(d.getFullYear() - 1);
+        }
+        dateObjMap[key] = d;
       }
     }
 
     const entries = Object.entries(byDate).map(([date, bars]) => ({
       date,
       bars,
-      dateObj: dateObjMap[date] || new Date(0),
+      dateObj: dateObjMap[date],
     }));
 
     entries.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
@@ -184,9 +183,6 @@ export default function GalleryScreen() {
       </View>
     );
 
-  if (albums.length === 0)
-    return <GalleryFallback />;
-
   return (
     <View style={styles.container}>
       <View style={[
@@ -214,6 +210,10 @@ export default function GalleryScreen() {
         data={grouped}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        removeClippedSubviews={true}
         ListHeaderComponent={<View style={{ height: SEARCH_BAR_AREA_HEIGHT + 20 }} />}
         contentContainerStyle={{
           paddingHorizontal: 12,
@@ -228,12 +228,15 @@ export default function GalleryScreen() {
           contentHeightRef.current = contentHeight;
         }}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {search.trim().length > 0 ? `No albums found matching "${search}"` 
-              : "No albums match your current filters."}
-            </Text>
-          </View>
+          search.trim().length > 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No albums found matching "{search}"
+              </Text>
+            </View>
+          ) : (
+            <GalleryFallback />
+          )
         }
         renderItem={({ item }) => {
           const { date, bars, dateObj } = item as { date: string; bars: any[]; dateObj: Date };
@@ -257,7 +260,7 @@ export default function GalleryScreen() {
                     }
                   >
                     {album.coverUrl ? (
-                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} resizeMode="cover" />
+                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
                     ) : (
                       <View style={styles.placeholderCover} />
                     )}

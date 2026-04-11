@@ -46,6 +46,39 @@ exports.getUsers = async () => {
   });
 };
 
+exports.searchUsers = async (search, excludeUserId) => {
+  if (!search || typeof search !== 'string' || !search.trim()) {
+    return [];
+  }
+
+  const where = {
+    OR: [
+      { username: { contains: search, mode: 'insensitive' } },
+      { name: { contains: search, mode: 'insensitive' } }
+    ]
+  };
+
+  if (excludeUserId !== undefined && excludeUserId !== null) {
+    where.NOT = { id: Number(excludeUserId) };
+  }
+
+  return prisma.users.findMany({
+    where,
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      bio: true,
+      profile_photo: {
+        select: {
+          image_url: true
+        }
+      }
+    },
+    orderBy: { id: 'asc' }
+  });
+};
+
 exports.getUserById = async (id) => {
   return prisma.users.findUnique({
     where: { id: Number(id) },
@@ -182,8 +215,24 @@ exports.getUserFriends = async (userId) => {
       // friendship_status_id: 2 // if 2 means "accepted"
     },
     include: {
-      users_friendships_user_id_1Tousers: true,
-      users_friendships_user_id_2Tousers: true
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      }
     }
   });
 
@@ -345,4 +394,37 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
     role: isAdmin,
     location_ids: manageableLocations
   };
+};
+
+exports.getPublicUserById = async (id) => {
+  return prisma.users.findUnique({
+    where: { id: Number(id) },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      profile_photo: true,
+      bio: true,
+      favorite_drink_id: true,
+      favorite_profile_location_id: true,
+      roles: true,
+      user_settings: true,
+      user_favorite_locations: {
+        include: {
+          locations: {
+            include: {
+              location_types: true,
+              deals: true,
+              events: true,
+              location_hours: {
+                include: {
+                  weekdays: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
 };

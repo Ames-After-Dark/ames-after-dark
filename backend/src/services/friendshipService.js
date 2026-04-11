@@ -21,8 +21,24 @@ exports.getFriends = async (userId) => {
       friendship_status_id: STATUS_ACCEPTED
     },
     include: {
-      users_friendships_user_id_1Tousers: true,
-      users_friendships_user_id_2Tousers: true
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      }
     }
   });
   return friendships.map(f =>

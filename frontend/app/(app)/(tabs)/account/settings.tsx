@@ -1,5 +1,5 @@
-import React from 'react';
-import { useAuth } from "@/hooks/use-auth"
+import React, { useEffect, useState } from 'react';
+import { useAuth } from "@/hooks/use-auth";
 import {
   View,
   Text,
@@ -7,10 +7,17 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Theme } from '@/constants/theme';
+import { getAvatarById } from '@/utils/profileAssets';
+import { getUserById } from '@/services/userService';
+
+// Must match the TopHeader height used in the tabs layout
+const HEADER_HEIGHT = 60;
 
 interface SettingsItemProps {
   icon: any;
@@ -21,8 +28,44 @@ interface SettingsItemProps {
   isFirst?: boolean;
 }
 
+const SettingsItem = ({ icon, text, onPress, color = Theme.dark.white, showArrow = true }: SettingsItemProps) => (
+  <TouchableOpacity style={styles.settingItem} onPress={onPress}>
+    <FontAwesome name={icon} size={20} color={color} style={styles.icon} />
+    <Text style={[styles.settingText, { color }]}>{text}</Text>
+    {showArrow && <FontAwesome name="chevron-right" size={16} color={Theme.container.inactiveText} />}
+  </TouchableOpacity>
+);
+
 export default function AccountSettingsScreen() {
-  const { signOut, user, username } = useAuth()
+  const { signOut, user, username, userStatus, getAccessToken } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  const [fullUser, setFullUser] = useState<any>(null);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userId = userStatus?.userId;
+      if (!userId) return;
+
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+
+        const data = await getUserById(token, String(userId));
+        setFullUser(data);
+        setAvatarLoaded(true);
+      } catch (err) {
+        console.error('Settings: failed to load user', err);
+        setAvatarLoaded(true); // still show fallback
+      }
+    };
+
+    fetchUser();
+  }, [userStatus?.userId]);
+
+  // getAvatarById always returns a valid asset (falls back to AVATAR_OPTIONS[0])
+  const avatarSource = getAvatarById(fullUser?.profile_photo_id).source;
 
   const handleSignOut = () => {
     console.log('Signing out.');
@@ -50,104 +93,173 @@ export default function AccountSettingsScreen() {
       {showArrow && <FontAwesome name="chevron-right" size={16} color="#555" />}
     </TouchableOpacity>
   );
+  // This spacer matches exactly what [id].tsx uses for the profile screen
+  const topSpacerHeight = insets.top + HEADER_HEIGHT;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.headerRow}>
-        <Image
-          source={require('../../../../assets/images/Logo.png')}
-          style={styles.profileImage}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.profileName}>@{username || 'username'}</Text>
-          <Text style={styles.profileEmail}>{user?.email || 'your@email.com'}</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      {/* Spacer — same approach as the profile screen */}
+      <View style={{ height: topSpacerHeight }} />
 
-      {/* <View style={styles.sectionContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Profile Header ── */}
+        <View style={styles.headerRow}>
+          <View style={styles.avatarRingOuter}>
+            <View style={styles.avatarRingInner}>
+              {avatarLoaded ? (
+                <Image source={avatarSource} style={styles.profileImage} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <ActivityIndicator size="small" color={Theme.dark.primary} />
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profileName}>
+              {fullUser?.name || userStatus?.user?.name || 'Name'}
+            </Text>
+            <Text style={styles.profileUsername}>
+              @{fullUser?.username || username || 'username'}
+            </Text>
+            {(user?.email || fullUser?.email) ? (
+              <Text style={styles.profileEmail}>
+                {user?.email || fullUser?.email}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        {/* <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Account</Text>
         <SettingsItem icon="user" text="Change Username" onPress={() => router.push('/account/change-username')} isFirst={true} />
         <SettingsItem icon="edit" text="Edit Bio" onPress={() => router.push('/account/edit-bio')} />
         <SettingsItem icon="camera" text="Change Profile Picture" onPress={() => router.push('/account/change-profile-picture')} />
       </View> */}
 
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Settings & Privacy</Text>
-        <SettingsItem icon="bell" text="Notification Settings" onPress={() => router.push('/account/notifications')} />
-        <SettingsItem icon="shield" text="Privacy Settings" onPress={() => router.push('/account/privacy')} />
-        <SettingsItem icon="map-marker" text="Location Visibility" onPress={() => router.push('/account/location-settings')} />
-      </View>
+        {/* ── Settings & Privacy ── */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Settings & Privacy</Text>
+          <SettingsItem icon="bell" text="Notification Settings" onPress={() => router.push('/account/notifications')} />
+          <SettingsItem icon="shield" text="Privacy Settings" onPress={() => router.push('/account/privacy')} />
+          <SettingsItem icon="map-marker" text="Location Visibility" onPress={() => router.push('/account/location-settings')} />
+        </View>
 
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Log Out & Delete Account</Text>
-        {/* No arrow since it doesn’t navigate */}
-        <SettingsItem icon="sign-out" text="Log Out" onPress={handleSignOut} color="#33CCFF" showArrow={false} />
-        <SettingsItem icon="trash" text="Delete Account" onPress={() => router.push('/account/delete-account')} color="#FF453A" showArrow={false} />
-      </View>
-    </ScrollView>
+        {/* ── Log Out & Delete ── */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Log Out & Delete Account</Text>
+          <SettingsItem
+            icon="sign-out"
+            text="Log Out"
+            onPress={handleSignOut}
+            color={Theme.dark.primary}
+            showArrow={false}
+          />
+          <SettingsItem
+            icon="trash"
+            text="Delete Account"
+            onPress={() => router.push('/account/delete-account')}
+            color={Theme.dark.error}
+            showArrow={false}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0b0b12',
-    padding: 16,
+    backgroundColor: Theme.dark.background,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+    paddingTop: 16,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 4,
+    paddingBottom: 24,
+  },
+  avatarRingOuter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: Theme.container.mainBorder,
+    padding: 2,
+    marginRight: 14,
+  },
+  avatarRingInner: {
+    flex: 1,
+    borderRadius: 34,
+    overflow: 'hidden',
+    backgroundColor: Theme.dark.background,
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
-    marginRight: 12,
+    width: '100%',
+    height: '100%',
+    borderRadius: 34,
+    transform: [{ scale: 1.12 }],
+  },
+  avatarPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileName: {
-    color: 'white',
-    fontSize: 20,
+    color: Theme.dark.white,
+    fontSize: 18,
     fontWeight: '700',
   },
+  profileUsername: {
+    color: Theme.container.inactiveText,
+    fontSize: 13,
+    marginTop: 2,
+  },
   profileEmail: {
-    color: 'white',
-    fontSize: 14,
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 1,
   },
   sectionContainer: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 12,
-    marginVertical: 8,
+    backgroundColor: Theme.container.background,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 4,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#1f2937',
+    borderColor: Theme.container.mainBorder,
   },
   sectionTitle: {
-    color: 'white',
-    fontSize: 18,
+    color: Theme.dark.white,
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 10,
-    paddingHorizontal: 4,
+    opacity: 0.5,
+    paddingVertical: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderColor: '#1f2937',
+    borderColor: Theme.container.mainBorder,
   },
   icon: {
-    width: 30,
+    width: 28,
   },
   settingText: {
     flex: 1,
-    color: '#E5E5EE',
     fontSize: 16,
     marginLeft: 10,
   },

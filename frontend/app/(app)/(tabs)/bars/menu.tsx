@@ -6,11 +6,15 @@ import { Theme } from "@/constants/theme";
 import ErrorState from "@/components/ui/error-state";
 import { MenuSection, MenuItemModal } from "@/components/bars/menu-components";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function BarMenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { bar, loading } = useBarDetail(id);
   const [activeItem, setActiveItem] = useState<{ name: string; desc: string } | null>(null);
+  const insets = useSafeAreaInsets();
+  // Must match TopHeader constants so content doesn't hide under the global header
+  const HEADER_SPACER = insets.top + 44;
 
   const MenuSkeleton = () => (
     <View style={{ padding: 16, gap: 20 }}>
@@ -58,6 +62,8 @@ export default function BarMenuScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        {/* Pushes content below the globally-mounted TopHeader */}
+        <View style={{ height: HEADER_SPACER }} />
         <Text style={styles.title}>{bar.name} Menu</Text>
 
         {sections.length > 0 ? (
@@ -79,7 +85,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Theme.dark.background,
     paddingHorizontal: 12,
-    paddingTop: 12
   },
   center: {
     justifyContent: "center",

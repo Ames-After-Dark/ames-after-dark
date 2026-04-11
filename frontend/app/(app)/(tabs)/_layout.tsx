@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePathname } from 'expo-router';
+import { usePathname, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -11,6 +11,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { useAuth } from '@/hooks/use-auth';
 import { TopHeaderVisibilityProvider, useTopHeaderVisibility } from '@/context/top-header-visibility';
+import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 
 import TopHeader from "@/components/TopHeader";
 
@@ -43,12 +44,10 @@ function withHexOpacity(hexColor: string, opacity: number) {
     .toString(16)
     .padStart(2, '0')
     .toUpperCase();
-
   return `${hexColor}${alphaHex}`;
 }
 
 export default function TabLayout() {
-
   return (
     <TopHeaderVisibilityProvider>
       <TabLayoutInner />
@@ -57,12 +56,11 @@ export default function TabLayout() {
 }
 
 function TabLayoutInner() {
-
   const { currentUser } = useAuth();
   const pathname = usePathname();
   const { topHeaderVisible, setTopHeaderVisible } = useTopHeaderVisibility();
+  const { recordVisit, resetStack } = useNavigationHistory();
 
-  // get the logged in user's ID 
   const myId = currentUser?.id;
 
   const insets = useSafeAreaInsets();
@@ -77,15 +75,12 @@ function TabLayoutInner() {
   const tabSceneBottomPadding = TAB_CONTENT_BOTTOM_PADDING;
 
   React.useEffect(() => {
-    // When navigating between tabs/screens, restore the header by default.
     setTopHeaderVisible(true);
-  }, [pathname, setTopHeaderVisible]);
+    recordVisit(pathname);
+  }, [pathname, setTopHeaderVisible, recordVisit]);
 
   React.useEffect(() => {
-    if (!__DEV__ || !TAB_BAR_DEBUG_LOGS) {
-      return;
-    }
-
+    if (!__DEV__ || !TAB_BAR_DEBUG_LOGS) return;
     console.log('[TabBarDebug]', {
       screenWidth,
       tabBarSideMargin: TAB_BAR_SIDE_MARGIN,
@@ -104,7 +99,6 @@ function TabLayoutInner() {
     <Tabs
       initialRouteName="tonight"
       screenOptions={{
-
         tabBarButton: HapticTab,
         tabBarShowLabel: false,
         tabBarActiveTintColor: Theme.dark.primary,
@@ -113,7 +107,6 @@ function TabLayoutInner() {
           backgroundColor: Theme.dark.background,
           paddingBottom: tabSceneBottomPadding,
         },
-
         tabBarStyle: {
           position: 'absolute',
           left: 0,
@@ -128,27 +121,14 @@ function TabLayoutInner() {
           shadowColor: Theme.dark.black,
           shadowOpacity: 0.2,
           shadowRadius: 14,
-          shadowOffset: {
-            width: 0,
-            height: 8
-          },
+          shadowOffset: { width: 0, height: 8 },
           elevation: 12,
         },
-        tabBarItemStyle: {
-          marginTop: 6,
-        },
-        tabBarIconStyle: {
-          marginTop: 0,
-        },
-
-        // Global header stays mounted; TopHeader handles smooth hide/show animation.
+        tabBarItemStyle: { marginTop: 6 },
+        tabBarIconStyle: { marginTop: 0 },
         header: () => <TopHeader visible={topHeaderVisible} />,
-
-        // Keep header mounted to avoid jumpy relayout when scrolling.
         headerShown: true,
       }}>
-
-      {/* order: tonight, map, bars, gallery, account */}
 
       {/* TONIGHT */}
       <Tabs.Screen
@@ -156,6 +136,12 @@ function TabLayoutInner() {
         options={{
           title: "Tonight",
           tabBarIcon: ({ color }) => <TabBarIcon name="moon-o" color={color} />,
+        }}
+        listeners={{
+          tabPress: () => {
+            resetStack('/tonight');
+            router.replace('/tonight' as any);
+          },
         }}
       />
 
@@ -166,6 +152,12 @@ function TabLayoutInner() {
           title: "Map",
           tabBarIcon: ({ color }) => <TabBarIcon name="map" color={color} />,
         }}
+        listeners={{
+          tabPress: () => {
+            resetStack('/map');
+            router.replace('/map' as any);
+          },
+        }}
       />
 
       {/* BARS */}
@@ -175,7 +167,13 @@ function TabLayoutInner() {
           title: "Bars",
           tabBarIcon: ({ color }) => (
             <TabBarIcon5 name="glass-martini-alt" color={color} />
-          )
+          ),
+        }}
+        listeners={{
+          tabPress: () => {
+            resetStack('/bars');
+            router.replace('/bars' as any);
+          },
         }}
       />
 
@@ -186,34 +184,34 @@ function TabLayoutInner() {
           title: "Gallery",
           tabBarIcon: ({ color }) => <TabBarIcon name="camera" color={color} />,
         }}
+        listeners={{
+          tabPress: () => {
+            resetStack('/gallery');
+            router.replace('/gallery' as any);
+          },
+        }}
       />
 
-      {/* FRIENDS / ACCOUNT */}
+      {/* ACCOUNT */}
       <Tabs.Screen
         name="account"
         options={{
           title: "Account",
-
-          href: (myId ? `/account/${myId}` : '/account') as any,
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
-          tabBarIconStyle: {
-            marginTop: 6,
-          }
+          // tabBarIconStyle: { marginTop: 6 },
         }}
-        listeners={({ navigation }) => ({
+        listeners={() => ({
           tabPress: (e) => {
             if (process.env.EXPO_OS === 'ios') {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
-
             if (myId) {
-
               e.preventDefault();
-
-              navigation.navigate('account', {
-                screen: '[id]',
-                params: { id: myId.toString() },
-              });
+              resetStack(`/account/${myId}`);
+              router.replace(`/account/${myId}` as any);
+            } else {
+              resetStack('/account');
+              router.replace('/account' as any);
             }
           },
         })}

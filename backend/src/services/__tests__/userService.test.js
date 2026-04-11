@@ -32,6 +32,23 @@ describe('userService', () => {
     expect(res).toBe(sample);
   });
 
+  test('searchUsers queries prisma with search text and exclusion', async () => {
+    const sample = [{ id: 2, username: 'bob' }];
+    mockPrisma.users.findMany.mockResolvedValue(sample);
+
+    const res = await userService.searchUsers('bob', 1);
+
+    expect(mockPrisma.users.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.any(Array),
+        NOT: { id: 1 }
+      }),
+      select: expect.any(Object),
+      orderBy: { id: 'asc' }
+    }));
+    expect(res).toBe(sample);
+  });
+
   test('getUserById returns single user', async () => {
     const sample = { id: 2, username: 'bob' };
     mockPrisma.users.findUnique.mockResolvedValue(sample);
@@ -46,17 +63,17 @@ describe('userService', () => {
   describe('Auth0 methods', () => {
     test('getUserByAuth0Id returns user by uid', async () => {
       const auth0Id = 'auth0|123456789';
-      const sample = { 
-        id: 3, 
-        uid: auth0Id, 
+      const sample = {
+        id: 3,
+        uid: auth0Id,
         username: 'charlie',
-        roles: { id: 1, name: 'user' } 
+        roles: { id: 1, name: 'user' }
       };
       mockPrisma.users.findUnique.mockResolvedValue(sample);
 
       const res = await userService.getUserByAuth0Id(auth0Id);
       expect(mockPrisma.users.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ 
+        expect.objectContaining({
           where: { uid: auth0Id },
           include: { roles: true }
         })
@@ -98,7 +115,7 @@ describe('userService', () => {
       mockPrisma.users.create.mockResolvedValue(createdUser);
 
       const res = await userService.createUserWithAuth0(userData);
-      
+
       expect(mockPrisma.users.create).toHaveBeenCalledWith({
         data: {
           uid: userData.auth0Id,
@@ -135,7 +152,7 @@ describe('userService', () => {
       mockPrisma.users.create.mockResolvedValue(createdUser);
 
       const res = await userService.createUserWithAuth0(userData);
-      
+
       expect(mockPrisma.users.create).toHaveBeenCalledWith({
         data: {
           uid: userData.auth0Id,
@@ -161,7 +178,7 @@ describe('userService', () => {
       mockPrisma.users.create.mockResolvedValue({ id: 12 });
 
       await userService.createUserWithAuth0(userData);
-      
+
       const callArgs = mockPrisma.users.create.mock.calls[0][0];
       expect(callArgs.data.birthday).toBeInstanceOf(Date);
       expect(callArgs.data.birthday.toISOString()).toContain('1998-12-31');
@@ -183,7 +200,7 @@ describe('userService', () => {
       mockPrisma.friendships.findMany.mockResolvedValue(friendships);
 
       const res = await userService.getUserFriends(userId);
-      
+
       expect(mockPrisma.friendships.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
@@ -192,8 +209,24 @@ describe('userService', () => {
           ]
         },
         include: {
-          users_friendships_user_id_1Tousers: true,
-          users_friendships_user_id_2Tousers: true
+          users_friendships_user_id_1Tousers: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              profile_photo: true,
+              bio: true
+            }
+          },
+          users_friendships_user_id_2Tousers: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              profile_photo: true,
+              bio: true
+            }
+          }
         }
       });
       expect(res).toEqual([{ id: 2, username: 'bob' }]);
@@ -213,10 +246,39 @@ describe('userService', () => {
       mockPrisma.friendships.findMany.mockResolvedValue(friendships);
 
       const res = await userService.getUserFriends(userId);
+
+      expect(mockPrisma.friendships.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { user_id_1: userId },
+            { user_id_2: userId }
+          ]
+        },
+        include: {
+          users_friendships_user_id_1Tousers: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              profile_photo: true,
+              bio: true
+            }
+          },
+          users_friendships_user_id_2Tousers: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              profile_photo: true,
+              bio: true
+            }
+          }
+        }
+      });
       expect(res).toEqual([{ id: 1, username: 'alice' }]);
     });
 
-    test('returns empty array when no friends', async () => {
+    test('handles empty results', async () => {
       mockPrisma.friendships.findMany.mockResolvedValue([]);
 
       const res = await userService.getUserFriends(999);

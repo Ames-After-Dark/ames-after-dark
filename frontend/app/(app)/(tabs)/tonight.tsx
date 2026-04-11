@@ -248,8 +248,11 @@ export default function Tonight() {
   }, [activeTab, upcomingWeekData.items.length]);
 
   // Navigation helpers
-  const goToBarDetail = (id: string, backTo: BackTarget = "bars") =>
-    router.push({
+  // Use router.replace (not push) so no ghost entry is added to the native stack.
+  // Our NavigationHistoryContext owns the back stack — router.push would create
+  // a duplicate native stack entry that fights with context-driven goBack.
+  const goToBarDetail = (id: string, backTo: BackTarget = "home") =>
+    router.replace({
       pathname: "/bars/[id]",
       params: { id, backTo },
     });
@@ -531,7 +534,7 @@ export default function Tonight() {
               query={query}
               onBarPress={(id) => goToBarDetail(id, "tonight-friends")}
               onFriendPress={(friendId) =>
-                router.push({
+                router.replace({
                   pathname: "/(app)/(tabs)/map",
                   params: {
                     selectedFriendId: String(friendId),
