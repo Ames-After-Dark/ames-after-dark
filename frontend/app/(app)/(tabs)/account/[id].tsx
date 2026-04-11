@@ -319,7 +319,7 @@ export default function FriendProfileScreen() {
     }
 
     if (!user || hasForcedError) {
-        return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
+        return <ErrorState title="User not found" subtitle="This profile may have been deleted." />;
     }
 
     if (error || hasForcedError) {
