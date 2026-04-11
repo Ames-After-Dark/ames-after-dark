@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useNavigationHistory } from '@/context/NavigationHistoryContext';
@@ -110,15 +110,17 @@ export default function FriendProfileScreen() {
         loading: actionLoading
     } = useProfileActions(triggerToast);
 
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async ({ showLoader = false }: { showLoader?: boolean } = {}) => {
 
         if (!id || !userStatus?.userId) {
 
-            setLoading(false);
+            if (showLoader) setLoading(false);
             return;
         }
 
-        setLoading(true);
+        if (showLoader) {
+            setLoading(true);
+        }
         setError(null);
 
         try {
@@ -180,13 +182,19 @@ export default function FriendProfileScreen() {
             console.error(err);
             setError('Unable to load account and friends right now.');
         } finally {
-            setLoading(false);
+            if (showLoader) {
+                setLoading(false);
+            }
         }
-    };
+    }, [id, userStatus?.userId, getAccessToken, isMe]);
+
+    const refreshProfileSilently = useCallback(() => {
+        return fetchProfile({ showLoader: false });
+    }, [fetchProfile]);
 
     useEffect(() => {
-        fetchProfile();
-    }, [id, isMe]);
+        fetchProfile({ showLoader: true });
+    }, [fetchProfile]);
 
     useEffect(() => {
         if (!modalConfig.visible) return;
@@ -235,25 +243,25 @@ export default function FriendProfileScreen() {
                     () => {
                         triggerToast(`Friend request sent to ${targetName}`);
                     },
-                    fetchProfile
+                    refreshProfileSilently
                 );
             }
 
             if (status === 'PENDING_RECEIVED') setIsRespondModalVisible(true);
 
             if (status === 'BLOCKED') {
-                await handleUnblock(friendId, fetchProfile);
+                await handleUnblock(friendId, refreshProfileSilently);
             }
         } else if (type === 'respond') {
             setIsRespondModalVisible(true);
         } else if (type === 'accept' || type === 'decline') {
-            await handlePendingDecision(friendId, type, fetchProfile);
+            await handlePendingDecision(friendId, type, refreshProfileSilently);
             setIsRespondModalVisible(false);
         } else if (type === 'block') {
-            handleConfirmBlock(friendId, user.name, fetchProfile);
+            handleConfirmBlock(friendId, user.name, refreshProfileSilently);
             setIsRespondModalVisible(false);
         } else if (type === 'remove') {
-            handleRemove(friendId, targetName, fetchProfile);
+            handleRemove(friendId, targetName, refreshProfileSilently);
         } else if (type === 'cancel') {
             Alert.alert(
                 "Cancel Request",
@@ -273,7 +281,7 @@ export default function FriendProfileScreen() {
                                 };
                             });
 
-                            await handleCancelRequest(friendId, targetName, fetchProfile);
+                            await handleCancelRequest(friendId, targetName, refreshProfileSilently);
                         }
                     }
                 ]
