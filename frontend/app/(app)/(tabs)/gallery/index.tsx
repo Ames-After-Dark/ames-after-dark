@@ -10,7 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 import { Theme } from "@/constants/theme";
-import { getLatestWeekAlbums } from "@/services/galleryService";
+import { getLatestWeekAlbums, getResizedImageUri } from "@/services/galleryService";
 import GalleryFallback from "./Galleryfallback";
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -260,7 +260,8 @@ export default function GalleryScreen() {
                     }
                   >
                     {album.coverUrl ? (
-                      <Image source={{ uri: album.coverUrl }} style={styles.albumImage} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
+                      <Image source={{ uri: getResizedImageUri(album.coverUrl, 600) }} 
+                        style={styles.albumImage} contentFit="cover" transition={200} cachePolicy={"memory-disk"} />
                     ) : (
                       <View style={styles.placeholderCover} />
                     )}
