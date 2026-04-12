@@ -33,17 +33,33 @@ async function signedUrlForKey(key) {
 }
 
 /**
- * List objects in R2 with optional prefix and limit.
+ * List objects in R2 with pagination to bypass 1000 object limit
  */
-async function listR2Objects(prefix = '', limit = 1000) {
+async function listR2Objects(prefix = '') {
+  let isTruncated = true;
+  let continuationToken = undefined;
+  const allContents = [];
+
   try {
-    const command = new ListObjectsV2Command({
-      Bucket: CLOUDFLARE_R2_BUCKET,
-      Prefix: prefix,
-      MaxKeys: limit,
-    });
-    const response = await s3.send(command);
-    return response.Contents || [];
+    while (isTruncated) {
+      const command = new ListObjectsV2Command({
+        Bucket: CLOUDFLARE_R2_BUCKET,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      });
+
+      const response = await s3.send(command);
+
+      if (response.Contents) {
+        allContents.push(...response.Contents);
+      }
+      
+      // Check if there are more results to fetch
+      isTruncated = response.IsTruncated;
+      continuationToken = response.NextContinuationToken;
+    }
+
+    return allContents;
   } catch (err) {
     console.warn('R2 list error:', err);
     return [];
@@ -109,7 +125,7 @@ function formatDateStr(dateStr) {
  */
 router.get('/albums', async (req, res) => {
   try {
-    const allObjects = await listR2Objects('', 5000);
+    const allObjects = await listR2Objects('');
     console.log(`r2Routes: got ${allObjects.length} objects`);
     if (!allObjects || allObjects.length === 0) { return res.json([]); }
 
@@ -182,7 +198,7 @@ router.get('/photos', async (req, res) => {
     let normalizedPrefix = prefix.replace(/^\//, '');
     if (!normalizedPrefix.endsWith('/')) normalizedPrefix = `${normalizedPrefix}/`;
 
-    const objs = await listR2Objects(normalizedPrefix, 5000);
+    const objs = await listR2Objects(normalizedPrefix);
     if (!objs.length) return res.json([]);
 
     const imageObjs = objs.filter(o =>
