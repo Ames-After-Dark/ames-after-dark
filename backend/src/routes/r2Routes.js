@@ -108,7 +108,7 @@ router.get('/albums', async (req, res) => {
   try {
     const allObjects = await listR2Objects('', 5000);
     console.log(`r2Routes: got ${allObjects.length} objects`);
-    if (!allObjects) { return res.json([]); }
+    if (!allObjects || allObjects.length === 0) { return res.json([]); }
 
     // Group photos by bar folder
     const photosByFolder = {};
@@ -137,14 +137,15 @@ router.get('/albums', async (req, res) => {
     if (!allDates.length) return res.json([]);
     const latestTime = Math.max(...allDates);
 
-    // Build albums for folders matching the latest date
+    // Build albums for folders that have a valid date
     const albums = await Promise.all(
       Object.entries(photosByFolder).filter(([folderName]) => {
         const meta = folderMeta[folderName];
-        return meta.date && meta.date.getTime() === latestTime;
+        return meta.date != null;
       })
       .map(async ([folderName, objects]) => {
         const meta = folderMeta[folderName];
+        
         // Pick most recently modified photo as cover
         const cover = objects.reduce((a, b) =>
           new Date(b.LastModified) > new Date(a.LastModified) ? b : a);
@@ -160,6 +161,7 @@ router.get('/albums', async (req, res) => {
         };
       })
     );
+
     albums.sort((a, b) => a.barName.localeCompare(b.barName));
     res.json(albums);
   } catch (err) {
