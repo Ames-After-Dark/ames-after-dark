@@ -51,23 +51,19 @@ async function listR2Objects(prefix = '', limit = 1000) {
 }
 
 /**
- * Parse a folder name like "Bar Name 09-23" into display name and date string.
+ * Parse a folder name into display name and date string.
  * If no date found, returns display name as-is and dateStr as null.
  */
 function parseFolderName(folderName) {
-  const match = folderName.trim().match(/^(.+?)\s+(\d{1,2}-\d{1,2})$/);
-  if (match) return { displayName: match[1], dateStr: match[2] };
+  const cleaned = folderName.trim();
+  const match = cleaned.match(/^(.+?)[\s_]+(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)$/);
+  
+  if (match) {
+    const displayName = match[1].replace(/_+$/, '').trim();
+    return { displayName, dateStr: match[2] };
+  }
 
-  return { displayName: folderName.trim(), dateStr: null };
-}
-
-/**
- * Build a public S3-style URL for an R2 object key.
- */
-function urlForKey(key) {
-  const endpoint = (CLOUDFLARE_R2_S3_ENDPOINT || '').replace(/\/$/, '');
-  const bucket = CLOUDFLARE_R2_BUCKET || '';
-  return `${endpoint}/${bucket}/${key}`;
+  return { displayName: cleaned, dateStr: null };
 }
 
 /**
@@ -76,16 +72,23 @@ function urlForKey(key) {
  */
 function parseDateStr(dateStr) {
   if (!dateStr) return null;
-  const parts = dateStr.split('-');
-  if (parts.length !== 2) return null;
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length < 2) return null;
   
   const month = parseInt(parts[0], 10) - 1;
   const day = parseInt(parts[1], 10);
   if (isNaN(month) || isNaN(day)) return null;
 
   const now = new Date();
-  let candidate = new Date(now.getFullYear(), month, day);
-  if (candidate > now) candidate = new Date(now.getFullYear() - 1, month, day);
+  let year = now.getFullYear();
+
+  if (parts.length === 3) {
+    const providedYear = parseInt(parts[2].trim(), 10);
+    year = providedYear < 100 ? 2000 + providedYear : providedYear;
+  }
+  
+  let candidate = new Date(year, month, day);
+  if (candidate > now && parts.length !== 3) candidate = new Date(year - 1, month, day);
 
   return candidate;
 }
@@ -133,10 +136,6 @@ router.get('/albums', async (req, res) => {
       folderMeta[folderName] = { displayName, dateStr, date };
     }
 
-    const allDates = Object.values(folderMeta).map(m=>m.date).filter(Boolean).map(d=>d.getTime());
-    if (!allDates.length) return res.json([]);
-    const latestTime = Math.max(...allDates);
-
     // Build albums for folders that have a valid date
     const albums = await Promise.all(
       Object.entries(photosByFolder).filter(([folderName]) => {
@@ -145,7 +144,7 @@ router.get('/albums', async (req, res) => {
       })
       .map(async ([folderName, objects]) => {
         const meta = folderMeta[folderName];
-        
+
         // Pick most recently modified photo as cover
         const cover = objects.reduce((a, b) =>
           new Date(b.LastModified) > new Date(a.LastModified) ? b : a);
