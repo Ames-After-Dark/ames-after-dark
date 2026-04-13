@@ -158,3 +158,50 @@ exports.updateSharingPreference = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// POST /api/locations/:locationId/checkin
+exports.checkIn = async (req, res) => {
+  try {
+
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Missing authentication token' });
+    }
+
+    const user = await userService.getUserByAuth0Id(authId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { locationId } = req.params;
+    const { timezone } = req.body; // timezone: "America/Chicago"
+    const userId = user.id;
+
+    if (!userId || !locationId) {
+      return res.status(400).json({ error: "userId and locationId are required." });
+    }
+
+    // Call the service we discussed
+    const result = await userLocationService.processWeeklyCheckIn(
+      parseInt(userId), 
+      parseInt(locationId), 
+      timezone
+    );
+
+    if (result.status === 'ALREADY_CHECKED_IN') {
+      return res.status(200).json({
+        message: "Streak has already been checked in for this week",
+        streak: result.streak
+      });
+    }
+
+    res.status(201).json({
+      message: "Streak updated",
+      streak: result.streak
+    });
+
+  } catch (error) {
+    console.error("Check-in error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
