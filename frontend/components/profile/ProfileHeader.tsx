@@ -9,10 +9,7 @@ import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
 import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
-<<<<<<< HEAD
 import { ProfileStats } from './ProfileStats';
-=======
->>>>>>> c9a4b7f92d14a70488aaec537bad5b5d7029c677
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PICKER MODAL
@@ -251,7 +248,6 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
-<<<<<<< HEAD
 
                     <ProfileStats
                         isMe={isMe}
@@ -261,30 +257,6 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         onPressFriends={onPressFriends}
                         onPressMutuals={onPressMutuals}
                     />
-=======
-                    {isMe && isEditing && showInlineEditActions && (
-                        <View style={styles.inlineActionsRow}>
-                            <TouchableOpacity onPress={onCancelEdit} style={styles.cancelEditButton}>
-                                <Text style={styles.cancelEditButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={onSave} style={styles.saveButton}>
-                                <Text style={styles.saveButtonText}>Save</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                    {shouldShowStats && (
-                        <View style={styles.statsRow}>
-                            <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
-                                <Text style={styles.statNumber}>{friendCount ?? 0}</Text>
-                                <Text style={styles.statLabel}>friends</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.statButton} onPress={onPressMutuals}>
-                                <Text style={styles.statNumber}>{mutualCount ?? 0}</Text>
-                                <Text style={styles.statLabel}>{isMe ? 'pending' : 'mutual'}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
->>>>>>> c9a4b7f92d14a70488aaec537bad5b5d7029c677
                 </View>
             </View>
 
