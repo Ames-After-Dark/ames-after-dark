@@ -163,7 +163,7 @@ export default function Bars() {
           backgroundColor: Theme.dark.background,
         }
       ]}>
-        <View style={styles.searchBar}>
+        {/* <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} />
           <TextInput
             placeholder="Search bars or keywords"
@@ -172,6 +172,28 @@ export default function Bars() {
             onChangeText={setSearch}
             style={styles.searchInput}
           />
+        </View> */}
+        <View style={styles.searchBar}>
+          <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} />
+
+          <TextInput
+            placeholder="Search bars or keywords"
+            placeholderTextColor={Theme.search.inactiveInput}
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+          />
+
+          {/* Clear Button Logic */}
+          {search.length > 0 && (
+            <FontAwesome
+              name="times-circle"
+              size={18}
+              color={Theme.search.inactiveInput}
+              onPress={() => setSearch("")}
+              style={styles.clearIcon}
+            />
+          )}
         </View>
         <View style={styles.filters}>
           {["Bars", "Restaurants", "Favorites"].map(option => (
@@ -275,11 +297,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 14,
   },
-  searchInput: {
-    flex: 1,
-    color: Theme.search.input,
-    fontSize: 14
-  },
+  // searchInput: {
+  //   flex: 1,
+  //   color: Theme.search.input,
+  //   fontSize: 14
+  // },
   filters: {
     flexDirection: "row",
     justifyContent: "center",
@@ -296,5 +318,14 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Theme.search.inactiveInput,
     fontSize: 13,
+  },
+  searchInput: {
+    flex: 1,
+    color: Theme.search.input,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  clearIcon: {
+    padding: 4,
   },
 });
