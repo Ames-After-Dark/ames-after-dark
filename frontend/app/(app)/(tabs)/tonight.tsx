@@ -479,6 +479,7 @@ export default function Tonight() {
               <OpenNowSection
                 data={filteredBars}
                 onBarPress={(id) => goToBarDetail(id, "tonight-open")}
+                query={query}
               />
             </>
           )}
@@ -525,6 +526,7 @@ export default function Tonight() {
               <DealsSection
                 data={filteredDeals}
                 onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
+                query={query}
               />
             </>
           )}
