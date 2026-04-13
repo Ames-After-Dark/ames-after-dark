@@ -9,7 +9,10 @@ import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
 import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
+<<<<<<< HEAD
 import { ProfileStats } from './ProfileStats';
+=======
+>>>>>>> c9a4b7f92d14a70488aaec537bad5b5d7029c677
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PICKER MODAL
@@ -128,12 +131,14 @@ interface ProfileHeaderProps {
     isEditing?: boolean;
     onRequestEdit?: () => void;
     onSave?: () => void;
+    onCancelEdit?: () => void;
+    showInlineEditActions?: boolean;
     onEditBio?: () => void;
     onPressFriends?: () => void;
     onPressMutuals?: () => void;
 }
 
-export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onCancelEdit, showInlineEditActions = true, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
     const { userStatus, getAccessToken } = useAuth();
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
@@ -244,15 +249,9 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                 <View style={styles.infoContainer}>
                     <View style={styles.nameRow}>
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
-                        {isMe && (
-                            isEditing ? (
-                                <TouchableOpacity onPress={onSave} style={styles.saveButton}>
-                                    <Text style={styles.saveButtonText}>Save</Text>
-                                </TouchableOpacity>
-                            ) : null
-                        )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
+<<<<<<< HEAD
 
                     <ProfileStats
                         isMe={isMe}
@@ -262,6 +261,30 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         onPressFriends={onPressFriends}
                         onPressMutuals={onPressMutuals}
                     />
+=======
+                    {isMe && isEditing && showInlineEditActions && (
+                        <View style={styles.inlineActionsRow}>
+                            <TouchableOpacity onPress={onCancelEdit} style={styles.cancelEditButton}>
+                                <Text style={styles.cancelEditButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={onSave} style={styles.saveButton}>
+                                <Text style={styles.saveButtonText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {shouldShowStats && (
+                        <View style={styles.statsRow}>
+                            <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
+                                <Text style={styles.statNumber}>{friendCount ?? 0}</Text>
+                                <Text style={styles.statLabel}>friends</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.statButton} onPress={onPressMutuals}>
+                                <Text style={styles.statNumber}>{mutualCount ?? 0}</Text>
+                                <Text style={styles.statLabel}>{isMe ? 'pending' : 'mutual'}</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+>>>>>>> c9a4b7f92d14a70488aaec537bad5b5d7029c677
                 </View>
             </View>
 
@@ -405,12 +428,31 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         backgroundColor: Theme.dark.primary,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 10,
     },
     saveButtonText: {
         color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    inlineActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+    },
+    cancelEditButton: {
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        backgroundColor: Theme.container.background,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 10,
+    },
+    cancelEditButtonText: {
+        color: Theme.container.inactiveText,
         fontWeight: '700',
         fontSize: 14,
     },
