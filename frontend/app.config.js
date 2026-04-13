@@ -12,7 +12,7 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 
-	//EAS OTA Configuration settings
+    //EAS OTA Configuration settings
     owner: "amesafterdark",
     updates: {
       url: "https://u.expo.dev/3087f40f-3c08-44de-8f1d-b4feaa8bfb6d"
@@ -21,12 +21,19 @@ export default {
       policy: "appVersion"
     },
 
-    ios: { supportsTablet: true,
-           bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
-     	   buildNumber: "4", //increment this from last successful upload
-      	   infoPlist: {
-             ITSAppUsesNonExemptEncryption: false
-     	    }
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
+      buildNumber: "4", //increment this from last successful upload
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      },
+      "ios": {
+        "infoPlist": {
+          "UIBackgroundModes": ["location", "fetch"],
+          "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out at the bars!"
+        }
+      },
     },
 
     android: {
@@ -49,10 +56,10 @@ export default {
     plugins: [
       "expo-router",
 
-      ["react-native-auth0",{
+      ["react-native-auth0", {
         domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN
       }],
-      ["expo-splash-screen",{
+      ["expo-splash-screen", {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
