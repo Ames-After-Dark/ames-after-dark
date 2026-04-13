@@ -1,29 +1,53 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Theme } from '@/constants/theme';
+import { FontAwesome } from '@expo/vector-icons';
 
 interface ProfileStatsProps {
-    friendCount: number;
-    isMe: boolean;
+    friendCount?: number;
+    isMe?: boolean;
     mutualCount?: number;
-    onPressFriends: () => void;
+    isFriend?: boolean;
+    onPressFriends?: () => void;
     onPressMutuals?: () => void;
     secondLabel?: string;
 }
 
-export const ProfileStats = ({ friendCount, mutualCount, onPressFriends, onPressMutuals, isMe, ...props }: ProfileStatsProps) => {
+export const ProfileStats = ({
+    friendCount,
+    mutualCount,
+    onPressFriends,
+    onPressMutuals,
+    isMe,
+    isFriend,
+    ...props
+}: ProfileStatsProps) => {
+
+    const canSeeData = isMe || isFriend;
 
     return (
         <View style={styles.statsRow}>
             {/* Friends - Left Side */}
-            <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
-                <Text style={styles.statNumber}>{friendCount}</Text>
+            <TouchableOpacity
+                style={styles.statButton}
+                onPress={onPressFriends}
+                disabled={!canSeeData} // Disable clicking if locked
+            >
+                <Text style={styles.statNumber}>
+                    {canSeeData ? (friendCount ?? 0) : <FontAwesome name="lock" size={18} color={Theme.container.inactiveText} />}
+                </Text>
                 <Text style={styles.statLabel}>friends</Text>
             </TouchableOpacity>
 
             {/* Pending/Mutual - Right Side */}
-            <TouchableOpacity style={styles.statButton} onPress={onPressMutuals}>
-                <Text style={styles.statNumber}>{mutualCount}</Text>
+            <TouchableOpacity
+                style={styles.statButton}
+                onPress={onPressMutuals}
+                disabled={!canSeeData}
+            >
+                <Text style={styles.statNumber}>
+                    {canSeeData ? (mutualCount ?? 0) : <FontAwesome name="lock" size={18} color={Theme.container.inactiveText} />}
+                </Text>
                 <Text style={styles.statLabel}>
                     {isMe ? 'pending' : 'mutual'}
                 </Text>
@@ -37,15 +61,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         width: '100%',
         justifyContent: 'space-between',
+        marginTop: 8,
+        gap: 8
     },
     statButton: {
-        width: '48%',
+        flex: 1,
         backgroundColor: Theme.container.background,
-        borderRadius: 16,
-        paddingVertical: 15,
-        alignItems: 'center',
+        paddingVertical: 8,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: Theme.container.mainBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     statNumber: {
         color: Theme.dark.white,

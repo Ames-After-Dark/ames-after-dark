@@ -317,11 +317,21 @@ export const ProfileListModal = ({
                         <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search..."
+                            placeholder="Search by name or username"
                             placeholderTextColor={Theme.search.inactiveInput}
                             value={search}
                             onChangeText={setSearch}
                         />
+
+                        {search.length > 0 && (
+                            <FontAwesome
+                                name="times-circle"
+                                size={18}
+                                color={Theme.search.inactiveInput}
+                                onPress={() => setSearch("")}
+                                style={styles.clearIcon}
+                            />
+                        )}
                     </View>
 
                     <FlatList
@@ -415,12 +425,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Theme.search.border,
         marginBottom: 10,
-    },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        color: Theme.dark.white,
-        fontSize: 16
     },
     userInfo: {
         flex: 1,
@@ -566,4 +570,14 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1.2,
     },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        color: Theme.dark.white,
+        fontSize: 16,
+        paddingVertical: 0,
+    },
+    clearIcon: {
+        padding: 4,
+    }
 });
