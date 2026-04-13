@@ -232,7 +232,14 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         </Animated.View>
                     </TouchableOpacity>
                 ) : (
-                    <Image source={avatarSource} style={styles.profileImageFriend} />
+                    // <Image source={avatarSource} style={styles.profileImageFriend} />
+                    <View style={styles.avatarWrapper}>
+                        <View style={styles.avatarRingOuter}>
+                            <View style={styles.avatarRingInner}>
+                                <Image source={avatarSource} style={styles.profileImage} />
+                            </View>
+                        </View>
+                    </View>
                 )}
 
                 <View style={styles.infoContainer}>
