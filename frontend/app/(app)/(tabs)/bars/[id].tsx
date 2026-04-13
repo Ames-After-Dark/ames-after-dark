@@ -7,7 +7,7 @@ import { fetchLocationById, MapLocation } from "@/services/locationService";
 import { getNow, isActive, isBarOpen } from "@/utils/schedule";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
-import { getLatestWeekAlbums, Album } from "@/services/galleryService";
+import { getLatestWeekAlbums, Album, getResizedImageUri } from "@/services/galleryService";
 
 import {
   BarHeader,
@@ -34,6 +34,7 @@ export default function BarProfile() {
   const toggleGalleryOverlay = () => setIsGalleryVisible(!isGalleryVisible);
   const [latestGalleryImage, setLatestGalleryImage] = useState<string | null>(null);
   const [specificAlbum, setSpecificAlbum] = useState<Album | null>(null);
+  const [isGalleryLoading, setIsGalleryLoading] = useState(true);
 
   const navigateToGallery = () => {
     setIsGalleryVisible(false);
@@ -53,22 +54,27 @@ export default function BarProfile() {
 
   useEffect(() => {
     const fetchLatestGalleryImage = async () => {
+      setIsGalleryLoading(true);
       try {
         const albums = await getLatestWeekAlbums();
 
         if (albums && albums.length > 0) {
-          const nameMap: Record<string, string> = {
-            "Cy's Roost": "Cy's",
-            "Outlaws": "Outlaw's",
-            "Sips": "Sip's",
-            "Paddy's Irish Pub": "Paddy's"
+          const nameMap: Record<string, string[]> = {
+            "Cy's Roost": ["Cy's"],
+            "Outlaws": ["Outlaw's", "Outlaws"],
+            "Sips": ["Sip's"],
+            "Paddy's Irish Pub": ["Paddy's"]
           };
-          const searchName = nameMap[bar?.name || ""] || bar?.name;
-          const matchingAlbum = albums.find(a => a.barName === searchName);
+          const searchName = nameMap[bar?.name || ""];
+          const matchingAlbum = albums.find(a => searchName?.includes(a.barName));
 
           if (matchingAlbum) {
             setSpecificAlbum(matchingAlbum);
-            setLatestGalleryImage(matchingAlbum.coverUrl);
+
+            const optimizedModalCover = matchingAlbum.coverUrl ? 
+              getResizedImageUri(matchingAlbum.coverUrl, 800) : null;
+            
+            setLatestGalleryImage(optimizedModalCover);
           } else {
             setSpecificAlbum(null);
             setLatestGalleryImage(null);
@@ -76,6 +82,8 @@ export default function BarProfile() {
         }
       } catch (err) {
         console.log("Could not fetch latest gallery image, falling back to bar cover.");
+      } finally {
+        setIsGalleryLoading(false);
       }
     };
 
@@ -242,6 +250,7 @@ export default function BarProfile() {
         barName={bar?.name}
         latestImage={latestGalleryImage}
         hasSpecificAlbum={!!specificAlbum}
+        isLoading={isGalleryLoading}
       />
     </>
   );
