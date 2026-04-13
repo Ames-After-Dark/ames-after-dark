@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, ScrollView, StyleSheet, ActivityIndicator, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { View, ScrollView, StyleSheet, Alert, Modal, TouchableWithoutFeedback, TouchableOpacity, Text, Animated, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,6 @@ import {
     searchUsers,
     updateBioByAuth,
 } from '@/services/userService';
-import { apiFetch } from '@/services/apiClient';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
@@ -32,10 +31,7 @@ import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 export default function FriendProfileScreen() {
 
     const insets = useSafeAreaInsets();
-    const MAIN_HEADER_HEIGHT = 0;
-    const TOTAL_TOP_PADDING = insets.top + MAIN_HEADER_HEIGHT;
     const BOTTOM_TAB_HEIGHT = 60;
-    const TOP_OFFSET = insets.top + MAIN_HEADER_HEIGHT;
 
     const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -46,8 +42,7 @@ export default function FriendProfileScreen() {
         return currentUser?.id === Number(id) || userStatus?.userId === Number(id);
     }, [id, currentUser, userStatus]);
 
-    const HEADER_HEIGHT = 60;
-    const dynamicTopPadding = isMe ? insets.top + HEADER_HEIGHT : insets.top + HEADER_HEIGHT; // Extra 20 for spacing when viewing others' profiles
+    const baseContentTopPadding = insets.top + 56;
 
     const toastTranslateY = useRef(new Animated.Value(-20)).current;
     const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -282,12 +277,37 @@ export default function FriendProfileScreen() {
         }
     };
 
+
+    // Animations for Edit Mode
+
+    const editAnimation = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.spring(editAnimation, {
+            toValue: isEditing ? 1 : 0,
+            useNativeDriver: true,
+            friction: 8,
+        }).start();
+    }, [isEditing]);
+
+    const scale = editAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 0.9],
+    });
+
+    const borderRadius = editAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 24],
+    });
+
+
+
     if (loading) {
         return <ProfileSkeleton />;
     }
 
     if (!user || hasForcedError) {
-        return <ErrorState title="User not found" subtitle="This profile might be private or deleted." />;
+        return <ErrorState title="User not found" subtitle="This profile may have been deleted." />;
     }
 
     if (error || hasForcedError) {
@@ -299,96 +319,135 @@ export default function FriendProfileScreen() {
 
             <Stack.Screen options={{ headerShown: false }} />
 
-            <Stack.Screen
-                // options={{
-                //     headerShown: !isMe,
-                //     headerShadowVisible: false,
-                // }}
-                options={{
-                    // headerShown: !isMe, // Only show for friends
-                    headerTransparent: true,
-                    headerTitle: "",
-                    headerTintColor: Theme.dark.white, // Ensure back button is white
-                    headerLeft: () => (
-                        <TouchableOpacity
-                            onPress={() => goBack()}
-                            style={{ marginLeft: 10, marginTop: 10 }}
-                        >
-                            <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
-
-            <ScrollView
-                contentContainerStyle={{
-                    paddingTop: dynamicTopPadding,
-                    paddingBottom: BOTTOM_TAB_HEIGHT + insets.bottom + 20, // Extra 20 for breathing room
-                    paddingHorizontal: 20,
-                    gap: 15
-                }}
-            >
-                <ProfileHeader
-                    user={user}
-                    isMe={isMe}
-                    showFriendStats={relationship.isFriend}
-                    isEditing={isEditing}
-                    onRequestEdit={() => setIsEditing(true)}
-                    onSave={() => setIsEditing(false)}
-                    friendCount={friends.length}
-                    mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
-                    onPressFriends={() => setModalConfig({
-                        visible: true,
-                        title: 'Friends',
-                        data: friends
-                    })}
-                    onPressMutuals={() => setModalConfig({
-                        visible: true,
-                        title: isMe ? 'Pending Requests' : 'Mutual Friends',
-                        data: isMe ? pendingRequests : mutualFriends
-                    })}
-                />
-
-                <ProfileHeader
-                    user={user}
-                    showBio={true}
-                    onlyBio={true}
-                    isMe={isMe}
-                    isEditing={isEditing}
-                    onEditBio={() => {
-                        setBioText(user?.bio || '');
-                        setIsBioModalVisible(true);
-                    }}
-                />
-
-                {relationship.isFriend ? (
-                    <ProfileGrid user={user} isMe={isMe} isEditing={isEditing} />
-                ) : (
-                    <View style={styles.lockedContainer}>
-                        <Text style={styles.lockedText}>Add {user.name} to see their weekend stats!</Text>
-                    </View>
-                )}
-
-                {!isMe && (
-                    <ProfileActions
-                        status={status as any}
-                        loading={actionLoading}
-                        userName={user?.name ?? undefined}
-                        onAction={handleAction}
-                    />
-                )}
-
-            </ScrollView>
-
-            {!isMe && (
-                <TouchableOpacity
-                    onPress={() => goBack()}
-                    style={[styles.backButton, { top: insets.top + 10 }]}
+            {isEditing && (
+                <Animated.View
+                    style={[
+                        styles.editorToolbar,
+                        {
+                            top: insets.top + 50,
+                            opacity: editAnimation,
+                        },
+                    ]}
                 >
-                    <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => {
+                            setIsEditing(false);
+                        }}
+                        style={[styles.editorToolbarBtn, styles.editorCancelBtn]}
+                    >
+                        <Text style={styles.editorCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.editorModeText}>Editing Profile</Text>
+                    <TouchableOpacity
+                        onPress={() => setIsEditing(false)}
+                        style={[styles.editorToolbarBtn, styles.editorSaveBtn]}
+                    >
+                        <Text style={styles.editorSaveText}>Save</Text>
+                    </TouchableOpacity>
+                </Animated.View>
             )}
 
+            {/* The shrinking canvas keeps the screenshot-like edit feel. */}
+            <Animated.View
+                style={{
+                    flex: 1,
+                    transform: [
+                        { scale },
+                        {
+                            translateY: editAnimation.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0, 140],
+                            })
+                        }
+                    ],
+                    borderRadius,
+                    overflow: 'hidden',
+                    backgroundColor: Theme.dark.background,
+                    // Add a subtle border when shrinking to define the "card"
+                    borderWidth: isEditing ? 1 : 0,
+                    borderColor: Theme.container.mainBorder,
+                    // Shadow for the "card" effect
+                    elevation: isEditing ? 10 : 0,
+                    zIndex: 1,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 10 },
+                    shadowOpacity: isEditing ? 0.5 : 0,
+                    shadowRadius: 20,
+                }}
+            >
+                <ScrollView
+                    // Disable scrolling while editing to keep the "screenshot" feel stable
+                    scrollEnabled={!isEditing}
+                    contentContainerStyle={{
+                        paddingTop: isEditing ? 12 : baseContentTopPadding,
+                        paddingBottom: BOTTOM_TAB_HEIGHT + insets.bottom + 20,
+                        paddingHorizontal: 20,
+                        gap: 15
+                    }}
+                >
+                    {/* Profile Identity */}
+                    <ProfileHeader
+                        user={user}
+                        isMe={isMe}
+                        showFriendStats={relationship.isFriend}
+                        isEditing={isEditing}
+                        onRequestEdit={() => setIsEditing(true)}
+                        onSave={() => setIsEditing(false)}
+                        onCancelEdit={() => {
+                            setIsEditing(false);
+                        }}
+                        showInlineEditActions={false}
+                        friendCount={friends.length}
+                        mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
+                        onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
+                        onPressMutuals={() => setModalConfig({ visible: true, title: isMe ? 'Pending Requests' : 'Mutual Friends', data: isMe ? pendingRequests : mutualFriends })}
+                    />
+
+                    {/* Bio Section */}
+                    <ProfileHeader
+                        user={user}
+                        showBio={true}
+                        onlyBio={true}
+                        isMe={isMe}
+                        isEditing={isEditing}
+                        onEditBio={() => {
+                            setBioText(user?.bio || '');
+                            setIsBioModalVisible(true);
+                        }}
+                    />
+
+                    {/* Grid or Locked State */}
+                    {relationship.isFriend ? (
+                        <ProfileGrid user={user} isMe={isMe} isEditing={isEditing} />
+                    ) : (
+                        <View style={styles.lockedContainer}>
+                            <Text style={styles.lockedText}>Add {user.name} to see their weekend stats!</Text>
+                        </View>
+                    )}
+
+                    {/* Friend Actions (Hidden during edit) */}
+                    {!isMe && !isEditing && (
+                        <ProfileActions
+                            status={status as any}
+                            loading={actionLoading}
+                            userName={user?.name ?? undefined}
+                            onAction={handleAction}
+                        />
+                    )}
+                </ScrollView>
+
+                {/* In-Card Back Button (Only visible if not editing) */}
+                {!isMe && !isEditing && (
+                    <TouchableOpacity
+                        onPress={() => goBack()}
+                        style={[styles.backButton, { top: 10 }]} // Relative to the card now
+                    >
+                        <FontAwesome name="chevron-left" size={20} color={Theme.dark.white} />
+                    </TouchableOpacity>
+                )}
+            </Animated.View>
+
+            {/* 3. MODALS & TOASTS (Stay on top of everything) */}
             <ProfileListModal
                 visible={modalConfig.visible}
                 title={modalConfig.title}
@@ -402,13 +461,10 @@ export default function FriendProfileScreen() {
                     if (!userStatus?.userId || !token) return [];
                     return await searchUsers(token, query, userStatus.userId);
                 }}
-
                 onCancelRequest={(targetId, targetName) => handleAction('cancel', targetId, targetName)}
                 onAcceptRequest={(targetId, targetName) => handleAction('accept', targetId, targetName)}
                 onDeclineRequest={(targetId, targetName) => handleAction('decline', targetId, targetName)}
-
                 onAddRecommended={(targetId, targetName) => handleAction('primary', targetId, targetName)}
-
                 actionLoadingId={null}
             />
 
@@ -653,5 +709,48 @@ const styles = StyleSheet.create({
         padding: 10, // Increases the "Touch Target" (Better UX!)
         backgroundColor: 'rgba(0,0,0,0.3)', // Optional: makes it visible over any background
         borderRadius: 20,
+    },
+    editorToolbar: {
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        zIndex: 120,
+        elevation: 120,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 8,
+    },
+    editorToolbarBtn: {
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        minWidth: 84,
+        alignItems: 'center',
+    },
+    editorCancelBtn: {
+        // backgroundColor: Theme.container.secondaryBorder, /// Theme.container.background,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+    },
+    editorSaveBtn: {
+        backgroundColor: Theme.dark.primary,
+    },
+    editorCancelText: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    editorSaveText: {
+        color: Theme.dark.white,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    editorModeText: {
+        color: Theme.dark.white,
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
     },
 });
