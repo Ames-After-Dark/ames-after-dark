@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 
 import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
 import { router } from 'expo-router';
+import { ProfileStats } from './ProfileStats';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PICKER MODAL
@@ -254,7 +255,7 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
-                    {shouldShowStats && (
+                    {/* {shouldShowStats && (
                         <View style={styles.statsRow}>
                             <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
                                 <Text style={styles.statNumber}>{friendCount ?? 0}</Text>
@@ -265,7 +266,15 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                                 <Text style={styles.statLabel}>{isMe ? 'pending' : 'mutual'}</Text>
                             </TouchableOpacity>
                         </View>
-                    )}
+                    )} */}
+                    <ProfileStats
+                        isMe={isMe}
+                        isFriend={showFriendStats}
+                        friendCount={friendCount ?? 0}
+                        mutualCount={mutualCount ?? 0}
+                        onPressFriends={onPressFriends}
+                        onPressMutuals={onPressMutuals}
+                    />
                 </View>
             </View>
 
@@ -383,31 +392,31 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 2,
     },
-    statsRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginTop: 8,
-    },
-    statButton: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        paddingVertical: 8,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    statNumber: {
-        color: Theme.dark.white,
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    statLabel: {
-        color: Theme.container.inactiveText,
-        fontSize: 11,
-        marginTop: 2,
-    },
+    // statsRow: {
+    //     flexDirection: 'row',
+    //     gap: 8,
+    //     marginTop: 8,
+    // },
+    // statButton: {
+    //     flex: 1,
+    //     backgroundColor: Theme.container.background,
+    //     paddingVertical: 8,
+    //     borderRadius: 10,
+    //     borderWidth: 1,
+    //     borderColor: Theme.container.mainBorder,
+    //     alignItems: 'center',
+    //     justifyContent: 'center',
+    // },
+    // statNumber: {
+    //     color: Theme.dark.white,
+    //     fontSize: 18,
+    //     fontWeight: '700',
+    // },
+    // statLabel: {
+    //     color: Theme.container.inactiveText,
+    //     fontSize: 11,
+    //     marginTop: 2,
+    // },
     profileName: {
         color: Theme.dark.white,
         fontSize: 22,
