@@ -184,7 +184,6 @@ export default function Bars() {
             style={styles.searchInput}
           />
 
-          {/* Clear Button Logic */}
           {search.length > 0 && (
             <FontAwesome
               name="times-circle"
