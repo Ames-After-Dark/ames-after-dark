@@ -313,17 +313,6 @@ export const ProfileListModal = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* <View style={styles.searchContainer}>
-                        <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search by name or username"
-                            placeholderTextColor={Theme.search.inactiveInput}
-                            value={search}
-                            onChangeText={setSearch}
-                        />
-                    </View> */}
-
                     <View style={styles.searchContainer}>
                         <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
                         <TextInput
