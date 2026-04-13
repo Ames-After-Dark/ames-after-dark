@@ -86,8 +86,9 @@ export async function getLatestWeekAlbums(): Promise<Album[]> {
       }
     }
   });
-  // Strip parsedDate and return clean array of standard Albums
-  return Array.from(latestPerBarAndDay.values()).map(({ parsedDate, ...album }) => album);
+  // Sort albums newest first, then strip parsedDate before returning
+  const sortedAlbums = Array.from(latestPerBarAndDay.values()).sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+  return sortedAlbums.map(({ parsedDate, ...album }) => album);
 }
 
 /**
@@ -115,7 +116,7 @@ export async function getPhotosByAlbumUri(albumUri: string): Promise<Photo[]> {
  * Syntax: https://<DOMAIN>/cdn-cgi/image/<OPTIONS>/<IMAGE_PATH>
  */
 export function getResizedImageUri(originalUri: string, width: number = 400): string {
-  const USE_RESIZING = false; // toggle in case Cloudflare resizing doesn't work / is not available by build time
+  const USE_RESIZING = true; // toggle in case Cloudflare resizing doesn't work / is not available by build time
   if (!originalUri || !USE_RESIZING) return originalUri;
 
   try {
@@ -124,7 +125,7 @@ export function getResizedImageUri(originalUri: string, width: number = 400): st
       // Extracts the path after the domain
       const imagePath = urlObj.pathname;
       // quality=80 and format=auto will drastically reduce file size for grid photos
-      return `${IMAGE_DOMAIN}/cdn-cgi/image/width=${width},quality=80,format=auto${imagePath}`;
+      return `${IMAGE_DOMAIN}/cdn-cgi/image/width=${width},quality=80,format=auto,onerror=redirect${imagePath}`;
     }
   } catch (err) {
     // Ignore if invalid
