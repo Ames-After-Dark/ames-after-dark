@@ -114,6 +114,8 @@ CREATE TABLE "app"."users" (
     "favorite_drink_id" INTEGER,
     "phone_number" VARCHAR(25),
     "streak" INTEGER DEFAULT 0,
+    "last_streak_week" INTEGER,
+    "last_streak_year" INTEGER,
     "profile_photo_id" INTEGER,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
@@ -268,6 +270,18 @@ CREATE TABLE "app"."banners" (
     CONSTRAINT "banners_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "app"."user_weekly_checkins" (
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "location_id" INTEGER NOT NULL,
+    "week_num" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_weekly_checkins_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "friendship_statuses_name_key" ON "app"."friendship_statuses"("name");
 
@@ -300,6 +314,9 @@ CREATE UNIQUE INDEX "user_profile_photos_name_key" ON "app"."user_profile_photos
 
 -- CreateIndex
 CREATE UNIQUE INDEX "banners_name_key" ON "app"."banners"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_weekly_checkins_user_id_week_num_year_key" ON "app"."user_weekly_checkins"("user_id", "week_num", "year");
 
 -- AddForeignKey
 ALTER TABLE "app"."deals" ADD CONSTRAINT "fk_locations" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -387,4 +404,10 @@ ALTER TABLE "app"."event_occurrences" ADD CONSTRAINT "event_occurrences_event_id
 
 -- AddForeignKey
 ALTER TABLE "app"."location_hours_overrides" ADD CONSTRAINT "location_hours_overrides_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "app"."user_weekly_checkins" ADD CONSTRAINT "user_weekly_checkins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."user_weekly_checkins" ADD CONSTRAINT "user_weekly_checkins_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
