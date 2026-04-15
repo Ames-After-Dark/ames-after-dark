@@ -20,4 +20,6 @@ router.post('/me/ghost', checkJwt, userLocationController.setGhostMode);
 // Update general sharing preference (PATCH with { preference: 'PUBLIC'|'PRIVATE'|'SELECTIVE' } in body)
 router.patch('/me/preference', checkJwt, userLocationController.updateSharingPreference);
 
+router.post('/checkin/:locationId', checkJwt, userLocationController.checkIn);
+
 module.exports = router;

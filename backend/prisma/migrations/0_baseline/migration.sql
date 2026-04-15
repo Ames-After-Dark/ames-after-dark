@@ -1,12 +1,16 @@
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "app";
 
+-- CreateEnum
+CREATE TYPE "app"."SharingPreference" AS ENUM ('PRIVATE', 'SELECTIVE', 'PUBLIC');
+
 -- CreateTable
 CREATE TABLE "app"."deals" (
     "id" SERIAL NOT NULL,
     "name" VARCHAR NOT NULL,
     "location_id" INTEGER NOT NULL,
     "views" INTEGER DEFAULT 0,
+    "banner_id" INTEGER,
 
     CONSTRAINT "deals_pkey" PRIMARY KEY ("id")
 );
@@ -18,6 +22,7 @@ CREATE TABLE "app"."events" (
     "description" TEXT,
     "views" INTEGER DEFAULT 0,
     "name" VARCHAR,
+    "banner_id" INTEGER,
 
     CONSTRAINT "events_pkey" PRIMARY KEY ("id")
 );
@@ -87,12 +92,12 @@ CREATE TABLE "app"."roles" (
 );
 
 -- CreateTable
-CREATE TABLE "app"."user_favorites" (
+CREATE TABLE "app"."user_favorite_locations" (
     "user_id" INTEGER NOT NULL,
     "location_id" INTEGER NOT NULL,
     "favorited_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "user_favorites_pkey" PRIMARY KEY ("user_id","location_id")
+    CONSTRAINT "user_favorite_locations_pkey" PRIMARY KEY ("user_id","location_id")
 );
 
 -- CreateTable
@@ -108,6 +113,9 @@ CREATE TABLE "app"."users" (
     "favorite_profile_location_id" INTEGER,
     "favorite_drink_id" INTEGER,
     "phone_number" VARCHAR(25),
+    "streak" INTEGER DEFAULT 0,
+    "last_streak_week" INTEGER,
+    "last_streak_year" INTEGER,
     "profile_photo_id" INTEGER,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
@@ -163,12 +171,12 @@ CREATE TABLE "app"."location_admins" (
 );
 
 -- CreateTable
-CREATE TABLE "app"."location_permissions" (
+CREATE TABLE "app"."user_location_permissions" (
     "owner_id" INTEGER NOT NULL,
     "viewer_id" INTEGER NOT NULL,
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "location_permissions_pkey" PRIMARY KEY ("owner_id","viewer_id")
+    CONSTRAINT "user_location_permissions_pkey" PRIMARY KEY ("owner_id","viewer_id")
 );
 
 -- CreateTable
@@ -189,6 +197,8 @@ CREATE TABLE "app"."user_settings" (
     "timezone" VARCHAR(50) DEFAULT 'UTC',
     "created_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP,
+    "location_sharing_preference" "app"."SharingPreference" NOT NULL DEFAULT 'SELECTIVE',
+    "ghost_mode_expires_at" TIMESTAMPTZ(6),
 
     CONSTRAINT "user_settings_pkey" PRIMARY KEY ("id")
 );
@@ -251,6 +261,27 @@ CREATE TABLE "app"."user_profile_photos" (
     CONSTRAINT "user_profile_photos_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "app"."banners" (
+    "id" SERIAL NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "image_url" VARCHAR(512) NOT NULL,
+
+    CONSTRAINT "banners_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "app"."user_weekly_checkins" (
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "location_id" INTEGER NOT NULL,
+    "week_num" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_weekly_checkins_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "friendship_statuses_name_key" ON "app"."friendship_statuses"("name");
 
@@ -281,11 +312,23 @@ CREATE UNIQUE INDEX "drinks_name_key" ON "app"."drinks"("name");
 -- CreateIndex
 CREATE UNIQUE INDEX "user_profile_photos_name_key" ON "app"."user_profile_photos"("name");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "banners_name_key" ON "app"."banners"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_weekly_checkins_user_id_week_num_year_key" ON "app"."user_weekly_checkins"("user_id", "week_num", "year");
+
 -- AddForeignKey
 ALTER TABLE "app"."deals" ADD CONSTRAINT "fk_locations" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
+ALTER TABLE "app"."deals" ADD CONSTRAINT "deals_banner_id_fkey" FOREIGN KEY ("banner_id") REFERENCES "app"."banners"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "app"."events" ADD CONSTRAINT "events_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "app"."events" ADD CONSTRAINT "events_banner_id_fkey" FOREIGN KEY ("banner_id") REFERENCES "app"."banners"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app"."friendships" ADD CONSTRAINT "friendships_friendship_status_id_fkey" FOREIGN KEY ("friendship_status_id") REFERENCES "app"."friendship_statuses"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
@@ -309,10 +352,10 @@ ALTER TABLE "app"."locations" ADD CONSTRAINT "fk_location_type" FOREIGN KEY ("lo
 ALTER TABLE "app"."locations" ADD CONSTRAINT "locations_zone_id_fkey" FOREIGN KEY ("zone_id") REFERENCES "app"."zones"("id") ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "app"."user_favorites" ADD CONSTRAINT "user_favorites_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "app"."user_favorite_locations" ADD CONSTRAINT "user_favorite_locations_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "app"."user_favorites" ADD CONSTRAINT "user_favorites_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "app"."user_favorite_locations" ADD CONSTRAINT "user_favorite_locations_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "app"."users" ADD CONSTRAINT "users_profile_photo_id_fkey" FOREIGN KEY ("profile_photo_id") REFERENCES "app"."user_profile_photos"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -342,10 +385,10 @@ ALTER TABLE "app"."location_admins" ADD CONSTRAINT "location_admins_location_id_
 ALTER TABLE "app"."location_admins" ADD CONSTRAINT "location_admins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "app"."location_permissions" ADD CONSTRAINT "location_permissions_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "app"."user_location_permissions" ADD CONSTRAINT "user_location_permissions_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "app"."location_permissions" ADD CONSTRAINT "location_permissions_viewer_id_fkey" FOREIGN KEY ("viewer_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "app"."user_location_permissions" ADD CONSTRAINT "user_location_permissions_viewer_id_fkey" FOREIGN KEY ("viewer_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "app"."user_locations" ADD CONSTRAINT "user_locations_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -361,4 +404,10 @@ ALTER TABLE "app"."event_occurrences" ADD CONSTRAINT "event_occurrences_event_id
 
 -- AddForeignKey
 ALTER TABLE "app"."location_hours_overrides" ADD CONSTRAINT "location_hours_overrides_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "app"."user_weekly_checkins" ADD CONSTRAINT "user_weekly_checkins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app"."user_weekly_checkins" ADD CONSTRAINT "user_weekly_checkins_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "app"."locations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
