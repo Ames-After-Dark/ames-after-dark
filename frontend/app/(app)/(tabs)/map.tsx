@@ -30,7 +30,7 @@ import { NIGHT_OUT_TRACKING_TASK } from '@/services/backgroundLocationTask';
 
 const ZOOM_THRESHOLD = 0.005;
 const GHOST_MODE_DURATION_HOURS = 1;
-const BACKGROUND_TRACKING_DURATION_HOURS = 0.1; // How long to track in background
+const BACKGROUND_TRACKING_DURATION_HOURS = 8; // How long to track in background
 
 export default function MapScreen() {
     const { getAccessToken } = useAuth();

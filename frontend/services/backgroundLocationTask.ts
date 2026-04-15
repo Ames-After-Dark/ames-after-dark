@@ -28,15 +28,32 @@ TaskManager.defineTask(NIGHT_OUT_TRACKING_TASK, async ({ data, error }) => {
         try {
 
             // Check if the night is over
+            // const expiryString = await AsyncStorage.getItem('trackingExpiry');
+
+            // if (expiryString) {
+            //     const expiryTime = parseInt(expiryString, 10);
+
+            //     if (Date.now() > expiryTime) {
+            //         console.log("Night out is over. Stopping background tracking.");
+            //         await Location.stopLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK);
+            //         await AsyncStorage.removeItem('trackingExpiry');
+            //         return;
+            //     }
+            // }
+
             const expiryString = await AsyncStorage.getItem('trackingExpiry');
 
             if (expiryString) {
                 const expiryTime = parseInt(expiryString, 10);
+                const currentTime = Date.now();
 
-                if (Date.now() > expiryTime) {
-                    console.log("Night out is over. Stopping background tracking.");
+                console.log(`Checking Expiry: Now(${currentTime}) > Expiry(${expiryTime})`);
+
+                if (currentTime > expiryTime) {
+                    console.log("⏰ LIMIT REACHED: Killing task.");
                     await Location.stopLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK);
                     await AsyncStorage.removeItem('trackingExpiry');
+                    await SecureStore.deleteItemAsync('user_token');
                     return;
                 }
             }
