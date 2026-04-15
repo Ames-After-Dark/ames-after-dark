@@ -36,6 +36,11 @@ const { checkJwt } = require('../middleware/authMiddleware');
  */
 router.get('/friends', checkJwt, friendshipController.getFriends);
 
+
+// Get accepted friends for one of your friends
+router.get('/friends/:friendId/friends', checkJwt, friendshipController.getFriendsOfFriend);
+
+
 /**
  * @swagger
  * /api/friendships/friends/{friendId}:

@@ -23,7 +23,8 @@ export const ProfileStats = ({
     ...props
 }: ProfileStatsProps) => {
 
-    const canSeeData = isMe || isFriend;
+    const canSeeFriends = isMe || isFriend;
+    const canSeeMutuals = isMe || isFriend;
 
     return (
         <View style={styles.statsRow}>
@@ -31,10 +32,10 @@ export const ProfileStats = ({
             <TouchableOpacity
                 style={styles.statButton}
                 onPress={onPressFriends}
-                disabled={!canSeeData} // Disable clicking if locked
+                disabled={!canSeeFriends} // Disable clicking if not friends
             >
                 <Text style={styles.statNumber}>
-                    {canSeeData ? (friendCount ?? 0) : <FontAwesome name="lock" size={18} color={Theme.container.inactiveText} />}
+                    {friendCount ?? 0}
                 </Text>
                 <Text style={styles.statLabel}>friends</Text>
             </TouchableOpacity>
@@ -43,10 +44,10 @@ export const ProfileStats = ({
             <TouchableOpacity
                 style={styles.statButton}
                 onPress={onPressMutuals}
-                disabled={!canSeeData}
+                disabled={!canSeeMutuals}
             >
                 <Text style={styles.statNumber}>
-                    {canSeeData ? (mutualCount ?? 0) : <FontAwesome name="lock" size={18} color={Theme.container.inactiveText} />}
+                    {canSeeMutuals ? (mutualCount ?? 0) : <FontAwesome name="lock" size={18} color={Theme.container.inactiveText} />}
                 </Text>
                 <Text style={styles.statLabel}>
                     {isMe ? 'pending' : 'mutual'}
