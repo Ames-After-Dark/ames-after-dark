@@ -50,7 +50,7 @@ TaskManager.defineTask(NIGHT_OUT_TRACKING_TASK, async ({ data, error }) => {
                 console.log(`Checking Expiry: Now(${currentTime}) > Expiry(${expiryTime})`);
 
                 if (currentTime > expiryTime) {
-                    console.log("⏰ LIMIT REACHED: Killing task.");
+                    console.log("⏰ LIMIT REACHED: Killing task at " + new Date(currentTime).toLocaleTimeString());
                     await Location.stopLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK);
                     await AsyncStorage.removeItem('trackingExpiry');
                     await SecureStore.deleteItemAsync('user_token');
