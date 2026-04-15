@@ -119,9 +119,55 @@ function formatDateStr(dateStr) {
 }
 
 /**
+ * @swagger
+ * tags:
+ *   - name: Storage
+ *     description: Image storage and retrieval from Cloudflare R2
+ */
+
+/**
  * GET /api/r2/albums
  * List albums (bar folders) from R2.
  * Filters to most recent weekend based on date in folder name.
+ */
+/**
+ * @swagger
+ * /api/r2/albums:
+ *   get:
+ *     summary: Get all photo albums
+ *     description: Retrieves all available photo albums from Cloudflare R2 storage, grouped by bar/venue with the most recent weekend albums displayed first
+ *     tags:
+ *       - Storage
+ *     responses:
+ *       200:
+ *         description: Albums retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Album folder ID
+ *                   name:
+ *                     type: string
+ *                     description: Bar or venue name
+ *                   barName:
+ *                     type: string
+ *                     description: Bar name for sorting
+ *                   date:
+ *                     type: string
+ *                     description: Album date (MM/DD)
+ *                   coverUrl:
+ *                     type: string
+ *                     description: Signed URL to album cover image
+ *                   albumUri:
+ *                     type: string
+ *                     description: Album URI for querying photos
+ *       500:
+ *         description: Server error
  */
 router.get('/albums', async (req, res) => {
   try {
@@ -189,6 +235,45 @@ router.get('/albums', async (req, res) => {
  * GET /api/r2/photos?prefix=:prefix
  * Fetch photos for a given album (bar folder prefix).
  * Returns array of { id, image: { uri } } with signed URLs.
+ */
+/**
+ * @swagger
+ * /api/r2/photos:
+ *   get:
+ *     summary: Get photos from an album
+ *     description: Retrieves all photos from a specific album with signed URLs valid for 1 hour
+ *     tags:
+ *       - Storage
+ *     parameters:
+ *       - name: prefix
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Album folder prefix/ID
+ *     responses:
+ *       200:
+ *         description: Photos retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Photo ID
+ *                   image:
+ *                     type: object
+ *                     properties:
+ *                       uri:
+ *                         type: string
+ *                         description: Signed URL to photo (valid for 1 hour)
+ *       400:
+ *         description: Missing prefix query parameter
+ *       500:
+ *         description: Server error
  */
 router.get('/photos', async (req, res) => {
   try {

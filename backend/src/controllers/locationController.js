@@ -145,11 +145,41 @@ exports.getLocationsWithHours = async (req, res) => {
 
 // GET /api/locations/admin/:id
 exports.getLocationsByAdminId = async (req, res) => {
-  const adminId = parseInt(req.params.id, 10);
-  if (isNaN(adminId)) return res.status(400).json({ message: 'Invalid ID' });
+
+  const authId = req.auth?.payload?.sub;
+  if (!authId) {
+    return res.status(401).json({ message: 'Missing authentication token' });
+  }
+
+  const user = await userService.getUserByAuth0Id(authId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
 
   try {
-    const locations = await locationService.getLocationsByAdminId(adminId);
+    const locations = await locationService.getLocationsByAdminId(user.id);
+    res.json(locations);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// GET /api/locations/developer/:id
+exports.getLocationsByDeveloperId = async (req, res) => {
+
+  const authId = req.auth?.payload?.sub;
+  if (!authId) {
+    return res.status(401).json({ message: 'Missing authentication token' });
+  }
+
+  const user = await userService.getUserByAuth0Id(authId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  try {
+    const locations = await locationService.getLocationsByDeveloperId(user.id);
     res.json(locations);
   } catch (err) {
     console.error(err);
