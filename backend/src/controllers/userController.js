@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const userSettingService = require('../services/userSettingService');
 const validationService = require('../services/validationService');
 const authService = require('../services/authService');
+const friendshipService = require('../services/friendshipService');
 
 // GET /api/users
 exports.getUsers = async (req, res) => {

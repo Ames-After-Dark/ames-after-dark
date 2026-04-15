@@ -110,8 +110,7 @@ exports.getFriendsOfFriend = async (userId, friendId) => {
       f.user_id_1 === friendId
         ? f.users_friendships_user_id_2Tousers
         : f.users_friendships_user_id_1Tousers
-    )
-    .filter(candidate => candidate?.id !== userId);
+    );
 
   if (friendCandidates.length === 0) {
     return [];
@@ -399,8 +398,8 @@ exports.getRecommendedFriends = async (userId, limit = 10) => {
     // Filter out blocked users from simple recommendations
     const filteredSimpleRecs = [];
     for (const rec of simpleRecs) {
-      const isBlocked = await isBlocked(userId, rec.user.id);
-      if (!isBlocked) {
+      const isUserBlocked = await exports.isBlocked(userId, rec.user.id);
+      if (!isUserBlocked) {
         filteredSimpleRecs.push(rec);
       }
     }
@@ -410,8 +409,8 @@ exports.getRecommendedFriends = async (userId, limit = 10) => {
   // Filter out blocked users from friends-of-friends recommendations
   const filteredRecommendations = [];
   for (const rec of recommendations) {
-    const isBlocked = await isBlocked(userId, rec.user.id);
-    if (!isBlocked) {
+    const isUserBlocked = await exports.isBlocked(userId, rec.user.id);
+    if (!isUserBlocked) {
       filteredRecommendations.push(rec);
     }
   }
