@@ -28,7 +28,7 @@ export default {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         "UIBackgroundModes": ["location", "fetch"],
-          "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out at the bars!"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out at the bars!"
       },
     },
 
