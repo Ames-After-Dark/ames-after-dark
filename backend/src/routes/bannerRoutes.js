@@ -7,6 +7,6 @@ const { checkJwt } = require('../middleware/authMiddleware');
 router.post('/', checkJwt, bannerController.createBanner);
 router.get('/active', bannerController.getActiveBanners);           // Read all active banners
 router.get('/:id', bannerController.getBannerById);
-
+router.post('/date-range', bannerController.getBannersByDateRange);            // Read banners by date range
 
 module.exports = router;
