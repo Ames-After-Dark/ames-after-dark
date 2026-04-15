@@ -19,9 +19,9 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                 // Sync token to SecureStore for the background task
                 await SecureStore.setItemAsync('user_token', token);
 
-                // Set an expiry time for the night (e.g., 6 hours from now)
-                const sixHours = 6 * 60 * 60 * 1000;
-                const expiryTime = Date.now() + sixHours;
+                // Set an expiry time for the night (e.g., 8 hours from now)
+                const eightHours = 8 * 60 * 60 * 1000;
+                const expiryTime = Date.now() + eightHours;
                 await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
 
                 // Immediate foreground sync
