@@ -1,4 +1,5 @@
 .expo
 .vscode
 .idea
-frontend/env.download
+.gitignore
+frontend/env

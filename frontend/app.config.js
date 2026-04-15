@@ -26,13 +26,9 @@ export default {
       bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
       buildNumber: "4", //increment this from last successful upload
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: false
-      },
-      "ios": {
-        "infoPlist": {
-          "UIBackgroundModes": ["location", "fetch"],
+        ITSAppUsesNonExemptEncryption: false,
+        "UIBackgroundModes": ["location", "fetch"],
           "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out at the bars!"
-        }
       },
     },
 
