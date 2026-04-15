@@ -5,6 +5,8 @@ const { checkJwt } = require('../middleware/authMiddleware');
 
 // Get all friends for a user
 router.get('/friends', checkJwt, friendshipController.getFriends);
+// Get accepted friends for one of your friends
+router.get('/friends/:friendId/friends', checkJwt, friendshipController.getFriendsOfFriend);
 // Send a friend request
 router.post('/friends/:friendId', checkJwt, friendshipController.sendFriendRequest);
 // Accept a friend request

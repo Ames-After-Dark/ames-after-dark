@@ -15,6 +15,7 @@ import { useProfileActions } from '@/hooks/useProfileActions';
 import {
     getUserById,
     getUserFriends,
+    getFriendsOfFriend,
     getMutualFriends,
     getRecommendedFriends,
     getPendingFriendRequests,
@@ -123,7 +124,7 @@ export default function FriendProfileScreen() {
 
             const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
                 getUserById(token, id),
-                getUserFriends(token),
+                isMe ? getUserFriends(token) : getFriendsOfFriend(token, id),
                 isMe ? Promise.resolve([]) : getMutualFriends(token, id),
                 isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
             ]);
@@ -397,7 +398,7 @@ export default function FriendProfileScreen() {
                             setIsEditing(false);
                         }}
                         showInlineEditActions={false}
-                        friendCount={friends.length}
+                        friendCount={user?.friendCount || friends.length}
                         mutualCount={isMe ? pendingRequests.length : mutualFriends.length}
                         onPressFriends={() => setModalConfig({ visible: true, title: 'Friends', data: friends })}
                         onPressMutuals={() => setModalConfig({ visible: true, title: isMe ? 'Pending Requests' : 'Mutual Friends', data: isMe ? pendingRequests : mutualFriends })}
