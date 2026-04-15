@@ -3,16 +3,299 @@ const router = express.Router();
 const dealController = require('../controllers/dealController');
 const { checkJwt } = require('../middleware/authMiddleware');
 
-// This needs to be above get deals by id to avoid conflict
+/**
+ * @swagger
+ * tags:
+ *   - name: Deals
+ *     description: Operations related to special deals and promotions
+ */
+
+/**
+ * @swagger
+ * /api/deals/active:
+ *   get:
+ *     summary: Get active deals
+ *     description: Retrieves all currently active deals and promotions
+ *     tags:
+ *       - Deals
+ *     responses:
+ *       200:
+ *         description: Active deals retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Deal'
+ *       500:
+ *         description: Server error
+ */
 router.get('/active', dealController.getActiveDeals);
+
+/**
+ * @swagger
+ * /api/deals/location/{locationId}:
+ *   get:
+ *     summary: Get deals by location
+ *     description: Retrieves all deals for a specific location
+ *     tags:
+ *       - Deals
+ *     parameters:
+ *       - name: locationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Location ID
+ *     responses:
+ *       200:
+ *         description: Location deals retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Deal'
+ *       404:
+ *         description: Location not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/location/:locationId', dealController.getDealsByLocationId);
+
+/**
+ * @swagger
+ * /api/deals/recurring:
+ *   post:
+ *     summary: Create recurring deal
+ *     description: Creates a recurring deal at a location
+ *     tags:
+ *       - Deals
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - locationId
+ *               - title
+ *               - discount
+ *               - startDate
+ *               - endDate
+ *               - recurrence
+ *             properties:
+ *               locationId:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               discount:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *               recurrence:
+ *                 type: string
+ *                 description: Recurrence pattern (daily, weekly, monthly)
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Recurring deal created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Deal'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 router.post('/recurring', checkJwt, dealController.createRecurringDeal);
 
-// CRUD routes
-router.get('/', dealController.getDeals);           // Read all
-router.get('/:id', dealController.getDealById);     // Read one
-router.post('/', checkJwt, dealController.createDeal);        // Create
-router.put('/:id', checkJwt, dealController.updateDeal);      // Update
-router.delete('/:id', checkJwt, dealController.deleteDeal);   // Delete
+/**
+ * @swagger
+ * /api/deals:
+ *   get:
+ *     summary: Get all deals
+ *     description: Retrieves all deals
+ *     tags:
+ *       - Deals
+ *     responses:
+ *       200:
+ *         description: All deals retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Deal'
+ *       500:
+ *         description: Server error
+ *   post:
+ *     summary: Create deal
+ *     description: Creates a new deal
+ *     tags:
+ *       - Deals
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - locationId
+ *               - title
+ *               - discount
+ *               - startDate
+ *               - endDate
+ *             properties:
+ *               locationId:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               discount:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Deal created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Deal'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/', dealController.getDeals);
+
+/**
+ * @swagger
+ * /api/deals/{id}:
+ *   get:
+ *     summary: Get deal by ID
+ *     description: Retrieves a specific deal by ID
+ *     tags:
+ *       - Deals
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Deal ID
+ *     responses:
+ *       200:
+ *         description: Deal retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Deal'
+ *       404:
+ *         description: Deal not found
+ *       500:
+ *         description: Server error
+ *   put:
+ *     summary: Update deal
+ *     description: Updates an existing deal
+ *     tags:
+ *       - Deals
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Deal ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               discount:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *               imageUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Deal updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Deal'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deal not found
+ *       500:
+ *         description: Server error
+ *   delete:
+ *     summary: Delete deal
+ *     description: Deletes a specific deal
+ *     tags:
+ *       - Deals
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Deal ID
+ *     responses:
+ *       204:
+ *         description: Deal deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Deal not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/:id', dealController.getDealById);
+router.post('/', checkJwt, dealController.createDeal);
+router.put('/:id', checkJwt, dealController.updateDeal);
+router.delete('/:id', checkJwt, dealController.deleteDeal);
 
 module.exports = router;

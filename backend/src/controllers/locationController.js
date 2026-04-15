@@ -1,4 +1,3 @@
-const { use } = require('react');
 const locationService = require('../services/locationService');
 const userService = require('../services/userService');
 
