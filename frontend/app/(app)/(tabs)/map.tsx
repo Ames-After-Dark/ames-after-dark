@@ -30,7 +30,7 @@ import { NIGHT_OUT_TRACKING_TASK } from '@/services/backgroundLocationTask';
 
 const ZOOM_THRESHOLD = 0.005;
 const GHOST_MODE_DURATION_HOURS = 1;
-const BACKGROUND_TRACKING_DURATION_HOURS = 4; // How long to track in background
+const BACKGROUND_TRACKING_DURATION_HOURS = 0.1; // How long to track in background
 
 export default function MapScreen() {
     const { getAccessToken } = useAuth();
@@ -78,6 +78,7 @@ export default function MapScreen() {
 
                 if (bgStatus === 'granted') {
                     // Set expiration time in storage for the background task to read
+                    // expiryTime = current time + desired tracking duration (e.g., 8 hours)
                     const expiryTime = Date.now() + (BACKGROUND_TRACKING_DURATION_HOURS * 60 * 60 * 1000);
                     await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
 

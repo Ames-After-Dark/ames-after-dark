@@ -28,7 +28,7 @@ export default {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         "UIBackgroundModes": ["location", "fetch"],
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out at the bars!"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out!"
       },
     },
 
@@ -51,6 +51,7 @@ export default {
 
     plugins: [
       "expo-router",
+      "expo-secure-store",
 
       ["react-native-auth0", {
         domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN
