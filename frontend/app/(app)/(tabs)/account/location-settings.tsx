@@ -146,6 +146,13 @@ export default function LocationVisibilityScreen() {
       };
 
       await UserLocationService.updateSharingPreference(token, prefMap[visibilityMode]);
+
+      // If ALL or NONE, we know the backend clears selective permissions.
+      // We should reflect this locally by resetting the selected friends.
+      if (visibilityMode === 'ALL' || visibilityMode === 'NONE') {
+        setSelectedFriends([]);
+      }
+
       await UserLocationService.setGhostMode(token, visibilityMode === 'NONE' ? 24 : 0);
 
       if (visibilityMode === 'SOME') {
@@ -235,25 +242,25 @@ export default function LocationVisibilityScreen() {
   //         showsVerticalScrollIndicator={false}
   //         contentContainerStyle={styles.listContent}
   //         ListHeaderComponent={
-  //           <View>
-  //             <Text style={styles.sectionHeader}>PRIVACY MODE</Text>
-  //             <View style={styles.sectionGroup}>
-  //               <ModeRow mode="ALL" title="Share with All" icon="users" description="Visible to all friends." />
-  //               <ModeRow mode="SOME" title="Share with Some" icon="user-plus" description="Pick specific friends below." />
-  //               <ModeRow mode="NONE" title="Ghost Mode" icon="eye-slash" description="Completely invisible." isLast />
-  //             </View>
-
-  //             {visibilityMode === 'SOME' && (
-  //               <View style={{ marginTop: 10 }}>
-  //                 <Text style={styles.sectionHeader}>SELECT FRIENDS ({selectedFriends.length})</Text>
-  //                 <View style={styles.searchContainer}>
-  //                   <FontAwesome name="search" size={16} color="#4b5563" />
-  //                   <TextInput style={styles.input} placeholder="Search friends..." placeholderTextColor="#4b5563" value={search} onChangeText={setSearch} />
-  //                 </View>
-  //               </View>
-  //             )}
+  //         <View>
+  //           <Text style={styles.sectionHeader}>PRIVACY MODE</Text>
+  //           <View style={styles.sectionGroup}>
+  //             <ModeRow mode="ALL" title="Share with All" icon="users" description="Visible to all friends." />
+  //             <ModeRow mode="SOME" title="Share with Some" icon="user-plus" description="Pick specific friends below." />
+  //             <ModeRow mode="NONE" title="Ghost Mode" icon="eye-slash" description="Completely invisible." isLast />
   //           </View>
-  //         }
+
+  //           {visibilityMode === 'SOME' && (
+  //             <View style={{ marginTop: 10 }}>
+  //               <Text style={styles.sectionHeader}>SELECT FRIENDS ({selectedFriends.length})</Text>
+  //               <View style={styles.searchContainer}>
+  //                 <FontAwesome name="search" size={16} color="#4b5563" />
+  //                 <TextInput style={styles.input} placeholder="Search friends..." placeholderTextColor="#4b5563" value={search} onChangeText={setSearch} />
+  //               </View>
+  //             </View>
+  //           )}
+  //         </View>
+  //       }
   //         renderItem={({ item }) => {
   //           const isSelected = selectedFriends.includes(String(item.id));
   //           return (

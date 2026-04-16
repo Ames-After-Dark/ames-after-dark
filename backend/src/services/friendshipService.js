@@ -223,13 +223,28 @@ exports.removeFriend = async (userId, friendId) => {
 
   if (!friendship) throw new Error('Friendship not found');
 
-  return prisma.friendships.delete({
-    where: {
-      user_id_1_user_id_2: {
-        user_id_1: friendship.user_id_1,
-        user_id_2: friendship.user_id_2
+  return prisma.$transaction(async (tx) => {
+    // 1. Delete the friendship
+    const deletedFriendship = await tx.friendships.delete({
+      where: {
+        user_id_1_user_id_2: {
+          user_id_1: friendship.user_id_1,
+          user_id_2: friendship.user_id_2
+        }
       }
-    }
+    });
+
+    // 2. Also remove any selective location permissions referencing these two users
+    await tx.user_location_permissions.deleteMany({
+      where: {
+        OR: [
+          { owner_id: userId, viewer_id: friendId },
+          { owner_id: friendId, viewer_id: userId }
+        ]
+      }
+    });
+
+    return deletedFriendship;
   });
 };
 
@@ -261,25 +276,37 @@ exports.blockFriend = async (userId, friendId) => {
     }
   });
 
-  if (!friendship) {
-    // If no friendship exists, create one with blocked status
-    return prisma.friendships.create({
-      data: {
-        user_id_1: userId,
-        user_id_2: friendId,
-        friendship_status_id: STATUS_BLOCKED
+  return prisma.$transaction(async (tx) => {
+    // 1. Remove any selective location permissions referencing these two users
+    await tx.user_location_permissions.deleteMany({
+      where: {
+        OR: [
+          { owner_id: userId, viewer_id: friendId },
+          { owner_id: friendId, viewer_id: userId }
+        ]
       }
     });
-  }
 
-  return prisma.friendships.update({
-    where: {
-      user_id_1_user_id_2: {
-        user_id_1: friendship.user_id_1,
-        user_id_2: friendship.user_id_2
-      }
-    },
-    data: { friendship_status_id: STATUS_BLOCKED }
+    if (!friendship) {
+      // If no friendship exists, create one with blocked status
+      return tx.friendships.create({
+        data: {
+          user_id_1: userId,
+          user_id_2: friendId,
+          friendship_status_id: STATUS_BLOCKED
+        }
+      });
+    }
+
+    return tx.friendships.update({
+      where: {
+        user_id_1_user_id_2: {
+          user_id_1: friendship.user_id_1,
+          user_id_2: friendship.user_id_2
+        }
+      },
+      data: { friendship_status_id: STATUS_BLOCKED }
+    });
   });
 };
 
