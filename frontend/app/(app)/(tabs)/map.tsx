@@ -3,6 +3,7 @@ import { StyleSheet, View, Image, Text } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Added for background tracking
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from '@/hooks/use-auth';
 
@@ -25,10 +26,11 @@ import { FriendMarkers } from '@/components/map/friend-markers';
 import { calculateDistance } from '@/utils/location-utils';
 import { getFriendLocation } from '@/utils/nearby-friends';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
+import { NIGHT_OUT_TRACKING_TASK } from '@/services/backgroundLocationTask';
 
 const ZOOM_THRESHOLD = 0.005;
-
 const GHOST_MODE_DURATION_HOURS = 1;
+const BACKGROUND_TRACKING_DURATION_HOURS = 8; // How long to track in background
 
 export default function MapScreen() {
     const { getAccessToken } = useAuth();
@@ -63,57 +65,92 @@ export default function MapScreen() {
 
     // --- Effects ---
 
-    // 1. Request Permissions
+    // 1. Request Permissions & Start Background Task
     useEffect(() => {
         (async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            setHasPermission(status === 'granted');
+            // Ask for Foreground first
+            const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+            setHasPermission(fgStatus === 'granted');
+
+            if (fgStatus === 'granted') {
+                // Now ask for Background
+                const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+
+                if (bgStatus === 'granted') {
+                    // Set expiration time in storage for the background task to read
+                    // expiryTime = current time + desired tracking duration (e.g., 8 hours)
+                    const expiryTime = Date.now() + (BACKGROUND_TRACKING_DURATION_HOURS * 60 * 60 * 1000);
+                    await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
+
+                    // Fire up the background task
+                    await Location.startLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK, {
+                        accuracy: Location.Accuracy.Balanced,
+                        distanceInterval: 15, // Update every 15 meters
+                        deferredUpdatesInterval: 1000 * 60 * 2, // Or at least every 2 mins
+                        showsBackgroundLocationIndicator: true,
+                        foregroundService: {
+                            notificationTitle: "Ames After Dark",
+                            notificationBody: "Keeping your friends updated on your location.",
+                        }
+                    });
+                }
+            }
         })();
     }, []);
 
-    // 2. Initial Map Focus & User Location Sync
+    // 2. Initial Map Focus & Foreground User Location Sync
     useEffect(() => {
-        // Note: We still keep this check, but the logic inside the async IIFE is the real fix
         if (!hasPermission) return;
 
+        let isMounted = true;
         let subscription: Location.LocationSubscription | null = null;
 
         (async () => {
             try {
-                // RE-CHECK permissions explicitly before the heavy lifting
                 const { status } = await Location.getForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                    console.warn("Permission not granted yet, skipping position fetch.");
-                    return;
-                }
+                if (status !== 'granted') return;
 
-                // Now it's safe to call
                 const pos = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
 
-                setUserLocation(pos.coords);
+                if (isMounted) {
+                    setUserLocation(pos.coords);
 
-                if (mapReady && !selectedId && !selectedFriendId) {
-                    mapRef.current?.animateToRegion({
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                    }, 1000);
+                    if (mapReady && !selectedId && !selectedFriendId) {
+                        mapRef.current?.animateToRegion({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude,
+                            latitudeDelta: 0.01,
+                            longitudeDelta: 0.01,
+                        }, 1000);
+                    }
                 }
 
-                // Watch for movement
-                subscription = await Location.watchPositionAsync(
+                // We keep this running for real-time smooth updates while the app is actively open
+                const sub = await Location.watchPositionAsync(
                     { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
-                    (loc) => setUserLocation(loc.coords)
+                    (loc) => {
+                        if (isMounted) setUserLocation(loc.coords);
+                    }
                 );
+
+                if (!isMounted) {
+                    sub.remove();
+                } else {
+                    subscription = sub;
+                }
             } catch (err) {
                 console.error("Location fetch failed:", err);
             }
         })();
 
-        return () => subscription?.remove();
+        return () => {
+            isMounted = false;
+            if (subscription) {
+                subscription.remove();
+            }
+        };
     }, [hasPermission, mapReady, selectedFriendId, selectedId]);
 
     // --- Helpers ---
@@ -135,7 +172,6 @@ export default function MapScreen() {
             return;
         }
 
-        // 1. Update the selection state for the Bottom Sheet
         setSelectedLocation({
             id: currentUserId,
             name: user?.name || 'You',
@@ -144,7 +180,6 @@ export default function MapScreen() {
             atBarName: getUserBarName(),
         });
 
-        // 2. Animate the map to the user's current location
         mapRef.current?.animateToRegion({
             latitude: userLocation.latitude - 0.001,
             longitude: userLocation.longitude,
@@ -160,7 +195,6 @@ export default function MapScreen() {
         const nextGhostValue = !isGhostModeEnabled;
         const hours = nextGhostValue ? GHOST_MODE_DURATION_HOURS : 0;
 
-        // Update button state immediately so the UI reflects the user's tap.
         setIsGhostModeEnabled(nextGhostValue);
 
         try {
@@ -334,49 +368,45 @@ export default function MapScreen() {
                         />
 
                         <Circle
-                            // 42.0255627805003, -93.65721506480799
                             center={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
-                            radius={200} // Meters
+                            radius={200}
                             fillColor="rgba(0, 234, 255, 0.1)"
                             strokeColor="#00EAFF"
                             strokeWidth={2}
-                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                            lineDashPattern={[5, 5]}
                         />
 
                         <Marker
                             key="coming-soon-ames"
                             coordinate={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
-                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                            onPress={(e) => e.stopPropagation()}
                         >
                             <View style={styles.comingSoonBubble}>
                                 <View style={styles.comingSoonContent}>
                                     <Text style={styles.comingSoonText}>Coming Soon</Text>
                                 </View>
-                                {/* The tail goes below the content to point at the map coordinate */}
                                 <View style={styles.comingSoonTail} />
                             </View>
                         </Marker>
 
                         <Circle
-                            // 42.02550266479028, -93.61474917818076
                             center={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
-                            radius={500} // Meters
+                            radius={500}
                             fillColor="rgba(0, 234, 255, 0.1)"
                             strokeColor="#00EAFF"
                             strokeWidth={2}
-                            lineDashPattern={[5, 5]} // Makes it look like a "planned" area
+                            lineDashPattern={[5, 5]}
                         />
 
                         <Marker
                             key="coming-soon-ames-main-street"
                             coordinate={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
-                            onPress={(e) => e.stopPropagation()} // Prevents bottom sheet from trying to open
+                            onPress={(e) => e.stopPropagation()}
                         >
                             <View style={styles.comingSoonBubble}>
                                 <View style={styles.comingSoonContent}>
                                     <Text style={styles.comingSoonText}>Coming Soon</Text>
                                 </View>
-                                {/* The tail goes below the content to point at the map coordinate */}
                                 <View style={styles.comingSoonTail} />
                             </View>
                         </Marker>
@@ -469,7 +499,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 2,
-        borderColor: '#00EAFF', // Match your user marker cyan
+        borderColor: '#00EAFF',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.5,
@@ -491,7 +521,7 @@ const styles = StyleSheet.create({
         borderLeftColor: 'transparent',
         borderRightColor: 'transparent',
         borderTopColor: '#00EAFF',
-        marginBottom: -2, // Pulls the bubble down onto the tail
+        marginBottom: -2,
         zIndex: 1,
     },
 });

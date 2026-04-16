@@ -33,17 +33,33 @@ async function signedUrlForKey(key) {
 }
 
 /**
- * List objects in R2 with optional prefix and limit.
+ * List objects in R2 with pagination to bypass 1000 object limit
  */
-async function listR2Objects(prefix = '', limit = 1000) {
+async function listR2Objects(prefix = '') {
+  let isTruncated = true;
+  let continuationToken = undefined;
+  const allContents = [];
+
   try {
-    const command = new ListObjectsV2Command({
-      Bucket: CLOUDFLARE_R2_BUCKET,
-      Prefix: prefix,
-      MaxKeys: limit,
-    });
-    const response = await s3.send(command);
-    return response.Contents || [];
+    while (isTruncated) {
+      const command = new ListObjectsV2Command({
+        Bucket: CLOUDFLARE_R2_BUCKET,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      });
+
+      const response = await s3.send(command);
+
+      if (response.Contents) {
+        allContents.push(...response.Contents);
+      }
+      
+      // Check if there are more results to fetch
+      isTruncated = response.IsTruncated;
+      continuationToken = response.NextContinuationToken;
+    }
+
+    return allContents;
   } catch (err) {
     console.warn('R2 list error:', err);
     return [];
@@ -51,23 +67,19 @@ async function listR2Objects(prefix = '', limit = 1000) {
 }
 
 /**
- * Parse a folder name like "Bar Name 09-23" into display name and date string.
+ * Parse a folder name into display name and date string.
  * If no date found, returns display name as-is and dateStr as null.
  */
 function parseFolderName(folderName) {
-  const match = folderName.trim().match(/^(.+?)\s+(\d{1,2}-\d{1,2})$/);
-  if (match) return { displayName: match[1], dateStr: match[2] };
+  const cleaned = folderName.trim();
+  const match = cleaned.match(/^(.+?)[\s_]+(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)$/);
+  
+  if (match) {
+    const displayName = match[1].replace(/_+$/, '').trim();
+    return { displayName, dateStr: match[2] };
+  }
 
-  return { displayName: folderName.trim(), dateStr: null };
-}
-
-/**
- * Build a public S3-style URL for an R2 object key.
- */
-function urlForKey(key) {
-  const endpoint = (CLOUDFLARE_R2_S3_ENDPOINT || '').replace(/\/$/, '');
-  const bucket = CLOUDFLARE_R2_BUCKET || '';
-  return `${endpoint}/${bucket}/${key}`;
+  return { displayName: cleaned, dateStr: null };
 }
 
 /**
@@ -76,16 +88,23 @@ function urlForKey(key) {
  */
 function parseDateStr(dateStr) {
   if (!dateStr) return null;
-  const parts = dateStr.split('-');
-  if (parts.length !== 2) return null;
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length < 2) return null;
   
   const month = parseInt(parts[0], 10) - 1;
   const day = parseInt(parts[1], 10);
   if (isNaN(month) || isNaN(day)) return null;
 
   const now = new Date();
-  let candidate = new Date(now.getFullYear(), month, day);
-  if (candidate > now) candidate = new Date(now.getFullYear() - 1, month, day);
+  let year = now.getFullYear();
+
+  if (parts.length === 3) {
+    const providedYear = parseInt(parts[2].trim(), 10);
+    year = providedYear < 100 ? 2000 + providedYear : providedYear;
+  }
+  
+  let candidate = new Date(year, month, day);
+  if (candidate > now && parts.length !== 3) candidate = new Date(year - 1, month, day);
 
   return candidate;
 }
@@ -100,15 +119,61 @@ function formatDateStr(dateStr) {
 }
 
 /**
+ * @swagger
+ * tags:
+ *   - name: Storage
+ *     description: Image storage and retrieval from Cloudflare R2
+ */
+
+/**
  * GET /api/r2/albums
  * List albums (bar folders) from R2.
  * Filters to most recent weekend based on date in folder name.
  */
+/**
+ * @swagger
+ * /api/r2/albums:
+ *   get:
+ *     summary: Get all photo albums
+ *     description: Retrieves all available photo albums from Cloudflare R2 storage, grouped by bar/venue with the most recent weekend albums displayed first
+ *     tags:
+ *       - Storage
+ *     responses:
+ *       200:
+ *         description: Albums retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Album folder ID
+ *                   name:
+ *                     type: string
+ *                     description: Bar or venue name
+ *                   barName:
+ *                     type: string
+ *                     description: Bar name for sorting
+ *                   date:
+ *                     type: string
+ *                     description: Album date (MM/DD)
+ *                   coverUrl:
+ *                     type: string
+ *                     description: Signed URL to album cover image
+ *                   albumUri:
+ *                     type: string
+ *                     description: Album URI for querying photos
+ *       500:
+ *         description: Server error
+ */
 router.get('/albums', async (req, res) => {
   try {
-    const allObjects = await listR2Objects('', 5000);
+    const allObjects = await listR2Objects('');
     console.log(`r2Routes: got ${allObjects.length} objects`);
-    if (!allObjects) { return res.json([]); }
+    if (!allObjects || allObjects.length === 0) { return res.json([]); }
 
     // Group photos by bar folder
     const photosByFolder = {};
@@ -133,18 +198,15 @@ router.get('/albums', async (req, res) => {
       folderMeta[folderName] = { displayName, dateStr, date };
     }
 
-    const allDates = Object.values(folderMeta).map(m=>m.date).filter(Boolean).map(d=>d.getTime());
-    if (!allDates.length) return res.json([]);
-    const latestTime = Math.max(...allDates);
-
-    // Build albums for folders matching the latest date
+    // Build albums for folders that have a valid date
     const albums = await Promise.all(
       Object.entries(photosByFolder).filter(([folderName]) => {
         const meta = folderMeta[folderName];
-        return meta.date && meta.date.getTime() === latestTime;
+        return meta.date != null;
       })
       .map(async ([folderName, objects]) => {
         const meta = folderMeta[folderName];
+
         // Pick most recently modified photo as cover
         const cover = objects.reduce((a, b) =>
           new Date(b.LastModified) > new Date(a.LastModified) ? b : a);
@@ -160,6 +222,7 @@ router.get('/albums', async (req, res) => {
         };
       })
     );
+
     albums.sort((a, b) => a.barName.localeCompare(b.barName));
     res.json(albums);
   } catch (err) {
@@ -173,6 +236,45 @@ router.get('/albums', async (req, res) => {
  * Fetch photos for a given album (bar folder prefix).
  * Returns array of { id, image: { uri } } with signed URLs.
  */
+/**
+ * @swagger
+ * /api/r2/photos:
+ *   get:
+ *     summary: Get photos from an album
+ *     description: Retrieves all photos from a specific album with signed URLs valid for 1 hour
+ *     tags:
+ *       - Storage
+ *     parameters:
+ *       - name: prefix
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Album folder prefix/ID
+ *     responses:
+ *       200:
+ *         description: Photos retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     description: Photo ID
+ *                   image:
+ *                     type: object
+ *                     properties:
+ *                       uri:
+ *                         type: string
+ *                         description: Signed URL to photo (valid for 1 hour)
+ *       400:
+ *         description: Missing prefix query parameter
+ *       500:
+ *         description: Server error
+ */
 router.get('/photos', async (req, res) => {
   try {
     const prefix = req.query.prefix || '';
@@ -181,7 +283,7 @@ router.get('/photos', async (req, res) => {
     let normalizedPrefix = prefix.replace(/^\//, '');
     if (!normalizedPrefix.endsWith('/')) normalizedPrefix = `${normalizedPrefix}/`;
 
-    const objs = await listR2Objects(normalizedPrefix, 5000);
+    const objs = await listR2Objects(normalizedPrefix);
     if (!objs.length) return res.json([]);
 
     const imageObjs = objs.filter(o =>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, NativeSyntheticEvent, NativeScrollEvent, Animated } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, FontAwesome5 } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 
@@ -34,6 +34,7 @@ export default function Bars() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { bars, loading, error, refetch } = useBars({ q: search || undefined });
+  const hasSearchQuery = search.trim().length > 0;
 
   // Refs for Scroll Logic
   const lastScrollYRef = useRef(0);
@@ -64,6 +65,24 @@ export default function Bars() {
       setTopHeaderVisible(true);
       headerVisibleRef.current = true;
     }, [setTopHeaderVisible])
+  );
+
+  const renderEmptyState = ({
+    icon,
+    titleText,
+    subtitle,
+  }: {
+    icon: 'search' | 'clock-o' | 'glass-martini-alt';
+    titleText: string;
+    subtitle: string;
+  }) => (
+    <View style={styles.emptyStateContainer}>
+      <View style={styles.emptyStateIconWrap}>
+        <FontAwesome5 name={icon} size={18} color={Theme.container.inactiveText} />
+      </View>
+      <Text style={styles.emptyStateTitle}>{titleText}</Text>
+      <Text style={styles.emptyStateSubtitle}>{subtitle}</Text>
+    </View>
   );
 
   const setHeaderVisibility = useCallback((nextVisible: boolean) => {
@@ -165,6 +184,7 @@ export default function Bars() {
       ]}>
         <View style={styles.searchBar}>
           <FontAwesome name="search" size={18} color={Theme.search.inactiveInput} />
+
           <TextInput
             placeholder="Search bars or keywords"
             placeholderTextColor={Theme.search.inactiveInput}
@@ -172,6 +192,16 @@ export default function Bars() {
             onChangeText={setSearch}
             style={styles.searchInput}
           />
+
+          {search.length > 0 && (
+            <FontAwesome
+              name="times-circle"
+              size={18}
+              color={Theme.search.inactiveInput}
+              onPress={() => setSearch("")}
+              style={styles.clearIcon}
+            />
+          )}
         </View>
         <View style={styles.filters}>
           {["Bars", "Restaurants", "Favorites"].map(option => (
@@ -217,15 +247,56 @@ export default function Bars() {
               onPress={(id) => router.replace({ pathname: "/(app)/(tabs)/bars/[id]", params: { id } })}
             />
           )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {filter === "Favorites" ? "You haven't saved any favorites yet."
-                  : search.trim().length > 0 ? `No locations found matching "${search}"`
-                    : "No locations match your current filters."}
-              </Text>
-            </View>
-          }
+          // ListEmptyComponent={
+          // <View style={styles.emptyContainer}>
+          //   <Text style={styles.emptyText}>
+          //     {filter === "Favorites" ? "You haven't saved any favorites yet."
+          //       : search.trim().length > 0 ? `No locations found matching "${search}"`
+          //         : "No locations match your current filters."}
+          //   </Text>
+          // </View>
+          // }
+          ListEmptyComponent={() => {
+            // if (isSearching) {
+            //   return (
+            //     <View style={{ paddingVertical: 40 }}>
+            //       <ActivityIndicator size="large" color={Theme.dark.primary} />
+            //     </View>
+            //   );
+            // }
+
+            // <View style={styles.emptyContainer}>
+            //   <Text style={styles.emptyText}>
+            //     {filter === "Favorites" ? "You haven't saved any favorites yet."
+            //       : search.trim().length > 0 ? `No locations found matching "${search}"`
+            //         : "No locations match your current filters."}
+            //   </Text>
+            // </View>
+
+            if (hasSearchQuery && filter === "Favorites") {
+              return renderEmptyState({
+                icon: 'search',
+                titleText: 'No matching favorites found',
+                subtitle: `No favorites found matching "${search}".\nMake sure to save some favorites first.`,
+              });
+            }
+
+            if (hasSearchQuery && (filter === "Bars" || filter === "Restaurants" || !filter)) {
+              return renderEmptyState({
+                icon: 'search',
+                titleText: 'No matching locations found',
+                subtitle: `No locations found matching "${search}".\nTry a different search term or clear the search.`,
+              });
+            }
+
+            if (!hasSearchQuery && filter === "Favorites") {
+              return renderEmptyState({
+                icon: 'glass-martini-alt',
+                titleText: 'No favorites yet',
+                subtitle: 'Save your favorite bars and restaurants for quick access here.',
+              });
+            }
+          }}
         />
       )}
     </View>
@@ -275,11 +346,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 14,
   },
-  searchInput: {
-    flex: 1,
-    color: Theme.search.input,
-    fontSize: 14
-  },
   filters: {
     flexDirection: "row",
     justifyContent: "center",
@@ -296,5 +362,44 @@ const styles = StyleSheet.create({
   emptyText: {
     color: Theme.search.inactiveInput,
     fontSize: 13,
+  },
+  searchInput: {
+    flex: 1,
+    color: Theme.search.input,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  clearIcon: {
+    padding: 4,
+  },
+  emptyStateContainer: {
+    paddingVertical: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyStateIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Theme.container.mainBorder,
+    backgroundColor: Theme.search.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyStateTitle: {
+    color: Theme.dark.white,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  emptyStateSubtitle: {
+    color: Theme.container.inactiveText,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
   },
 });

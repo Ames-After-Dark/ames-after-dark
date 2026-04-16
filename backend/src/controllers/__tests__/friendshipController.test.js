@@ -59,6 +59,62 @@ describe('Friendship Controller', () => {
         });
     });
 
+    describe('getFriendsOfFriend', () => {
+        it('should return 401 if missing auth token', async () => {
+            req.params = { friendId: '2' };
+            delete req.auth;
+
+            await friendshipController.getFriendsOfFriend(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+        });
+
+        it('should return 403 if user not found', async () => {
+            req.params = { friendId: '2' };
+            userService.getUserByAuth0Id.mockResolvedValue(null);
+
+            await friendshipController.getFriendsOfFriend(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
+        });
+
+        it('should return 404 if friend does not exist', async () => {
+            req.params = { friendId: '2' };
+            userService.getUserByAuth0Id.mockResolvedValue({ id: 1 });
+            userService.getUserById.mockResolvedValue(null);
+
+            await friendshipController.getFriendsOfFriend(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Person not found' });
+        });
+
+        it('should return 403 if the target is not an accepted friend', async () => {
+            req.params = { friendId: '2' };
+            userService.getUserByAuth0Id.mockResolvedValue({ id: 1 });
+            userService.getUserById.mockResolvedValue({ id: 2 });
+            friendshipService.getFriendsOfFriend.mockRejectedValue(new Error('Not friends'));
+
+            await friendshipController.getFriendsOfFriend(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
+        });
+
+        it('should return the friends of the friend when authorized', async () => {
+            req.params = { friendId: '2' };
+            userService.getUserByAuth0Id.mockResolvedValue({ id: 1 });
+            userService.getUserById.mockResolvedValue({ id: 2 });
+            friendshipService.getFriendsOfFriend.mockResolvedValue([{ id: 3, name: 'Friend of Friend' }]);
+
+            await friendshipController.getFriendsOfFriend(req, res);
+
+            expect(res.json).toHaveBeenCalledWith([{ id: 3, name: 'Friend of Friend' }]);
+        });
+    });
+
     describe('Verify Friend Exists Check', () => {
         const endpoints = [
             { name: 'sendFriendRequest', method: friendshipController.sendFriendRequest, extraParams: { friendId: '2' } },

@@ -9,7 +9,7 @@ import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
 import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
-import { router } from 'expo-router';
+import { ProfileStats } from './ProfileStats';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMAGE PICKER MODAL
@@ -128,12 +128,14 @@ interface ProfileHeaderProps {
     isEditing?: boolean;
     onRequestEdit?: () => void;
     onSave?: () => void;
+    onCancelEdit?: () => void;
+    showInlineEditActions?: boolean;
     onEditBio?: () => void;
     onPressFriends?: () => void;
     onPressMutuals?: () => void;
 }
 
-export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onCancelEdit, showInlineEditActions = true, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
     const { userStatus, getAccessToken } = useAuth();
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
@@ -232,33 +234,29 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                         </Animated.View>
                     </TouchableOpacity>
                 ) : (
-                    <Image source={avatarSource} style={styles.profileImageFriend} />
+                    <View style={styles.avatarWrapper}>
+                        <View style={styles.avatarRingOuter}>
+                            <View style={styles.avatarRingInner}>
+                                <Image source={avatarSource} style={styles.profileImage} />
+                            </View>
+                        </View>
+                    </View>
                 )}
 
                 <View style={styles.infoContainer}>
                     <View style={styles.nameRow}>
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
-                        {isMe && (
-                            isEditing ? (
-                                <TouchableOpacity onPress={onSave} style={styles.saveButton}>
-                                    <Text style={styles.saveButtonText}>Save</Text>
-                                </TouchableOpacity>
-                            ) : null
-                        )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
-                    {shouldShowStats && (
-                        <View style={styles.statsRow}>
-                            <TouchableOpacity style={styles.statButton} onPress={onPressFriends}>
-                                <Text style={styles.statNumber}>{friendCount ?? 0}</Text>
-                                <Text style={styles.statLabel}>friends</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.statButton} onPress={onPressMutuals}>
-                                <Text style={styles.statNumber}>{mutualCount ?? 0}</Text>
-                                <Text style={styles.statLabel}>{isMe ? 'pending' : 'mutual'}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+
+                    <ProfileStats
+                        isMe={isMe}
+                        isFriend={showFriendStats}
+                        friendCount={friendCount ?? 0}
+                        mutualCount={mutualCount ?? 0}
+                        onPressFriends={onPressFriends}
+                        onPressMutuals={onPressMutuals}
+                    />
                 </View>
             </View>
 
@@ -376,31 +374,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 2,
     },
-    statsRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginTop: 8,
-    },
-    statButton: {
-        flex: 1,
-        backgroundColor: Theme.container.background,
-        paddingVertical: 8,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Theme.container.mainBorder,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    statNumber: {
-        color: Theme.dark.white,
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    statLabel: {
-        color: Theme.container.inactiveText,
-        fontSize: 11,
-        marginTop: 2,
-    },
     profileName: {
         color: Theme.dark.white,
         fontSize: 22,
@@ -427,12 +400,31 @@ const styles = StyleSheet.create({
     },
     saveButton: {
         backgroundColor: Theme.dark.primary,
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 10,
     },
     saveButtonText: {
         color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    inlineActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+    },
+    cancelEditButton: {
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        backgroundColor: Theme.container.background,
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 10,
+    },
+    cancelEditButtonText: {
+        color: Theme.container.inactiveText,
         fontWeight: '700',
         fontSize: 14,
     },

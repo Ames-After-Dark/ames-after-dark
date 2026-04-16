@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 const cors = require('cors');
 const { Pool } = require('pg');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swaggerConfig');
 //To use checkJwt, simply insert it into your app.get()'s //Example: app.get('/status', checkJwt, async (req, res) => { const checkJwt = require('./src/middleware/authMiddleware')
 
 const PORT = process.env.PORT || 3000;
@@ -28,6 +30,20 @@ app.use(express.json());
 
 // Dev only
 app.use(cors());
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+}));
+
+// API Documentation links
+app.get('/api-docs/json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Example API Endpoint: Check database connection
 app.get('/status', async (req, res) => {
@@ -79,11 +95,8 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
 });
 
-// Start server and bind to all interfaces
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on 0.0.0.0:${PORT}`);
-});

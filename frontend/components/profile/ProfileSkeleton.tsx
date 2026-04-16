@@ -1,15 +1,21 @@
 import { Theme } from "@/constants/theme";
 import { ScrollView, View } from "react-native";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SkeletonItem = ({ style }: { style: any }) => (
     <View style={[style, { backgroundColor: '#1C1C26', overflow: 'hidden' }]} />
 );
 
 export const ProfileSkeleton = () => {
+    const insets = useSafeAreaInsets();
+
     return (
         <View style={skeletonStyles.container}>
-            <ScrollView contentContainerStyle={skeletonStyles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={[skeletonStyles.scrollContent, { paddingTop: insets.top + 56 }]}
+                showsVerticalScrollIndicator={false}
+            >
 
                 {/* 1. Header: Logo, Name, Username */}
                 <View style={{ alignItems: 'flex-start', marginBottom: 25 }}>
@@ -55,7 +61,6 @@ const skeletonStyles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 20,
         paddingBottom: 40,
         gap: 15
     },

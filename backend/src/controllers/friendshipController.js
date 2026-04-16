@@ -51,6 +51,32 @@ exports.getMutualFriends = async (req, res) => {
   }
 };
 
+exports.getFriendsOfFriend = async (req, res) => {
+  const friendId = parseInt(req.params.friendId, 10);
+  if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
+
+  const auth0Id = req.auth?.payload?.sub;
+  if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+
+  try {
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(403).json({ message: 'Forbidden' });
+    const userId = user.id;
+
+    const person = await userService.getUserById(friendId);
+    if (!person) return res.status(404).json({ message: 'Person not found' });
+
+    const friendsOfFriend = await friendshipService.getFriendsOfFriend(userId, friendId);
+    res.json(friendsOfFriend);
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'Not friends') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 exports.sendFriendRequest = async (req, res) => {
   const friendId = parseInt(req.params.friendId, 10);
   if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });

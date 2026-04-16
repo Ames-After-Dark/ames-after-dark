@@ -124,6 +124,36 @@ exports.getLocationsByAdminId = async (adminId) => {
   });
 };
 
+
+exports.getLocationsByDeveloperId = async (developerId) => {
+
+  const developer = await prisma.users.findUnique({
+    where: { id: Number(developerId) },
+    select: {
+      id: true
+    }
+  });
+
+  const isDeveloper = developer ? await prisma.roles.findFirst({
+    where: {
+      name: 'Developer',
+      users_roles: {
+        some: {
+          user_id: developer.id
+        }
+      }
+    }
+  }) : null;
+
+  if (!isDeveloper) {
+    throw new Error('User is not a developer');
+  }
+
+  return prisma.locations.findMany({
+    orderBy: { id: 'asc' }
+  });
+}
+
 exports.getTotalLocationViews = async (locationId) => {
   const locId = Number(locationId);
 

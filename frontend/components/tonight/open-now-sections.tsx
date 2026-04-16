@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 
-export default function OpenNowSection({ data, onBarPress }: { data: any[], onBarPress: (id: string) => void }) {
+export default function OpenNowSection({ data, onBarPress, query }: { data: any[], onBarPress: (id: string) => void, query: string }) {
     if (!data.length) {
         return (
             <View style={styles.stateContainer}>
@@ -12,10 +12,14 @@ export default function OpenNowSection({ data, onBarPress }: { data: any[], onBa
                     <Ionicons name="time-outline" size={40} color={Theme.dark.primary} />
                 </View>
                 <Text style={styles.comingSoonHeader}>
-                    No matching locations currently open.
+                    {/* No matching locations currently open. */}
+                    {query.trim() ? "No matching locations currently open" : "No locations currently open"}
                 </Text>
                 <Text style={styles.emptyText}>
-                    Try a different search term or clear the filter.
+                    {/* Try a different search term or clear the filter. */}
+                    {query.trim()
+                        ? "Try a different search term or clear the filter."
+                        : "We only show locations that are currently open."}
                 </Text>
             </View>
         );

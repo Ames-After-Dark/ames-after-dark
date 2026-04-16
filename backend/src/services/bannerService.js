@@ -66,3 +66,40 @@ exports.createBanner = async (bannerData) => {
     }
   });
 };
+
+exports.getBannersByDateRange = async (startDate, endDate) => {
+  return await prisma.banners.findMany({
+    where: {
+      OR: [
+        {
+          deals: {
+            some: {
+              deal_occurrences: {
+                some: {
+                  start_time_utc: { lte: endDate },
+                  end_time_utc: { gte: startDate }
+                }
+              }
+            }
+          }
+        },
+        {
+          events: {
+            some: {
+              event_occurrences: {
+                some: {
+                  start_time_utc: { lte: endDate },
+                  end_time_utc: { gte: startDate }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    include: {
+      deals: true,
+      events: true
+    }
+  }); 
+}

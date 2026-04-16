@@ -10,6 +10,19 @@ function getOrderedIds(a, b) {
   return a < b ? [a, b] : [b, a];
 }
 
+exports.isBlocked = async (userId, targetUserId) => {
+  const friendship = await prisma.friendships.findFirst({
+    where: {
+      OR: [
+        { user_id_1: userId, user_id_2: targetUserId },
+        { user_id_1: targetUserId, user_id_2: userId }
+      ],
+      friendship_status_id: STATUS_BLOCKED
+    }
+  });
+  return !!friendship;
+};
+
 exports.getFriends = async (userId) => {
   // Return all accepted friends for user
   const friendships = await prisma.friendships.findMany({
@@ -44,6 +57,88 @@ exports.getFriends = async (userId) => {
   return friendships.map(f =>
     f.user_id_1 === userId ? f.users_friendships_user_id_2Tousers : f.users_friendships_user_id_1Tousers
   );
+};
+
+exports.getFriendsOfFriend = async (userId, friendId) => {
+  // Confirm the target user is an accepted friend first
+  const friendship = await prisma.friendships.findFirst({
+    where: {
+      OR: [
+        { user_id_1: userId, user_id_2: friendId },
+        { user_id_1: friendId, user_id_2: userId }
+      ],
+      friendship_status_id: STATUS_ACCEPTED
+    }
+  });
+
+  if (!friendship) {
+    throw new Error('Not friends');
+  }
+
+  const friendFriendships = await prisma.friendships.findMany({
+    where: {
+      OR: [
+        { user_id_1: friendId },
+        { user_id_2: friendId }
+      ],
+      friendship_status_id: STATUS_ACCEPTED
+    },
+    include: {
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo: true,
+          bio: true
+        }
+      }
+    }
+  });
+
+  const friendCandidates = friendFriendships
+    .map(f =>
+      f.user_id_1 === friendId
+        ? f.users_friendships_user_id_2Tousers
+        : f.users_friendships_user_id_1Tousers
+    );
+
+  if (friendCandidates.length === 0) {
+    return [];
+  }
+
+  const candidateIds = friendCandidates.map(candidate => candidate.id);
+
+  const blockedRelations = await prisma.friendships.findMany({
+    where: {
+      OR: [
+        { user_id_1: userId, user_id_2: { in: candidateIds } },
+        { user_id_2: userId, user_id_1: { in: candidateIds } }
+      ],
+      friendship_status_id: STATUS_BLOCKED
+    },
+    select: {
+      user_id_1: true,
+      user_id_2: true
+    }
+  });
+
+  const blockedIds = new Set(
+    blockedRelations.map(block =>
+      block.user_id_1 === userId ? block.user_id_2 : block.user_id_1
+    )
+  );
+
+  return friendCandidates.filter(candidate => !blockedIds.has(candidate.id));
 };
 
 exports.sendFriendRequest = async (userId, friendId) => {
@@ -299,8 +394,26 @@ exports.getRecommendedFriends = async (userId, limit = 10) => {
 
   // If friends-of-friends returns nothing, fall back to simple recommendations
   if (recommendations.length === 0) {
-    return await getSimpleRecommendations(userId, limit, excludedIds);
+    const simpleRecs = await getSimpleRecommendations(userId, limit, excludedIds);
+    // Filter out blocked users from simple recommendations
+    const filteredSimpleRecs = [];
+    for (const rec of simpleRecs) {
+      const isUserBlocked = await exports.isBlocked(userId, rec.user.id);
+      if (!isUserBlocked) {
+        filteredSimpleRecs.push(rec);
+      }
+    }
+    return filteredSimpleRecs.slice(0, limit);
   }
 
-  return recommendations;
+  // Filter out blocked users from friends-of-friends recommendations
+  const filteredRecommendations = [];
+  for (const rec of recommendations) {
+    const isUserBlocked = await exports.isBlocked(userId, rec.user.id);
+    if (!isUserBlocked) {
+      filteredRecommendations.push(rec);
+    }
+  }
+
+  return filteredRecommendations;
 };

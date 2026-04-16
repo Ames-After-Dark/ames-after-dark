@@ -2,72 +2,53 @@ import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { UserLocationService, FriendLocationService } from '@/services/userLocationService';
 import { useAuth } from './use-auth';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
-    const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
     const { getAccessToken } = useAuth();
 
     useEffect(() => {
         if (userId === undefined || !hasPermission) return;
 
-        // track if the component is still alive
-        let isMounted = true;
-
         const startTracking = async () => {
-
-            if (!isMounted) return;
-
-            if (subscriptionRef.current) {
-                subscriptionRef.current.remove();
-                subscriptionRef.current = null;
-            }
-
             try {
-                const initial = await Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced
-                });
-                if (!isMounted) {
-                    return;
-                }
-
                 const token = await getAccessToken();
                 if (!token) return;
 
+                // Sync token to SecureStore for the background task
+                await SecureStore.setItemAsync('user_token', token);
+
+                // Set an expiry time for the night (e.g., 8 hours from now)
+                const eightHours = 8 * 60 * 60 * 1000;
+                const expiryTime = Date.now() + eightHours;
+                await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
+
+                // Immediate foreground sync
+                const initial = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced
+                });
+                
                 await UserLocationService.updateLocation(token, {
                     latitude: initial.coords.latitude,
                     longitude: initial.coords.longitude,
                 });
 
-                const subscription = await Location.watchPositionAsync(
-                    {
-                        accuracy: Location.Accuracy.Balanced,
-                        // move 5 meters to trigger
-                        distanceInterval: 5,
-                        // update every 1 minute (60,000ms) to keep data accurate
-                        timeInterval: 60000,
-                    },
-
-                    async (location) => {
-                        try {
-
-                            if (!isMounted) {
-                                subscription.remove();
-                                return;
-                            }
-
-                            subscriptionRef.current = subscription;
-                            const token = await getAccessToken();
-                            if (!token) return;
-
-                            await UserLocationService.updateLocation(token, {
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                            });
-                        } catch (err) {
-                            console.error("Failed to sync location with server", err);
-                        }
+                // Kick off the background task
+                await Location.startLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK', {
+                    accuracy: Location.Accuracy.Balanced,
+                    distanceInterval: 15,
+                    showsBackgroundLocationIndicator: true,
+                    pausesUpdatesAutomatically: false,
+                    activityType: Location.ActivityType.Fitness,
+                    foregroundService: {
+                        notificationTitle: "Ames After Dark",
+                        notificationBody: "Keeping your location synced with friends.",
                     }
-                );
+                });
+
+                console.log("Night Out tracking active.");
+
             } catch (e) {
                 console.error("Location tracking setup failed", e);
             }
@@ -76,12 +57,11 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         startTracking();
 
         return () => {
-            // stop initial sync if unmounting
-            isMounted = false;
-            subscriptionRef.current?.remove();
-            subscriptionRef.current = null;
+            Location.stopLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK').catch(console.error);
+            SecureStore.deleteItemAsync('user_token').catch(console.error);
+            AsyncStorage.removeItem('trackingExpiry').catch(console.error);
         };
-    }, [userId, hasPermission]);
+    }, [userId, hasPermission, getAccessToken]);
 }
 
 export function useFriendsLocations(userId: number | undefined) {
