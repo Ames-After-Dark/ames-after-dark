@@ -118,7 +118,7 @@ exports.updatePermission = async (ownerId, viewerId, shouldEnable) => {
 
 exports.setGhostMode = async (userId, hours) => {
   let expiry = null;
-  
+
   if (hours > 0) {
     expiry = new Date();
     expiry.setHours(expiry.getHours() + hours);
@@ -132,16 +132,26 @@ exports.setGhostMode = async (userId, hours) => {
 
 exports.updateSharingPreference = async (userId, preference) => {
   // preference must be 'PUBLIC', 'PRIVATE', or 'SELECTIVE'
-  return await prisma.user_settings.update({
-    where: { user_id: userId },
-    data: { location_sharing_preference: preference }
+  return await prisma.$transaction(async (tx) => {
+    const updatedSettings = await tx.user_settings.update({
+      where: { user_id: userId },
+      data: { location_sharing_preference: preference }
+    });
+
+    if (preference === 'PUBLIC' || preference === 'PRIVATE') {
+      await tx.user_location_permissions.deleteMany({
+        where: { owner_id: userId }
+      });
+    }
+
+    return updatedSettings;
   });
 };
 
 exports.processWeeklyCheckIn = async (userId, locationId, userTimezone) => {
-  
+
   const localNow = DateTime.now().setZone(userTimezone || 'UTC');
-  
+
   const weekNum = localNow.weekNumber;
   const year = localNow.year;
 
@@ -160,7 +170,7 @@ exports.processWeeklyCheckIn = async (userId, locationId, userTimezone) => {
     // 4. Determine if streak continues or resets
     let newStreak = 1;
     const isConsecutive = (user.last_streak_year === year && user.last_streak_week === weekNum - 1) ||
-                          (user.last_streak_year === year - 1 && user.last_streak_week >= 52 && weekNum === 1);
+      (user.last_streak_year === year - 1 && user.last_streak_week >= 52 && weekNum === 1);
 
     if (isConsecutive) {
       newStreak = (user.streak || 0) + 1;
