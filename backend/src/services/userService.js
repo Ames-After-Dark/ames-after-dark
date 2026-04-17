@@ -85,6 +85,7 @@ exports.getUserById = async (id) => {
     include: {
       roles: true,
       user_settings: true,
+  profile_photo: true,
       location_permissions_location_permissions_owner_idTousers: {
         select: {
           viewer_id: true,
@@ -403,6 +404,7 @@ exports.getPublicUserById = async (id) => {
       id: true,
       name: true,
       username: true,
+  profile_photo_id: true,
       profile_photo: true,
       bio: true,
       favorite_drink_id: true,
