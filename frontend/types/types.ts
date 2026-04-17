@@ -8,7 +8,16 @@ export interface Friend {
     bio?: string;
     status?: 'Online' | 'Offline';
     mutualFriends?: number;
-    avatar?: ImageSourcePropType;
+    /**
+     * Back-compat display image.
+     * Historically this has been an ImageSourcePropType, but some call sites treat it like a string URL.
+     */
+    avatar?: ImageSourcePropType | string | { uri: string };
+
+    /**
+     * Preferred avatar: maps to a bundled image via `getAvatarById()`.
+     */
+    profile_photo_id?: number | null;
 }
 
 export interface FriendReference {

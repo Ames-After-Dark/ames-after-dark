@@ -9,6 +9,7 @@ import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
 
 import { AVATAR_OPTIONS, getAvatarById, ProfileAsset } from '@/utils/profileAssets';
+import { resolveAvatarSource } from '@/utils/avatarSource';
 import { ProfileStats } from './ProfileStats';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,9 +203,11 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
 
     const avatarSource = isMe
         ? selectedAvatar.source
-        : user?.avatar
-            ? (typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar)
-            : require('@/assets/images/Logo.png');
+        : resolveAvatarSource({
+            avatar: user?.avatar,
+            profile_photo_id: user?.profile_photo_id,
+            profile_picture_url: user?.profile_picture_url,
+        });
 
     const shouldShowStats = Boolean(isMe || showFriendStats);
 

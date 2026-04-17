@@ -89,7 +89,9 @@ export async function getUserFriends(token: string): Promise<Friend[]> {
       username: user.username,
       name: user.name,
       bio: user.bio,
-      avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
+      // Prefer a remote URL if present, but also carry the profile_photo_id for bundled assets.
+      avatar: user.profile_picture_url ? user.profile_picture_url : undefined,
+      profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
     }));
   } catch (error) {
     console.error(`Failed to fetch friends:`, error);
@@ -109,7 +111,8 @@ export async function getFriendsOfFriend(token: string, friendId: string | numbe
       username: user.username,
       name: user.name,
       bio: user.bio,
-      avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
+      avatar: user.profile_picture_url ? user.profile_picture_url : undefined,
+      profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
     }));
   } catch (error) {
     console.error(`Failed to fetch friends of friend ${friendId}:`, error);
@@ -135,7 +138,9 @@ export async function searchUsers(token: string, query: string, excludeUserId?: 
       username: user.username,
       name: user.name,
       bio: user.bio,
-      avatar: user.profile_photo?.image_url || undefined,
+      // Search endpoint seems to return profile_photo object sometimes; support both URL + bundled id.
+      avatar: user.profile_picture_url || user.profile_photo?.image_url || undefined,
+      profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
     }));
   } catch (error) {
     console.error(`Failed to search users for query ${query}:`, error);
