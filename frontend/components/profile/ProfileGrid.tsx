@@ -3,7 +3,7 @@ import {
     View, Text, Image, StyleSheet, TouchableOpacity,
     Modal, FlatList, TouchableWithoutFeedback, Animated
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
 import { updateUser } from '@/services/userService';
 import { useAuth } from '@/hooks/use-auth';
@@ -185,6 +185,52 @@ type ZoomModalProps = {
     onClose: () => void;
 };
 
+// function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrink, onClose }: ZoomModalProps) {
+//     return (
+//         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+//             <TouchableWithoutFeedback onPress={onClose}>
+//                 <View style={zoomStyles.overlay}>
+//                     <TouchableWithoutFeedback onPress={() => { }}>
+//                         <View style={zoomStyles.card}>
+//                             {/* Pink X close button */}
+//                             <TouchableOpacity style={zoomStyles.closeBtn} onPress={onClose}>
+//                                 <View style={zoomStyles.closeBtnCircle}>
+//                                     <FontAwesome name="times" size={14} color="#fff" />
+//                                 </View>
+//                             </TouchableOpacity>
+
+//                             <Text style={zoomStyles.label}>
+//                                 {type === 'drink' ? 'Favorite Drink' : 'Streak'}
+//                             </Text>
+
+//                             {type === 'drink' && drinkSource ? (
+//                                 <>
+//                                     <Image source={drinkSource} style={zoomStyles.drinkImage} />
+//                                     {isMe && (
+//                                         <TouchableOpacity
+//                                             style={zoomStyles.changeDrinkBtn}
+//                                             onPress={() => { onClose(); setTimeout(onChangeDrink, 300); }}
+//                                         >
+//                                             <Text style={zoomStyles.changeDrinkText}>Change Drink</Text>
+//                                         </TouchableOpacity>
+//                                     )}
+//                                 </>
+//                             ) : (
+//                                 <View style={zoomStyles.streakZoom}>
+//                                     <Text style={zoomStyles.streakEmoji}>🔥</Text>
+//                                     <Text style={zoomStyles.streakBig}>{streakCount ?? 0}</Text>
+//                                     <Text style={zoomStyles.streakSub}>weekends out in a row</Text>
+//                                 </View>
+
+//                             )}
+//                         </View>
+//                     </TouchableWithoutFeedback>
+//                 </View>
+//             </TouchableWithoutFeedback>
+//         </Modal>
+//     );
+// }
+
 function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrink, onClose }: ZoomModalProps) {
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -217,9 +263,11 @@ function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrin
                                 </>
                             ) : (
                                 <View style={zoomStyles.streakZoom}>
-                                    <Text style={zoomStyles.streakEmoji}>🔥</Text>
-                                    <Text style={zoomStyles.streakBig}>{streakCount ?? 0}</Text>
-                                    <Text style={zoomStyles.streakSub}>weekends out in a row</Text>
+                                    <View style={zoomStyles.streakNumberContainer}>
+                                        <Text style={zoomStyles.streakEmoji}>🔥</Text>
+                                        <Text style={zoomStyles.streakBig}>{streakCount ?? 0}</Text>
+                                    </View>
+                                    <Text style={zoomStyles.streakSub}>WEEKENDS</Text>
                                 </View>
                             )}
                         </View>
@@ -295,10 +343,10 @@ const zoomStyles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 16,
     },
-    streakEmoji: {
-        fontSize: 56,
-        marginBottom: 8,
-    },
+    // streakEmoji: {
+    //     fontSize: 56,
+    //     marginBottom: 8,
+    // },
     streakBig: {
         color: Theme.dark.tertiary,
         fontSize: 72,
@@ -309,6 +357,37 @@ const zoomStyles = StyleSheet.create({
         color: Theme.container.inactiveText,
         fontSize: 14,
         marginTop: 8,
+        textAlign: 'center',
+    },
+    streakContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    streakNumberContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 6, // Adds breathing room above the label
+    },
+    streakEmoji: {
+        fontSize: 36,
+        marginRight: 4, // Pulls the fire closer to the number
+    },
+    streakNumber: {
+        color: Theme.dark.tertiary,
+        fontSize: 56,
+        fontWeight: 'bold',
+        // This adds the neon glow!
+        textShadowColor: Theme.dark.tertiary,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 12, // Increase for more blur/glow
+    },
+    statLabel: {
+        color: Theme.dark.white, // Brighten it up from inactiveText
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.5, // Spreads the letters out
         textAlign: 'center',
     },
 });
@@ -436,14 +515,19 @@ export const ProfileGrid = ({ user, isMe, isEditing }: { user: any; isMe?: boole
                     </TouchableOpacity>
                 </Animated.View>
 
-                {/* Streak — tappable on all pages */}
-                <TouchableOpacity style={styles.featureCard} onPress={() => setZoomModal('streak')}>
-                    <Text style={styles.featureTitle}>Streak</Text>
+                <View style={styles.featureCard}>
+                    <Text style={styles.featureTitle}>Active Streak</Text>
                     <View style={styles.streakContent}>
-                        <Text style={styles.streakNumber}>🔥 {user?.streak || 0}</Text>
-                        <Text style={styles.statLabel}>weekends out in a row</Text>
+                        <FontAwesome5
+                            name="fire"
+                            size={28}
+                            color={Theme.dark.tertiary}
+                            style={styles.streakFireIcon}
+                        />
+                        <Text style={styles.streakNumber}>{user?.streak ?? 0}</Text>
+                        <Text style={styles.statLabel}>WEEKENDS</Text>
                     </View>
-                </TouchableOpacity>
+                </View>
             </View>
 
             {/* Favorite Bar — tappable on all pages */}
@@ -566,6 +650,10 @@ const styles = StyleSheet.create({
         color: Theme.dark.tertiary,
         fontSize: 52,
         fontWeight: 'bold',
+        shadowColor: Theme.dark.tertiary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
     },
     statLabel: {
         color: Theme.container.inactiveText,
@@ -642,6 +730,13 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(0,0,0,0.6)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,
+    },
+    streakFireIcon: {
+        marginBottom: -4, // Pulls the fire down closer to the number
+        shadowColor: Theme.dark.tertiary, // Matches the glow to your theme's neon color
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10, // Adjust this number to make the glow wider or tighter
     },
 });
 
