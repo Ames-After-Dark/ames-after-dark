@@ -73,8 +73,9 @@ export default function LocationVisibilityScreen() {
         const ghostActive = !!settings?.ghost_mode_expires_at &&
           new Date(settings.ghost_mode_expires_at).getTime() > Date.now();
 
-        if (ghostActive) setVisibilityMode('NONE');
-        else if (settings?.location_sharing_preference === 'PUBLIC') setVisibilityMode('ALL');
+        //In the future have a message pop up that the user is in temporary ghost mode
+        // if (ghostActive) setVisibilityMode('NONE');
+        if (settings?.location_sharing_preference === 'PUBLIC') setVisibilityMode('ALL');
         else if (settings?.location_sharing_preference === 'PRIVATE') setVisibilityMode('NONE');
         else setVisibilityMode('SOME');
 
