@@ -185,52 +185,6 @@ type ZoomModalProps = {
     onClose: () => void;
 };
 
-// function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrink, onClose }: ZoomModalProps) {
-//     return (
-//         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-//             <TouchableWithoutFeedback onPress={onClose}>
-//                 <View style={zoomStyles.overlay}>
-//                     <TouchableWithoutFeedback onPress={() => { }}>
-//                         <View style={zoomStyles.card}>
-//                             {/* Pink X close button */}
-//                             <TouchableOpacity style={zoomStyles.closeBtn} onPress={onClose}>
-//                                 <View style={zoomStyles.closeBtnCircle}>
-//                                     <FontAwesome name="times" size={14} color="#fff" />
-//                                 </View>
-//                             </TouchableOpacity>
-
-//                             <Text style={zoomStyles.label}>
-//                                 {type === 'drink' ? 'Favorite Drink' : 'Streak'}
-//                             </Text>
-
-//                             {type === 'drink' && drinkSource ? (
-//                                 <>
-//                                     <Image source={drinkSource} style={zoomStyles.drinkImage} />
-//                                     {isMe && (
-//                                         <TouchableOpacity
-//                                             style={zoomStyles.changeDrinkBtn}
-//                                             onPress={() => { onClose(); setTimeout(onChangeDrink, 300); }}
-//                                         >
-//                                             <Text style={zoomStyles.changeDrinkText}>Change Drink</Text>
-//                                         </TouchableOpacity>
-//                                     )}
-//                                 </>
-//                             ) : (
-//                                 <View style={zoomStyles.streakZoom}>
-//                                     <Text style={zoomStyles.streakEmoji}>🔥</Text>
-//                                     <Text style={zoomStyles.streakBig}>{streakCount ?? 0}</Text>
-//                                     <Text style={zoomStyles.streakSub}>weekends out in a row</Text>
-//                                 </View>
-
-//                             )}
-//                         </View>
-//                     </TouchableWithoutFeedback>
-//                 </View>
-//             </TouchableWithoutFeedback>
-//         </Modal>
-//     );
-// }
-
 function ZoomModal({ visible, type, drinkSource, streakCount, isMe, onChangeDrink, onClose }: ZoomModalProps) {
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
