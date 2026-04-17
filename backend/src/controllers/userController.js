@@ -466,6 +466,51 @@ exports.getUsernameByAuth = async (req, res) => {
 };
 
 /**
+ * PUT /api/users/auth/name
+ * Update display name for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { name: string }
+ */
+exports.updateUserDisplayName = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ message: 'Display name is required' });
+    }
+
+    const trimmedName = name.trim();
+    const validation = validationService.validateDisplayName(trimmedName);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.error });
+    }
+
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updatedUser = await userService.updateUser(user.id, { name: trimmedName });
+
+    return res.json({
+      message: 'Display name updated successfully',
+      name: updatedUser.name
+    });
+  } catch (err) {
+    console.error('Error updating display name:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
  * PUT /api/users/auth/username
  * Update username for the authenticated user
  * Requires Auth0 JWT authentication
