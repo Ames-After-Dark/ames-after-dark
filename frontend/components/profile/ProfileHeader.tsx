@@ -142,6 +142,15 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
     const [isPickerVisible, setPickerVisible] = useState(false);
     const [isEditPromptVisible, setEditPromptVisible] = useState(false);
 
+    const [isNameModalVisible, setNameModalVisible] = useState(false);
+    const [tempName, setTempName] = useState(user?.name || '');
+
+    useEffect(() => {
+        if (user?.name) {
+            setTempName(user.name);
+        }
+    }, [user?.name]);
+
     // Wiggle animation
     const wiggle = useRef(new Animated.Value(0)).current;
     useEffect(() => {
@@ -188,11 +197,24 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                             ? user.bio
                             : `${user?.name || 'This user'} hasn't added a bio yet. They're a mystery! 🕵️‍♂️`}
                     </Text>
-                    {isMe && isEditing && (
+                    {/* {isMe && isEditing && (
                         <TouchableOpacity onPress={onEditBio} style={styles.bioEditBadgeTouch}>
                             <View style={styles.bioEditBadge}>
                                 <FontAwesome name="pencil" size={10} color="#fff" />
                             </View>
+                        </TouchableOpacity>
+                    )} */}
+                    {isMe && isEditing && (
+                        <TouchableOpacity
+                            onPress={() => {
+                                setTempName(user?.name || ''); // Reset to current name before opening
+                                setNameModalVisible(true);
+                            }}
+                            style={styles.nameEditTouch}
+                        >
+                            <Animated.View style={[styles.inlineEditBadge, wiggleStyle]}>
+                                <FontAwesome name="pencil" size={10} color="#fff" />
+                            </Animated.View>
                         </TouchableOpacity>
                     )}
                 </Animated.View>
@@ -244,8 +266,25 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                 )}
 
                 <View style={styles.infoContainer}>
+                    {/* <View style={styles.nameRow}>
+                        <Text style={styles.profileName}>{user?.name || 'Loading'}</Text>
+                    </View> */}
                     <View style={styles.nameRow}>
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+
+                        {isMe && isEditing && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setTempName(user?.name || ''); // Reset to current name before opening
+                                    setNameModalVisible(true);
+                                }}
+                                style={styles.nameEditTouch}
+                            >
+                                <Animated.View style={[styles.inlineEditBadge, wiggleStyle]}>
+                                    <FontAwesome name="pencil" size={10} color="#fff" />
+                                </Animated.View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
 
@@ -282,6 +321,51 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                     onClose={() => setPickerVisible(false)}
                 />
             )}
+
+            {/* Edit Name Modal */}
+            <Modal visible={isNameModalVisible} transparent animationType="fade" onRequestClose={() => setNameModalVisible(false)}>
+                <TouchableWithoutFeedback onPress={() => setNameModalVisible(false)}>
+                    <View style={styles.modalOverlay}>
+                        <TouchableWithoutFeedback onPress={() => { }}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalTitle}>Edit Name</Text>
+
+                                <View style={styles.modalInputContainer}>
+                                    <TextInput
+                                        style={styles.modalTextInput}
+                                        value={tempName}
+                                        onChangeText={setTempName}
+                                        placeholder="Enter your name"
+                                        placeholderTextColor={Theme.container.inactiveText}
+                                        maxLength={50}
+                                        autoFocus
+                                        autoCapitalize="words"
+                                        autoCorrect={false}
+                                    />
+                                    <Text style={styles.charCount}>{tempName.length}/50</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.modalSaveBtn}
+                                    onPress={() => {
+                                        if (tempName.trim()) {
+                                            // Pass the new name up to the parent component to save to DB
+                                            onSave?.({ name: tempName.trim() });
+                                            setNameModalVisible(false);
+                                        }
+                                    }}
+                                >
+                                    <Text style={styles.modalSaveBtnText}>Save Name</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity onPress={() => setNameModalVisible(false)} style={styles.modalCancelBtn}>
+                                    <Text style={styles.modalCancelBtnText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
 
             {/* Custom edit prompt — replaces native Alert */}
             <Modal visible={isEditPromptVisible} transparent animationType="fade" onRequestClose={() => setEditPromptVisible(false)}>
@@ -488,6 +572,77 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     promptCancel: {
+        color: Theme.container.inactiveText,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    nameEditTouch: {
+        marginLeft: 8,
+        padding: 4, // Makes the tap target slightly larger
+    },
+    inlineEditBadge: {
+        backgroundColor: Theme.dark.primary, // The pink color
+        borderRadius: 999,
+        width: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // --- Edit Modal Styles ---
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalCard: {
+        width: '85%',
+        backgroundColor: Theme.container.background, // Match your app's card color
+        borderRadius: 20,
+        padding: 24,
+    },
+    modalTitle: {
+        color: Theme.dark.white,
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    modalInputContainer: {
+        backgroundColor: '#1A1E2E', // Slightly darker than the card background
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 16,
+    },
+    modalTextInput: {
+        color: Theme.dark.white,
+        fontSize: 16,
+        padding: 0,
+        marginBottom: 8,
+    },
+    charCount: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        textAlign: 'right',
+    },
+    modalSaveBtn: {
+        backgroundColor: '#FF3B7F', // Matches your Ames After Dark pink
+        borderRadius: 12,
+        paddingVertical: 14,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    modalSaveBtnText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    modalCancelBtn: {
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    modalCancelBtnText: {
         color: Theme.container.inactiveText,
         fontSize: 14,
         fontWeight: '600',
