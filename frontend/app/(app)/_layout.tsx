@@ -3,12 +3,18 @@ import { NavigationContainer, DefaultTheme, DarkTheme, ThemeProvider } from "@re
 import { useColorScheme, View, ActivityIndicator } from "react-native";
 import { Stack, useSegments, useRouter, Redirect } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { useLocationTracker } from "@/hooks/useLocationTracker";
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, userStatus } = useAuth()
+  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, userStatus, user } = useAuth()
   const segments = useSegments()
   const router = useRouter()
   const colorScheme = useColorScheme()
+
+  useLocationTracker(
+    user?.sub, 
+    isAuthenticated && userStatus?.profileComplete === true
+  );
 
   useEffect(() => {
     if (isLoading) {

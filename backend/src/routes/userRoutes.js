@@ -146,6 +146,39 @@ router.put('/auth/username', checkJwt, userController.updateUsernameByAuth);
 
 /**
  * @swagger
+ * /api/users/auth/name:
+ *   put:
+ *     summary: Update authenticated user's display name
+ *     description: Updates the display name for the currently authenticated user
+ *     tags:
+ *       - Users
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Display name updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.put('/auth/name', checkJwt, userController.updateUserDisplayName);
+
+/**
+ * @swagger
  * /api/users/auth/profile:
  *   get:
  *     summary: Get authenticated user's profile

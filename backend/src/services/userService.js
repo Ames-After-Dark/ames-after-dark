@@ -410,7 +410,7 @@ exports.getAdmins = async () => {
 };
 
 exports.getPublicUserById = async (id) => {
-  return prisma.users.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: Number(id) },
     select: {
       id: true,
@@ -440,4 +440,22 @@ exports.getPublicUserById = async (id) => {
       }
     }
   });
+
+  if (!user) return null;
+
+  // Get friend count
+  const friendCount = await prisma.friendships.count({
+    where: {
+      OR: [
+        { user_id_1: id },
+        { user_id_2: id }
+      ],
+      friendship_status_id: 2 // STATUS_ACCEPTED
+    }
+  });
+
+  return {
+    ...user,
+    friendCount
+  };
 };

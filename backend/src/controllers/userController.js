@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const userSettingService = require('../services/userSettingService');
 const validationService = require('../services/validationService');
 const authService = require('../services/authService');
+const friendshipService = require('../services/friendshipService');
 
 // GET /api/users
 exports.getUsers = async (req, res) => {
@@ -31,6 +32,9 @@ exports.getUsers = async (req, res) => {
 
 // GET /api/users/search
 exports.searchUsers = async (req, res) => {
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
     const search = req.query?.search?.toString();
     const excludeUserId = req.query?.excludeUserId ? parseInt(req.query.excludeUserId, 10) : undefined;
@@ -39,8 +43,21 @@ exports.searchUsers = async (req, res) => {
       return res.json([]);
     }
 
+    const currentUser = await userService.getUserByAuth0Id(authId);
+    if (!currentUser) return res.status(403).json({ message: 'Forbidden' });
+
     const users = await userService.searchUsers(search, excludeUserId);
-    res.json(users);
+
+    // Filter out users who have blocked the current user or who the current user has blocked
+    const filteredUsers = [];
+    for (const user of users) {
+      const isBlocked = await friendshipService.isBlocked(currentUser.id, user.id);
+      if (!isBlocked) {
+        filteredUsers.push(user);
+      }
+    }
+
+    res.json(filteredUsers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -72,16 +89,28 @@ exports.getUserById = async (req, res) => {
 
   try {
     const dbUser = await userService.getUserByAuth0Id(authId);
-    const isSelf = dbUser && dbUser.id === id;
+    if (!dbUser) return res.status(403).json({ message: 'Forbidden' });
+
+    const isSelf = dbUser.id === id;
+
+    // Check if user exists
+    const targetUser = await userService.getUserById(id);
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    // If not viewing self, check for blocks
+    if (!isSelf) {
+      const isBlocked = await friendshipService.isBlocked(dbUser.id, id);
+      if (isBlocked) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+    }
 
     let user;
     if (isSelf) {
-      user = await userService.getUserById(id);
+      user = targetUser; // Full profile for self
     } else {
-      user = await userService.getPublicUserById(id);
+      user = await userService.getPublicUserById(id); // Public profile for others
     }
-
-    if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
   } catch (err) {
@@ -430,6 +459,51 @@ exports.getUsernameByAuth = async (req, res) => {
 
   } catch (err) {
     console.error('Error getting username:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * PUT /api/users/auth/name
+ * Update display name for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { name: string }
+ */
+exports.updateUserDisplayName = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ message: 'Display name is required' });
+    }
+
+    const trimmedName = name.trim();
+    const validation = validationService.validateDisplayName(trimmedName);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.error });
+    }
+
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updatedUser = await userService.updateUser(user.id, { name: trimmedName });
+
+    return res.json({
+      message: 'Display name updated successfully',
+      name: updatedUser.name
+    });
+  } catch (err) {
+    console.error('Error updating display name:', err);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
