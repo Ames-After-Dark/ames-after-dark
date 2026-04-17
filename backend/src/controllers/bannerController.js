@@ -58,3 +58,19 @@ exports.createBanner = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.getBannersByDateRange = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: 'startDate and endDate are required in the request body' });
+    }
+
+    const banners = await bannerService.getBannersByDateRange(new Date(startDate), new Date(endDate));
+    res.json(banners);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

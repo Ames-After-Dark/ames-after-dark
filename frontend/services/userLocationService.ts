@@ -11,6 +11,13 @@ export interface GhostModeResponse {
     message: string;
 }
 
+export type LocationSharingPreference = 'PUBLIC' | 'PRIVATE' | 'SELECTIVE';
+
+export interface SharingPreferenceResponse {
+    success: boolean;
+    preference: LocationSharingPreference;
+}
+
 export const UserLocationService = {
     /**
      * Updates the current user's location in the database
@@ -26,6 +33,20 @@ export const UserLocationService = {
         return await apiFetchAuth(`/userlocations/me/ghost`, token, {
             method: "POST",
             body: JSON.stringify({ hours }),
+        });
+    },
+
+    updateSharingPreference: async (token: string, preference: LocationSharingPreference): Promise<SharingPreferenceResponse> => {
+        return await apiFetchAuth(`/userlocations/me/preference`, token, {
+            method: "PATCH",
+            body: JSON.stringify({ preference }),
+        });
+    },
+
+    setViewerPermission: async (token: string, viewerId: number, enabled: boolean) => {
+        return await apiFetchAuth(`/userlocations/permissions/${viewerId}`, token, {
+            method: "POST",
+            body: JSON.stringify({ enabled }),
         });
     },
 };

@@ -180,6 +180,7 @@ exports.updateUserLimited = async (id, updateData) => {
   if (updateData.favorite_drink_id !== undefined) allowedFields.favorite_drink_id = updateData.favorite_drink_id;
   if (updateData.profile_photo_id !== undefined) allowedFields.profile_photo_id = updateData.profile_photo_id;
   if (updateData.favorite_profile_location_id !== undefined) allowedFields.favorite_profile_location_id = updateData.favorite_profile_location_id;
+  if (updateData.name !== undefined) allowedFields.name = updateData.name;
 
   return prisma.users.update({
     where: { id: Number(id) },
@@ -396,8 +397,20 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
   };
 };
 
+exports.getAdmins = async () => {
+  return prisma.users.findMany({
+    where: {
+      role_id: 3 // Admin role ID
+    },
+    include: {
+      roles: true
+    },
+    orderBy: { id: 'asc' }
+  });
+};
+
 exports.getPublicUserById = async (id) => {
-  return prisma.users.findUnique({
+  const user = await prisma.users.findUnique({
     where: { id: Number(id) },
     select: {
       id: true,
@@ -427,4 +440,22 @@ exports.getPublicUserById = async (id) => {
       }
     }
   });
+
+  if (!user) return null;
+
+  // Get friend count
+  const friendCount = await prisma.friendships.count({
+    where: {
+      OR: [
+        { user_id_1: id },
+        { user_id_2: id }
+      ],
+      friendship_status_id: 2 // STATUS_ACCEPTED
+    }
+  });
+
+  return {
+    ...user,
+    friendCount
+  };
 };

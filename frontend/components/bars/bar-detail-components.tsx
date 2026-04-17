@@ -33,6 +33,7 @@ interface BarGalleryModalProps {
   barName?: string;
   latestImage?: string | null;
   hasSpecificAlbum?: boolean;
+  isLoading?: boolean;
 }
 
 export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps, mapData, barName }: BarMapModalProps) => (
@@ -100,7 +101,7 @@ export const BarMapModal = ({ visible, onClose, onOpenInMaps, onOpenInAppleMaps,
   </Modal>
 );
 
-export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barName, latestImage, hasSpecificAlbum }: BarGalleryModalProps) => (
+export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barName, latestImage, hasSpecificAlbum, isLoading  }: BarGalleryModalProps) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <TouchableWithoutFeedback onPress={onClose}>
       <View style={styles.modalOverlay}>
@@ -110,25 +111,36 @@ export const BarGalleryModal = ({ visible, onClose, onOpenGallery, assets, barNa
               <FontAwesome name="close" size={16} color="white" />
             </TouchableOpacity>
 
-            <Image source={latestImage ? { uri: latestImage } : assets?.cover} style={styles.galleryPreviewImage} />
-
-            <View style={styles.overlayFooter}>
-              <Text style={styles.galleryModalTitle}>
-                {hasSpecificAlbum ? `${barName}'s Gallery` : "Ames After Dark Gallery"}
-              </Text>
-              <Text style={styles.galleryModalText}>
-                {hasSpecificAlbum
-                  ? `Check out the latest photos from ${barName}! Tap below to explore the full album.`
-                  : `Dive into the city's nightlife gallery. Check out the latest photos from around town!`}
-              </Text>
-
-              <View style={styles.primaryActionsRow}>
-                <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenGallery}>
-                  <FontAwesome name="image" size={18} color="white" style={{ marginRight: 8 }} />
-                  <Text style={styles.openInMapsText}>Enter Gallery</Text>
-                </TouchableOpacity>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Theme.dark.primary} />
+                <Text style={styles.loadingText}>Checking for recent photos...</Text>
               </View>
-            </View>
+            ) : (
+              <>
+              <Image source={latestImage ? { uri: latestImage } : assets?.cover} style={styles.galleryPreviewImage} />
+
+              <View style={styles.overlayFooter}>
+                <Text style={styles.galleryModalTitle}>
+                  {hasSpecificAlbum ? `${barName}'s Gallery` : "Ames After Dark Gallery"}
+                </Text>
+                <Text style={styles.galleryModalText}>
+                  {hasSpecificAlbum
+                    ? `Check out the latest photos from ${barName}! Tap below to explore the full album.`
+                    : `Dive into the city's nightlife gallery. Check out the latest photos from around town!`}
+                </Text>
+
+                <View style={styles.primaryActionsRow}>
+                  <TouchableOpacity style={styles.openInMapsBtn} onPress={onOpenGallery}>
+                    <FontAwesome name="image" size={18} color="white" style={{ marginRight: 8 }} />
+                    <Text style={styles.openInMapsText}>Enter Gallery</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+            )}
+
+            
 
           </View>
         </TouchableWithoutFeedback>

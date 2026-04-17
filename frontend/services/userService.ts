@@ -97,6 +97,26 @@ export async function getUserFriends(token: string): Promise<Friend[]> {
   }
 }
 
+export async function getFriendsOfFriend(token: string, friendId: string | number): Promise<Friend[]> {
+  try {
+    const friends = await apiFetchAuth(`/friendships/friends/${friendId}/friends`, token);
+
+    if (!Array.isArray(friends)) return [];
+
+    // Map the returned database fields into the Friend frontend format
+    return friends.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      bio: user.bio,
+      avatar: user.profile_picture_url ? { uri: user.profile_picture_url } : undefined,
+    }));
+  } catch (error) {
+    console.error(`Failed to fetch friends of friend ${friendId}:`, error);
+    throw error;
+  }
+}
+
 export async function searchUsers(token: string, query: string, excludeUserId?: string | number): Promise<Friend[]> {
   try {
     const trimmed = query.trim();
@@ -355,6 +375,26 @@ export async function updateUsernameByAuth(accessToken: string, username: string
     return response;
   } catch (error) {
     console.error('Failed to update username:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update display name for the authenticated user
+ */
+export async function updateNameByAuth(accessToken: string, name: string): Promise<{ message: string; name: string }> {
+  try {
+    const response = await apiFetch(`/users/auth/name`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name })
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to update display name:', error);
     throw error;
   }
 }

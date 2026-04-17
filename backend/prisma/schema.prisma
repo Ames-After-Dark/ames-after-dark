@@ -13,6 +13,7 @@ model deals {
   name             String             @db.VarChar
   location_id      Int
   views            Int?               @default(0)
+  description       String?
   deal_occurrences deal_occurrences[]
   locations        locations          @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations")
   
@@ -102,6 +103,7 @@ model locations {
   menu_items               menu_items[]
   user_favorite_locations  user_favorite_locations[]
   users                    users[]
+  user_weekly_checkins user_weekly_checkins[]
 
   @@schema("app")
 }
@@ -138,6 +140,9 @@ model users {
   favorite_drink_id                                          Int?
   phone_number                                               String?                @db.VarChar(25)
   streak                                                     Int?                   @default(0)
+  last_streak_week  Int?                                                                                    // Stores the week number (1-52)
+  last_streak_year  Int?                                                                                     // Stores year to handle new years stuff
+  user_weekly_checkins                                       user_weekly_checkins[]
   friendships_friendships_user_id_1Tousers                   friendships[]          @relation("friendships_user_id_1Tousers")
   friendships_friendships_user_id_2Tousers                   friendships[]          @relation("friendships_user_id_2Tousers")
   location_admins                                            location_admins[]
@@ -319,5 +324,21 @@ model banners {
   events    events[]
   deals     deals[]
 
+  @@schema("app")
+}
+
+model user_weekly_checkins {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  location_id Int
+  week_num    Int      // 1-52
+  year        Int      
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  users     users     @relation(fields: [user_id], references: [id])
+  locations locations @relation(fields: [location_id], references: [id])
+
+  // Ensures a user only gets one check in a week
+  @@unique([user_id, week_num, year])
   @@schema("app")
 }

@@ -66,6 +66,7 @@ export const ProfileListModal = ({
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const panY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const hasSearchQuery = search.trim().length > 0;
 
     const isSearchActive = title === 'Friends' && search.trim().length > 0 && typeof onSearch === 'function';
 
@@ -122,7 +123,7 @@ export const ProfileListModal = ({
             ...(received.length > 0 ? [{ isHeader: true, title: 'Requests for You' }, ...received] : []),
             ...(sent.length > 0 ? [{ isHeader: true, title: 'Sent by You' }, ...sent] : [])
         ];
-    }, [data, title, search]);
+    }, [data, title, search, searchResults, isSearchActive]);
 
     // Animation & Gesture Logic
     useEffect(() => {
@@ -151,6 +152,24 @@ export const ProfileListModal = ({
             onClose();
         });
     };
+
+    const renderEmptyState = ({
+        icon,
+        titleText,
+        subtitle,
+    }: {
+        icon: 'search' | 'clock-o' | 'users';
+        titleText: string;
+        subtitle: string;
+    }) => (
+        <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyStateIconWrap}>
+                <FontAwesome name={icon} size={18} color={Theme.container.inactiveText} />
+            </View>
+            <Text style={styles.emptyStateTitle}>{titleText}</Text>
+            <Text style={styles.emptyStateSubtitle}>{subtitle}</Text>
+        </View>
+    );
 
     const renderHeader = () => {
         // Hide if searching or if there's no data
@@ -298,11 +317,21 @@ export const ProfileListModal = ({
                         <FontAwesome name="search" size={16} color={Theme.search.inactiveInput} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search..."
+                            placeholder="Search by name or username"
                             placeholderTextColor={Theme.search.inactiveInput}
                             value={search}
                             onChangeText={setSearch}
                         />
+
+                        {search.length > 0 && (
+                            <FontAwesome
+                                name="times-circle"
+                                size={18}
+                                color={Theme.search.inactiveInput}
+                                onPress={() => setSearch("")}
+                                style={styles.clearIcon}
+                            />
+                        )}
                     </View>
 
                     <FlatList
@@ -320,23 +349,31 @@ export const ProfileListModal = ({
                                 );
                             }
 
-                            if (isSearchActive) {
-                                return (
-                                    <View style={{ paddingVertical: 40 }}>
-                                        <Text style={styles.emptyText}>No users found.</Text>
-                                    </View>
-                                );
+                            if (hasSearchQuery) {
+                                return renderEmptyState({
+                                    icon: 'search',
+                                    titleText: 'No matching users',
+                                    subtitle: 'Try a different name or username.',
+                                });
+                            }
+
+                            if (title === 'Pending Requests') {
+                                return renderEmptyState({
+                                    icon: 'clock-o',
+                                    titleText: 'No pending requests',
+                                    subtitle: 'Sent and received requests will appear here.',
+                                });
                             }
 
                             if (title === 'Friends' && recommendedData.length > 0) {
                                 return null;
                             }
 
-                            return (
-                                <View style={{ paddingVertical: 40 }}>
-                                    <Text style={styles.emptyText}>No users found.</Text>
-                                </View>
-                            );
+                            return renderEmptyState({
+                                icon: 'users',
+                                titleText: 'No users found',
+                                subtitle: 'When accounts are available, they will appear here.',
+                            });
                         }}
                     />
                 </Animated.View>
@@ -388,12 +425,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Theme.search.border,
         marginBottom: 10,
-    },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        color: Theme.dark.white,
-        fontSize: 16
     },
     userInfo: {
         flex: 1,
@@ -454,11 +485,35 @@ const styles = StyleSheet.create({
         backgroundColor: Theme.container.mainBorder,
         marginVertical: 15
     },
-    emptyText: {
+    emptyStateContainer: {
+        paddingVertical: 56,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+    },
+    emptyStateIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        backgroundColor: Theme.search.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 14,
+    },
+    emptyStateTitle: {
+        color: Theme.dark.white,
+        textAlign: 'center',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    emptyStateSubtitle: {
         color: Theme.container.inactiveText,
         textAlign: 'center',
-        marginTop: 60,
-        fontSize: 16
+        fontSize: 13,
+        lineHeight: 18,
+        marginTop: 6,
     },
     actionGroup: {
         flexDirection: 'row',
@@ -515,4 +570,14 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1.2,
     },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        color: Theme.dark.white,
+        fontSize: 16,
+        paddingVertical: 0,
+    },
+    clearIcon: {
+        padding: 4,
+    }
 });

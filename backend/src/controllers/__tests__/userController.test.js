@@ -15,6 +15,7 @@ jest.mock('../../services/userService', () => ({
 jest.mock('../../services/validationService', () => ({
   validateUserRegistrationData: jest.fn(),
   validateUsername: jest.fn(),
+  validateDisplayName: jest.fn(),
 }));
 
 jest.mock('../../services/userSettingService');
@@ -213,6 +214,116 @@ describe('userController', () => {
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden: Can only access your own friends list' });
+    });
+  });
+
+  describe('updateUserDisplayName', () => {
+    let req, res;
+
+    beforeEach(() => {
+      req = {
+        body: {},
+        auth: {}
+      };
+      res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      };
+    });
+
+    it('updates display name successfully', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = { name: 'New Display Name' };
+      const user = { id: 1, auth0_id: 'auth0|123' };
+      const updatedUser = { id: 1, name: 'New Display Name' };
+
+      validationService.validateDisplayName.mockReturnValue({ valid: true, error: null });
+      userService.getUserByAuth0Id.mockResolvedValue(user);
+      userService.updateUser.mockResolvedValue(updatedUser);
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(validationService.validateDisplayName).toHaveBeenCalledWith('New Display Name');
+      expect(userService.getUserByAuth0Id).toHaveBeenCalledWith('auth0|123');
+      expect(userService.updateUser).toHaveBeenCalledWith(1, { name: 'New Display Name' });
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Display name updated successfully',
+        name: 'New Display Name'
+      });
+    });
+
+    it('returns 401 when no auth token provided', async () => {
+      req.body = { name: 'New Name' };
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Authentication required' });
+    });
+
+    it('returns 400 when name is missing', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = {};
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Display name is required' });
+    });
+
+    it('returns 400 when name is empty string', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = { name: '' };
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Display name is required' });
+    });
+
+    it('returns 400 when name validation fails', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = { name: 'Invalid@Name!' };
+
+      validationService.validateDisplayName.mockReturnValue({
+        valid: false,
+        error: 'Display name contains invalid characters'
+      });
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(validationService.validateDisplayName).toHaveBeenCalledWith('Invalid@Name!');
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Display name contains invalid characters' });
+    });
+
+    it('returns 404 when user not found', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = { name: 'New Name' };
+
+      validationService.validateDisplayName.mockReturnValue({ valid: true, error: null });
+      userService.getUserByAuth0Id.mockResolvedValue(null);
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ message: 'User not found' });
+    });
+
+    it('returns 500 on service error', async () => {
+      req.auth = { payload: { sub: 'auth0|123' } };
+      req.body = { name: 'New Name' };
+
+      validationService.validateDisplayName.mockReturnValue({ valid: true, error: null });
+      userService.getUserByAuth0Id.mockRejectedValue(new Error('DB Error'));
+
+      await userController.updateUserDisplayName(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Internal server error',
+        error: undefined
+      });
     });
   });
 

@@ -6,6 +6,7 @@ import { config } from '@/auth0.config'
 import { UserProvider } from '@/context/user-context';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { NavigationHistoryProvider, useNavigationHistory } from '@/context/NavigationHistoryContext';
+import '@/services/backgroundLocationTask'; // Import the background task definition
 
 // Sits inside the provider so it can call useNavigationHistory
 function NavigationRecorder() {

@@ -7,9 +7,10 @@ import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 interface DealsSectionProps {
   data: any[];
   onBarPress: (id: string) => void;
+  query: string;
 }
 
-export default function DealsSection({ data, onBarPress }: DealsSectionProps) {
+export default function DealsSection({ data, onBarPress, query }: DealsSectionProps) {
   if (!data.length) {
     return (
       <View style={styles.stateContainer}>
@@ -17,10 +18,14 @@ export default function DealsSection({ data, onBarPress }: DealsSectionProps) {
           <Ionicons name="pricetags-outline" size={40} color={Theme.dark.primary} />
         </View>
         <Text style={styles.comingSoonHeader}>
-          No matching deals found.
+          {/* No matching deals found. */}
+          {query.trim() ? "No matching deals found" : "No deals currently available"}
         </Text>
         <Text style={styles.emptyText}>
-          Try a different search term or clear the filter.
+          {/* Try a different search term or clear the filter. */}
+          {query.trim()
+            ? "Try a different search term or clear the filter."
+            : "We only show deals that are currently available."}
         </Text>
       </View>
     );

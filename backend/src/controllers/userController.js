@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const userSettingService = require('../services/userSettingService');
 const validationService = require('../services/validationService');
 const authService = require('../services/authService');
+const friendshipService = require('../services/friendshipService');
 
 // GET /api/users
 exports.getUsers = async (req, res) => {
@@ -31,6 +32,9 @@ exports.getUsers = async (req, res) => {
 
 // GET /api/users/search
 exports.searchUsers = async (req, res) => {
+  const authId = req.auth?.payload?.sub;
+  if (!authId) return res.status(401).json({ message: 'Unauthorized' });
+
   try {
     const search = req.query?.search?.toString();
     const excludeUserId = req.query?.excludeUserId ? parseInt(req.query.excludeUserId, 10) : undefined;
@@ -39,8 +43,21 @@ exports.searchUsers = async (req, res) => {
       return res.json([]);
     }
 
+    const currentUser = await userService.getUserByAuth0Id(authId);
+    if (!currentUser) return res.status(403).json({ message: 'Forbidden' });
+
     const users = await userService.searchUsers(search, excludeUserId);
-    res.json(users);
+
+    // Filter out users who have blocked the current user or who the current user has blocked
+    const filteredUsers = [];
+    for (const user of users) {
+      const isBlocked = await friendshipService.isBlocked(currentUser.id, user.id);
+      if (!isBlocked) {
+        filteredUsers.push(user);
+      }
+    }
+
+    res.json(filteredUsers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Internal server error' });
@@ -72,16 +89,28 @@ exports.getUserById = async (req, res) => {
 
   try {
     const dbUser = await userService.getUserByAuth0Id(authId);
-    const isSelf = dbUser && dbUser.id === id;
+    if (!dbUser) return res.status(403).json({ message: 'Forbidden' });
+
+    const isSelf = dbUser.id === id;
+
+    // Check if user exists
+    const targetUser = await userService.getUserById(id);
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    // If not viewing self, check for blocks
+    if (!isSelf) {
+      const isBlocked = await friendshipService.isBlocked(dbUser.id, id);
+      if (isBlocked) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+    }
 
     let user;
     if (isSelf) {
-      user = await userService.getUserById(id);
+      user = targetUser; // Full profile for self
     } else {
-      user = await userService.getPublicUserById(id);
+      user = await userService.getPublicUserById(id); // Public profile for others
     }
-
-    if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
   } catch (err) {
@@ -127,7 +156,7 @@ exports.updateUserLimited = async (req, res) => {
 
     // Only allow username, email, and bio, favorite_drink_id , profile_photo_id, and favorite_profile_location_id to be updated through th
     // is endpoint
-    const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id } = req.body;
+    const { username, email, bio, favorite_drink_id, profile_photo_id, favorite_profile_location_id, name } = req.body;
     const updateData = {};
     if (username !== undefined) updateData.username = username;
     if (email !== undefined) updateData.email = email;
@@ -135,6 +164,7 @@ exports.updateUserLimited = async (req, res) => {
     if (favorite_drink_id !== undefined) updateData.favorite_drink_id = favorite_drink_id;
     if (profile_photo_id !== undefined) updateData.profile_photo_id = profile_photo_id;
     if (favorite_profile_location_id !== undefined) updateData.favorite_profile_location_id = favorite_profile_location_id;
+    if (name !== undefined) updateData.name = name;
 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: 'No valid fields to update' });
@@ -429,6 +459,51 @@ exports.getUsernameByAuth = async (req, res) => {
 
   } catch (err) {
     console.error('Error getting username:', err);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * PUT /api/users/auth/name
+ * Update display name for the authenticated user
+ * Requires Auth0 JWT authentication
+ * Body: { name: string }
+ */
+exports.updateUserDisplayName = async (req, res) => {
+  try {
+    const auth0Id = req.auth?.payload?.sub || req.auth?.sub;
+
+    if (!auth0Id) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ message: 'Display name is required' });
+    }
+
+    const trimmedName = name.trim();
+    const validation = validationService.validateDisplayName(trimmedName);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.error });
+    }
+
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updatedUser = await userService.updateUser(user.id, { name: trimmedName });
+
+    return res.json({
+      message: 'Display name updated successfully',
+      name: updatedUser.name
+    });
+  } catch (err) {
+    console.error('Error updating display name:', err);
     return res.status(500).json({
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -755,6 +830,99 @@ exports.cancelRegistration = async (req, res) => {
   } catch (err) {
     console.error('Error cancelling registration:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
+  }
+};
+
+/**
+ * PATCH /api/users/:id/role
+ * Update a user's role ID (admin/developer only)
+ * Only users with role_id = 4 (developer) can update other users' roles
+ * Body: { roleId: number }
+ */
+exports.updateUserRole = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { roleId } = req.body;
+
+    // Validate inputs
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    if (roleId === undefined || roleId === null) {
+      return res.status(400).json({ message: 'roleId is required' });
+    }
+
+    const parsedRoleId = parseInt(roleId, 10);
+    if (isNaN(parsedRoleId)) {
+      return res.status(400).json({ message: 'Invalid roleId - must be a number' });
+    }
+
+    // Get the requesting user
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized: No Auth0 ID in token' });
+    }
+
+    const requestingUser = await userService.getUserRolesByAuth0Id(authId);
+    if (!requestingUser) {
+      return res.status(401).json({ message: 'Unauthorized: User not found' });
+    }
+
+    // Check if requesting user is a developer (role_id = 4)
+    if (requestingUser.role_id !== 4) {
+      return res.status(403).json({
+        message: 'Forbidden: Only developers can update user roles'
+      });
+    }
+
+    // Check if target user exists
+    const targetUser = await userService.getUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'Target user not found' });
+    }
+
+    // Update the user's role
+    const updatedUser = await userService.updateUser(userId, { role_id: parsedRoleId });
+
+    return res.status(200).json({
+      message: 'User role updated successfully',
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role_id: updatedUser.role_id
+      }
+    });
+  } catch (err) {
+    console.error('Error updating user role:', err);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
+/**
+ * GET /api/users/admins
+ * Get all admin users (role_id = 3)
+ * Requires authentication
+ */
+exports.getAdmins = async (req, res) => {
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const admins = await userService.getAdmins();
+    res.json(admins);
+  } catch (err) {
+    console.error('Error fetching admins:', err);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 

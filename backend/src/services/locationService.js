@@ -124,6 +124,36 @@ exports.getLocationsByAdminId = async (adminId) => {
   });
 };
 
+
+exports.getLocationsByDeveloperId = async (developerId) => {
+
+  const developer = await prisma.users.findUnique({
+    where: { id: Number(developerId) },
+    select: {
+      id: true
+    }
+  });
+
+  const isDeveloper = developer ? await prisma.roles.findFirst({
+    where: {
+      name: 'Developer',
+      users_roles: {
+        some: {
+          user_id: developer.id
+        }
+      }
+    }
+  }) : null;
+
+  if (!isDeveloper) {
+    throw new Error('User is not a developer');
+  }
+
+  return prisma.locations.findMany({
+    orderBy: { id: 'asc' }
+  });
+}
+
 exports.getTotalLocationViews = async (locationId) => {
   const locId = Number(locationId);
 
@@ -159,4 +189,54 @@ exports.getTotalLocationViews = async (locationId) => {
     },
     totalViews: baseViews + eventViews + dealViews
   };
+};
+
+exports.addLocationAdmin = async (locationId, userId) => {
+  const location = await prisma.locations.findUnique({
+    where: { id: Number(locationId) }
+  });
+  if (!location) {
+    throw new Error('Location not found');
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: Number(userId) }
+  });
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return prisma.location_admins.create({
+    data: {
+      location_id: Number(locationId),
+      user_id: Number(userId)
+    },
+    include: {
+      locations: true,
+      users: true
+    }
+  });
+};
+
+exports.removeLocationAdmin = async (locationId, userId) => {
+  const locationAdmin = await prisma.location_admins.findUnique({
+    where: {
+      location_id_user_id: {
+        location_id: Number(locationId),
+        user_id: Number(userId)
+      }
+    }
+  });
+  if (!locationAdmin) {
+    throw new Error('Location admin not found');
+  }
+
+  return prisma.location_admins.delete({
+    where: {
+      location_id_user_id: {
+        location_id: Number(locationId),
+        user_id: Number(userId)
+      }
+    }
+  });
 };
