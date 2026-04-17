@@ -200,3 +200,87 @@ exports.getTotalLocationViewsById = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// POST /api/locations/:locationId/admins/:userId - Add admin to location
+exports.addLocationAdmin = async (req, res) => {
+  const locationId = parseInt(req.params.locationId, 10);
+  const userId = parseInt(req.params.userId, 10);
+
+  if (isNaN(locationId) || isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid location ID or user ID' });
+  }
+
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const requestingUser = await userService.getUserRolesByAuth0Id(authId);
+    if (!requestingUser) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    // Only developers can add location admins
+    const isDeveloper = requestingUser.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({
+        message: 'Forbidden: Only developers can add location admins'
+      });
+    }
+
+    const locationAdmin = await locationService.addLocationAdmin(locationId, userId);
+    res.status(201).json({
+      message: 'Admin added to location successfully',
+      data: locationAdmin
+    });
+  } catch (err) {
+    console.error('Error adding location admin:', err);
+    if (err.message === 'Location not found' || err.message === 'User not found') {
+      return res.status(404).json({ message: err.message });
+    }
+    if (err.code === 'P2002') {
+      return res.status(409).json({ message: 'User is already an admin for this location' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// DELETE /api/locations/:locationId/admins/:userId - Remove admin from location
+exports.removeLocationAdmin = async (req, res) => {
+  const locationId = parseInt(req.params.locationId, 10);
+  const userId = parseInt(req.params.userId, 10);
+
+  if (isNaN(locationId) || isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid location ID or user ID' });
+  }
+
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const requestingUser = await userService.getUserRolesByAuth0Id(authId);
+    if (!requestingUser) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    // Only developers can remove location admins
+    const isDeveloper = requestingUser.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({
+        message: 'Forbidden: Only developers can remove location admins'
+      });
+    }
+
+    await locationService.removeLocationAdmin(locationId, userId);
+    res.json({ message: 'Admin removed from location successfully' });
+  } catch (err) {
+    console.error('Error removing location admin:', err);
+    if (err.message === 'Location admin not found') {
+      return res.status(404).json({ message: err.message });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

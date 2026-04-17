@@ -180,6 +180,7 @@ exports.updateUserLimited = async (id, updateData) => {
   if (updateData.favorite_drink_id !== undefined) allowedFields.favorite_drink_id = updateData.favorite_drink_id;
   if (updateData.profile_photo_id !== undefined) allowedFields.profile_photo_id = updateData.profile_photo_id;
   if (updateData.favorite_profile_location_id !== undefined) allowedFields.favorite_profile_location_id = updateData.favorite_profile_location_id;
+  if (updateData.name !== undefined) allowedFields.name = updateData.name;
 
   return prisma.users.update({
     where: { id: Number(id) },
@@ -394,6 +395,18 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
     role: isAdmin,
     location_ids: manageableLocations
   };
+};
+
+exports.getAdmins = async () => {
+  return prisma.users.findMany({
+    where: {
+      role_id: 3 // Admin role ID
+    },
+    include: {
+      roles: true
+    },
+    orderBy: { id: 'asc' }
+  });
 };
 
 exports.getPublicUserById = async (id) => {

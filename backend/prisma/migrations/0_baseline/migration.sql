@@ -10,6 +10,7 @@ CREATE TABLE "app"."deals" (
     "name" VARCHAR NOT NULL,
     "location_id" INTEGER NOT NULL,
     "views" INTEGER DEFAULT 0,
+    "description" TEXT,
     "banner_id" INTEGER,
 
     CONSTRAINT "deals_pkey" PRIMARY KEY ("id")

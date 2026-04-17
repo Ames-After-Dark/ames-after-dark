@@ -13,6 +13,7 @@ model deals {
   name             String             @db.VarChar
   location_id      Int
   views            Int?               @default(0)
+  description       String?
   deal_occurrences deal_occurrences[]
   locations        locations          @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_locations")
   

@@ -346,4 +346,80 @@ router.post('/', locationController.createLocation);
 router.put('/:id', locationController.updateLocation);
 router.delete('/:id', locationController.deleteLocation);
 
+/**
+ * @swagger
+ * /api/locations/{locationId}/admins/{userId}:
+ *   post:
+ *     summary: Add an admin to a location
+ *     description: Adds a user as an admin to a specific location. Only developers can perform this action.
+ *     tags:
+ *       - Locations
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: locationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       201:
+ *         description: Admin added to location successfully
+ *       400:
+ *         description: Invalid location ID or user ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only developers can add admins
+ *       404:
+ *         description: Location or user not found
+ *       409:
+ *         description: User is already an admin for this location
+ *       500:
+ *         description: Server error
+ */
+router.post('/:locationId/admins/:userId', checkJwt, locationController.addLocationAdmin);
+
+/**
+ * @swagger
+ * /api/locations/{locationId}/admins/{userId}:
+ *   delete:
+ *     summary: Remove an admin from a location
+ *     description: Removes a user from being an admin of a specific location. Only developers can perform this action.
+ *     tags:
+ *       - Locations
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: locationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Admin removed from location successfully
+ *       400:
+ *         description: Invalid location ID or user ID
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only developers can remove admins
+ *       404:
+ *         description: Location admin relationship not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/:locationId/admins/:userId', checkJwt, locationController.removeLocationAdmin);
+
 module.exports = router;

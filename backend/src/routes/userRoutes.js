@@ -547,4 +547,69 @@ router.get('/profile/photo-options', userController.getUserProfilePhotoOptions);
  */
 router.get('/profile/photo-options/:id', userController.getUserProfilePhotoOptionsById);
 
+/**
+ * @swagger
+ * /api/users/admins:
+ *   get:
+ *     summary: Get all admin users
+ *     description: Retrieves all users with admin role (role_id = 3). Requires authentication.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of admin users retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/admins', checkJwt, userController.getAdmins);
+
+/**
+ * @swagger
+ * /api/users/{id}/role:
+ *   patch:
+ *     summary: Update user's role (developer only)
+ *     description: Allows developers (role_id = 4) to update another user's role. Only users with role_id = 4 can access this endpoint.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - roleId
+ *             properties:
+ *               roleId:
+ *                 type: integer
+ *                 description: The new role ID for the user
+ *     responses:
+ *       200:
+ *         description: User role updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only developers can update roles
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.patch('/:id/role', checkJwt, userController.updateUserRole);
+
 module.exports = router;

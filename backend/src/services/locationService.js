@@ -190,3 +190,53 @@ exports.getTotalLocationViews = async (locationId) => {
     totalViews: baseViews + eventViews + dealViews
   };
 };
+
+exports.addLocationAdmin = async (locationId, userId) => {
+  const location = await prisma.locations.findUnique({
+    where: { id: Number(locationId) }
+  });
+  if (!location) {
+    throw new Error('Location not found');
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: Number(userId) }
+  });
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return prisma.location_admins.create({
+    data: {
+      location_id: Number(locationId),
+      user_id: Number(userId)
+    },
+    include: {
+      locations: true,
+      users: true
+    }
+  });
+};
+
+exports.removeLocationAdmin = async (locationId, userId) => {
+  const locationAdmin = await prisma.location_admins.findUnique({
+    where: {
+      location_id_user_id: {
+        location_id: Number(locationId),
+        user_id: Number(userId)
+      }
+    }
+  });
+  if (!locationAdmin) {
+    throw new Error('Location admin not found');
+  }
+
+  return prisma.location_admins.delete({
+    where: {
+      location_id_user_id: {
+        location_id: Number(locationId),
+        user_id: Number(userId)
+      }
+    }
+  });
+};
