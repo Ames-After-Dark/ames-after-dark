@@ -18,6 +18,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
 import { router } from 'expo-router';
 import { Friend } from '@/types/types';
+import { resolveAvatarSource } from '@/utils/avatarSource';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -26,6 +27,7 @@ interface UserData {
     name: string;
     username: string;
     avatar?: string;
+    profile_photo_id?: number | null;
     type?: 'SENT' | 'RECEIVED';
     isHeader?: boolean;
     title?: string;
@@ -188,7 +190,11 @@ export const ProfileListModal = ({
                             onPress={() => { closeModal(); router.push(`/account/${rec.id}`); }}
                         >
                             <Image
-                                source={rec.avatar ? { uri: rec.avatar } : require('@/assets/images/Logo.png')}
+                                source={resolveAvatarSource({
+                                    avatar: (rec as any).avatar,
+                                    profile_photo_id: (rec as any).profile_photo_id,
+                                    profile_picture_url: (rec as any).profile_picture_url,
+                                })}
                                 style={styles.avatar}
                             />
                             <View>
@@ -240,7 +246,11 @@ export const ProfileListModal = ({
                     }}
                 >
                     <Image
-                        source={item.avatar ? { uri: item.avatar } : require('@/assets/images/Logo.png')}
+                        source={resolveAvatarSource({
+                            avatar: (item as any).avatar,
+                            profile_photo_id: (item as any).profile_photo_id,
+                            profile_picture_url: (item as any).profile_picture_url,
+                        })}
                         style={styles.avatar}
                     />
                     <View>
