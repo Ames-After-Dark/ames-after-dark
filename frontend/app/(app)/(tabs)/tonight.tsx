@@ -262,12 +262,17 @@ function BarGroupedList({
   groups,
   query,
   onBarPress,
+  closeExpanded,
+  setExpandedBarId,
+  expandedBarId,
 }: {
   groups: BarGroupedTonight[];
   query: string;
   onBarPress: (id: string) => void;
+  closeExpanded: () => void;
+  setExpandedBarId: (id: string | null) => void;
+  expandedBarId: string | null;
 }) {
-  const [expandedBarId, setExpandedBarId] = React.useState<string | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<BarDealOrEvent | null>(null);
   const [selectedBarId, setSelectedBarId] = React.useState<string>("");
   const [selectedBarName, setSelectedBarName] = React.useState<string>("");
@@ -327,13 +332,6 @@ function BarGroupedList({
 
   return (
     <View style={groupStyles.container}>
-      {/* Invisible backdrop — closes expanded card when tapping outside */}
-      {expandedBarId !== null && (
-        <Pressable
-          style={groupStyles.dropdownBackdrop}
-          onPress={() => setExpandedBarId(null)}
-        />
-      )}
       <TonightDetailModal
         item={selectedItem}
         barName={selectedBarName}
@@ -361,7 +359,7 @@ function BarGroupedList({
             key={group.barId}
             group={group}
             isExpanded={expandedBarId === group.barId}
-            onToggle={() => setExpandedBarId((curr) => (curr === group.barId ? null : group.barId))}
+            onToggle={() => setExpandedBarId(expandedBarId === group.barId ? null : group.barId)}
             onBarPress={onBarPress}
             onItemPress={(item) => openPopup(item, group.barId, group.barName)}
           />
@@ -414,7 +412,6 @@ const groupStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.container.secondaryBorder,
     backgroundColor: Theme.container.background,
-    overflow: "hidden",
   },
   cardShellExpanded: {
     borderColor: Theme.dark.primary,
@@ -669,6 +666,8 @@ export default function Tonight() {
   const [activeTab, setActiveTab] = useState<TabKey>("open");
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
+  // Expanded bar in Tonight tab — lifted here so ScrollView can close it on drag
+  const [tonightExpandedBarId, setTonightExpandedBarId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isTabKey(tab)) {
@@ -976,6 +975,9 @@ export default function Tonight() {
               groups={barGroupsTonight}
               query={query}
               onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
+              expandedBarId={tonightExpandedBarId}
+              setExpandedBarId={setTonightExpandedBarId}
+              closeExpanded={() => setTonightExpandedBarId(null)}
             />
           )}
 
