@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from "@/hooks/use-auth";
-import { getUserProfileByAuth } from '@/services/userService';
+import { getCurrentUser } from '@/services/userService';
+
 
 interface UserContextType {
     user: any | null;
@@ -27,7 +28,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const token = await getAccessToken();
             if (token) {
-                const userData = await getUserProfileByAuth(token);
+                const userData = await getCurrentUser(token);
                 setUser(userData);
             }
         } catch (err) {
