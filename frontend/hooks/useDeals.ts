@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getActiveDeals, Deal } from "@/services/dealsService";
+// TODO: Swap back to getActiveDeals when dedicated tonight API is ready
+import { getDeals, Deal } from "@/services/dealsService";
 
 export function useDeals() {
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -10,7 +11,8 @@ export function useDeals() {
     const fetchDeals = async () => {
       try {
         setLoading(true);
-        const data = await getActiveDeals();
+        // TODO: Replace getDeals() with getActiveDeals() (or getTonightDeals()) when API is ready
+        const data = await getDeals();
         setDeals(data);
         setError(null);
       } catch (err) {

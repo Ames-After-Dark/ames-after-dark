@@ -1,6 +1,10 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Dimensions, } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { DealEventModal, DealEventPill } from "@/components/bars/deal-event-modal";
+import type { DealOrEventItem } from "@/components/bars/deal-event-modal";
+import type { ScheduledDeal, ScheduledEvent } from "@/types/bars";
 import { Theme } from '@/constants/theme';
 import { Bar } from '@/utils/bar-assets';
 
@@ -168,18 +172,56 @@ export const BarHeader = ({ bar, assets, openNow, statusText }: BarHeaderProps) 
   </View>
 );
 
-export const InfoSection = ({ title, items, emptyText }: { title: string, items: any[], emptyText: string }) => (
-  <View style={styles.sectionContainer}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    {items.length ? (
-      items.map((item, i) => (
-        <Text key={i} style={styles.sectionItem}>• {item.name || item.title}</Text>
-      ))
-    ) : (
-      <Text style={styles.sectionItem}>{emptyText}</Text>
-    )}
-  </View>
-);
+export const DealEventSection = ({
+  title,
+  items,
+  emptyText,
+  barName,
+  barId,
+}: {
+  title: string;
+  items: DealOrEventItem[];
+  emptyText: string;
+  barName: string;
+  barId: string;
+}) => {
+  const [selectedItem, setSelectedItem] = useState<DealOrEventItem | null>(null);
+
+  return (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+
+      {items.length === 0 ? (
+        <Text style={styles.sectionEmpty}>{emptyText}</Text>
+      ) : (
+        items.map((item) => (
+          <Pressable
+            key={item.id}
+            style={({ pressed }) => [styles.dealCard, pressed && { opacity: 0.75 }]}
+            onPress={() => setSelectedItem(item)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.dealTitle} numberOfLines={1}>{item.title}</Text>
+              {item.startTime ? (
+                <Text style={styles.dealTime}>{item.startTime}</Text>
+              ) : null}
+            </View>
+            <DealEventPill kind={item.kind} />
+            <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+          </Pressable>
+        ))
+      )}
+
+      <DealEventModal
+        item={selectedItem}
+        barName={barName}
+        barId={barId}
+        onClose={() => setSelectedItem(null)}
+        // No onBarPress — already on the bar page
+      />
+    </View>
+  );
+};
 
 export const BottomCard = ({ title, image, onPress }: { title: string, image: any, onPress: () => void }) => (
   <TouchableOpacity style={styles.bottomCard} onPress={onPress}>
@@ -398,5 +440,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.8,
     marginBottom: 15,
+  },
+  sectionEmpty: {
+    color: Theme.container.inactiveText,
+    fontSize: 14,
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  dealCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
+  },
+  dealTitle: {
+    color: Theme.container.titleText,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  dealTime: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 2,
   },
 });
