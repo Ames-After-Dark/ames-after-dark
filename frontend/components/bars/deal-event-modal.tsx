@@ -98,10 +98,8 @@ export function DealEventModal({
           <Text style={modalStyles.title}>{item?.title}</Text>
 
           {/* Description */}
-          {item?.subtitle ? (
-            <Text style={modalStyles.description}>{item.subtitle}</Text>
-          ) : (
-            <Text style={modalStyles.descriptionEmpty}>No description available.</Text>
+          {!!item?.subtitle && (
+            <Text style={[modalStyles.description, { marginBottom: 24 }]}>{item.subtitle}</Text>
           )}
 
           {/* Actions */}
@@ -180,13 +178,6 @@ const modalStyles = StyleSheet.create({
     color: Theme.container.inactiveText,
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 24,
-  },
-  descriptionEmpty: {
-    color: Theme.container.inactiveBorder,
-    fontSize: 14,
-    fontStyle: "italic",
-    marginBottom: 24,
   },
   actions: {
     flexDirection: "row",
