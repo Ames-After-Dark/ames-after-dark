@@ -14,7 +14,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Modal,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
@@ -41,6 +40,7 @@ import TonightHero from "@/components/tonight/hero-carousel";
 import { TonightSkeleton } from "@/components/tonight/tonight-skeleton";
 
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
+import { DealEventModal, DealEventPill } from "@/components/bars/deal-event-modal";
 
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
@@ -73,82 +73,8 @@ function formatTime(d?: Date): string {
   }).format(d);
 }
 
-function TonightPill({ kind }: { kind: "event" | "deal" }) {
-  const isEvent = kind === "event";
-  return (
-    <View style={[groupStyles.pill, { backgroundColor: isEvent ? Theme.dark.secondary : Theme.dark.primary }]}>
-      <Text style={groupStyles.pillText}>{isEvent ? "Event" : "Deal"}</Text>
-    </View>
-  );
-}
+// DealEventPill and DealEventModal live in @/components/bars/deal-event-modal
 
-// ─── Detail Popup ─────────────────────────────────────────────────────────────
-function TonightDetailModal({
-  item,
-  barName,
-  barId,
-  onClose,
-  onBarPress,
-}: {
-  item: BarDealOrEvent | null;
-  barName: string;
-  barId: string;
-  onClose: () => void;
-  onBarPress: (id: string) => void;
-}) {
-  return (
-    <Modal
-      visible={item !== null}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <Pressable style={groupStyles.modalBackdrop} onPress={onClose}>
-        <Pressable style={groupStyles.modalSheet} onPress={(e) => e.stopPropagation()}>
-          {/* Handle bar */}
-          <View style={groupStyles.modalHandle} />
-
-          {/* Logo + bar name */}
-          <View style={groupStyles.modalHeader}>
-            <Image
-              source={getLogoAssetForLocationName(barName)}
-              style={groupStyles.modalLogo}
-              resizeMode="cover"
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={groupStyles.modalBarName}>{barName}</Text>
-              {item?.startTimeUtc ? (
-                <Text style={groupStyles.modalTime}>{formatTime(item.startTimeUtc)}</Text>
-              ) : null}
-            </View>
-            {item && <TonightPill kind={item.kind} />}
-          </View>
-
-          {/* Event/deal name */}
-          <Text style={groupStyles.modalTitle}>{item?.title}</Text>
-
-          {/* Description — only shown if one exists */}
-          {!!item?.subtitle && (
-            <Text style={groupStyles.modalDescription}>{item.subtitle}</Text>
-          )}
-
-          {/* Actions */}
-          <View style={groupStyles.modalActions}>
-            <Pressable
-              style={groupStyles.detailsButton}
-              onPress={() => { onClose(); onBarPress(barId); }}
-            >
-              <Text style={groupStyles.detailsButtonText}>View {barName} Details</Text>
-            </Pressable>
-            <Pressable style={groupStyles.closeButton} onPress={onClose}>
-              <Text style={groupStyles.closeButtonText}>Close</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
 
 // ─── Bar Group Row ─────────────────────────────────────────────────────────────
 function BarGroupRow({
@@ -203,7 +129,7 @@ function BarGroupRow({
           style={groupStyles.cardRight}
           onPress={hasMore ? onToggle : () => onItemPress(group.highlight)}
         >
-          <TonightPill kind={group.highlight.kind} />
+          <DealEventPill kind={group.highlight.kind} />
           {hasMore && (
             <>
               <Text style={groupStyles.moreText}>+{group.rest.length}</Text>
@@ -237,7 +163,7 @@ function BarGroupRow({
                     <Text style={groupStyles.itemMeta}>{formatTime(item.startTimeUtc)}</Text>
                   ) : null}
                 </View>
-                <TonightPill kind={item.kind} />
+                <DealEventPill kind={item.kind} />
                 <Ionicons name="chevron-forward" size={16} color={Theme.search.inactiveInput} />
               </Pressable>
             ))}
@@ -332,8 +258,8 @@ function BarGroupedList({
 
   return (
     <View style={groupStyles.container}>
-      <TonightDetailModal
-        item={selectedItem}
+      <DealEventModal
+        item={selectedItem ? { id: selectedItem.id, kind: selectedItem.kind, title: selectedItem.title, subtitle: selectedItem.subtitle, startTime: selectedItem.startTimeUtc ? new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(selectedItem.startTimeUtc) : undefined } : null}
         barName={selectedBarName}
         barId={selectedBarId}
         onClose={closePopup}
@@ -412,6 +338,7 @@ const groupStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.container.secondaryBorder,
     backgroundColor: Theme.container.background,
+    overflow: "hidden",
   },
   cardShellExpanded: {
     borderColor: Theme.dark.primary,
@@ -453,19 +380,6 @@ const groupStyles = StyleSheet.create({
     color: Theme.container.inactiveText,
     fontSize: 12,
     fontWeight: "600",
-  },
-  pill: {
-    width: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  pillText: {
-    color: "#0b0c12",
-    fontSize: 10,
-    fontWeight: "800",
-    textAlign: "center",
   },
   expandedPanel: {
     paddingHorizontal: 12,
@@ -579,73 +493,6 @@ const groupStyles = StyleSheet.create({
   dropdownBackdrop: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  modalSheet: {
-    backgroundColor: Theme.container.background,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    paddingTop: 20,
-    borderWidth: 1,
-    borderColor: Theme.container.secondaryBorder,
-    width: "100%",
-  },
-  modalHandle: {
-    width: 0,
-    height: 0,
-    marginBottom: 0,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
-  modalLogo: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.container.secondaryBorder,
-  },
-  modalBarName: {
-    color: Theme.container.titleText,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  modalTime: {
-    color: Theme.container.inactiveText,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  modalTitle: {
-    color: Theme.container.titleText,
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  modalDescription: {
-    color: Theme.container.inactiveText,
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  modalDescriptionEmpty: {
-    color: Theme.container.inactiveBorder,
-    fontSize: 14,
-    fontStyle: "italic",
-    marginBottom: 24,
-  },
-  modalActions: {
-    flexDirection: "row",
-    gap: 10,
   },
 });
 
@@ -829,6 +676,8 @@ export default function Tonight() {
             const clampedY = Math.max(0, Math.min(y, maxY));
             lastScrollYRef.current = clampedY;
             dragStartYRef.current = clampedY;
+            // Close any expanded dropdown when user starts scrolling
+            if (tonightExpandedBarId !== null) setTonightExpandedBarId(null);
           }}
           onScrollEndDrag={(event) => {
             const velocityY = event.nativeEvent.velocity?.y ?? 0;
