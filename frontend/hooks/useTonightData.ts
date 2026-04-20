@@ -9,10 +9,13 @@ import { useEvents } from "./useEvents";
 // The hooks should return the same { deals, events, loading, error } shape.
 // Remove filterTonightOccurrences() below once the API does the filtering.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useOpenBars } from "./useOpenBars";
+import { useBars } from "./useBars";
 import { Deal } from "@/services/dealsService";
 import { Event } from "@/services/eventsService";
-import { Location } from "./useOpenBars";
+import type { Bar } from "@/types/bars";
+
+// Location type alias for compatibility
+type Location = Bar;
 
 export interface TonightBarData {
   id: string;
@@ -196,11 +199,11 @@ function getOpenHoursText(location: Location): string | undefined {
   };
 
   const open =
-    locationWithFallbacks.hoursOpen ??
+    locationWithFallbacks.hours_open ??
     locationWithFallbacks.openingTime ??
     locationWithFallbacks.hours_open;
   const close =
-    locationWithFallbacks.hoursClose ??
+    locationWithFallbacks.hours_close ??
     locationWithFallbacks.closingTime ??
     locationWithFallbacks.hours_close;
 
@@ -214,13 +217,10 @@ function getOpenHoursText(location: Location): string | undefined {
 // TODO: Remove this function once the backend has a dedicated "today" endpoint.
 // Keeps only deals/events that have at least one occurrence starting or active
 // on the current calendar day in America/Chicago (CDT/CST).
-function filterTonightOccurrences<T extends {
-  deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-  event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-}>(items: T[]): T[] {
+// Update the generic T to include a broad index signature or record
+function filterTonightOccurrences<T extends object>(items: T[]): T[] {
   const now = new Date();
 
-  // Get today's date string in CDT (America/Chicago)
   const todayStr = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
     year: "numeric",
@@ -228,7 +228,6 @@ function filterTonightOccurrences<T extends {
     day: "2-digit",
   }).format(now);
 
-  // Also include yesterday's date to catch overnight deals (e.g. started 10PM, ends 2AM)
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = new Intl.DateTimeFormat("en-US", {
@@ -238,15 +237,21 @@ function filterTonightOccurrences<T extends {
     day: "2-digit",
   }).format(yesterday);
 
-  const isTonight = (occurrences: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>) => {
+  return items.filter((item) => {
+    // Cast to any here to allow checking for occurrences properties 
+    // that might not be strictly defined on the base Deal/Event types
+    const rawItem = item as any;
+    const occurrences: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }> =
+      rawItem.deal_occurrences ?? rawItem.event_occurrences ?? [];
+
+    if (occurrences.length === 0) return false;
+
     return occurrences.some((occ) => {
       const start = new Date(occ.start_time_utc);
       const end = new Date(occ.end_time_utc);
 
-      // Must not have already ended
       if (end < now) return false;
 
-      // Start must be today or yesterday (overnight) in CDT
       const startStr = new Intl.DateTimeFormat("en-US", {
         timeZone: "America/Chicago",
         year: "numeric",
@@ -256,13 +261,9 @@ function filterTonightOccurrences<T extends {
 
       return startStr === todayStr || startStr === yesterdayStr;
     });
-  };
-
-  return items.filter((item) => {
-    const occurrences = item.deal_occurrences ?? item.event_occurrences ?? [];
-    return isTonight(occurrences);
   });
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
@@ -353,10 +354,15 @@ function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
 export function useTonightData() {
   const { deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { events, loading: eventsLoading, error: eventsError } = useEvents();
-  const { bars, loading: barsLoading, error: barsError } = useOpenBars();
+  const { bars: allBars, loading: barsLoading, error: barsError } = useBars();
 
   const loading = dealsLoading || eventsLoading || barsLoading;
   const error = dealsError || eventsError || barsError;
+
+  // Filter to only open bars (using frontend calculation instead of backend endpoint)
+  const bars = useMemo(() => {
+    return allBars.filter((bar) => bar.__openNow === true);
+  }, [allBars]);
 
   const activeDeals = useMemo(() => {
     // TODO: When API swap is done, remove filterTonightOccurrences() call here
@@ -408,7 +414,7 @@ export function useTonightData() {
   }, [activeEvents]);
 
   // Combine location data with deals and events
-  // Note: 'bars' is already filtered to only open locations via the /locations/open endpoint
+  // Note: 'bars' is already filtered to only open locations (computed locally with __openNow)
   const barsWithTonightData = useMemo(() => {
     return bars.map((location: Location) => {
       const locationId = String(location.id);
@@ -422,7 +428,7 @@ export function useTonightData() {
         event: locationEvents[0]?.name ?? "",
         specials: locationDeals[0]?.title ?? "",
         openHours: getOpenHoursText(location),
-        isOpen: true, // Data from /locations/open endpoint is guaranteed to be open
+        isOpen: true, // bars array is already filtered to only open bars
         hasDeal: locationDeals.length > 0,
         image: location.logoUrl,
       } as TonightBarData;

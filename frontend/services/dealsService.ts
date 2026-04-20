@@ -5,8 +5,9 @@ export interface Deal {
   locationId: string;
   title: string;
   description?: string;
-  rule?: string; // e.g., "MON 17:00-22:00"
-  // ... other deal fields as needed
+  rule?: string;
+  deals?: string;
+  event?: string;
 }
 
 export async function getDeals(): Promise<Deal[]> {
