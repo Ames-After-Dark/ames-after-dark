@@ -140,7 +140,7 @@ model users {
   favorite_drink_id                                          Int?
   phone_number                                               String?                @db.VarChar(25)
   streak                                                     Int?                   @default(0)
-  push_token                                                 String                 @db.VarChar(255)
+  push_token                                                 String?                @db.VarChar(255)
   last_streak_week  Int?                                                                                    // Stores the week number (1-52)
   last_streak_year  Int?                                                                                     // Stores year to handle new years stuff
   user_weekly_checkins                                       user_weekly_checkins[]
