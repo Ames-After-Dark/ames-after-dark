@@ -1,5 +1,6 @@
 const userLocationService = require('../services/userLocationService');
 const userService = require('../services/userService');
+const friendshipService = require('../services/friendshipService');
 
 exports.getUserLocation = async (req, res) => {
   try {
@@ -75,6 +76,9 @@ exports.toggleLocationPermission = async (req, res) => {
     }
 
     const viewerId = parseInt(req.params.viewerId);
+    if (isNaN(viewerId)) {
+      return res.status(400).json({ message: 'Invalid viewerId' });
+    }
 
     // Destructure value from the body
     const { enabled } = req.body;
@@ -82,6 +86,14 @@ exports.toggleLocationPermission = async (req, res) => {
     // Basic validation to ensure we have a boolean
     if (typeof enabled !== 'boolean') {
       return res.status(400).json({ error: "enabled (bool) is required." });
+    }
+
+    // Only allow selective sharing permissions to be modified for accepted friends.
+    // Prevents granting location access to arbitrary user IDs.
+    const friends = await friendshipService.getFriends(user.id);
+    const isFriend = friends.some(f => f.id === viewerId);
+    if (!isFriend) {
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
     const result = await userLocationService.updatePermission(
