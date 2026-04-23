@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const menuItemController = require('../controllers/menuItemController');
-const { checkJwt } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -96,7 +95,7 @@ router.get('/location/:locationId', menuItemController.getMenuItemsByLocationId)
  *         description: Server error
  */
 router.get('/types', menuItemController.getMenuItemTypes);
-router.post('/types', checkJwt, menuItemController.createMenuItemType);
+router.post('/types', menuItemController.createMenuItemType);
 
 /**
  * @swagger
@@ -212,8 +211,8 @@ router.post('/types', checkJwt, menuItemController.createMenuItemType);
  *         description: Server error
  */
 router.get('/:id', menuItemController.getMenuItemById);
-router.post('/', checkJwt, menuItemController.createMenuItem);
-router.put('/:id', checkJwt, menuItemController.updateMenuItem);
-router.delete('/:id', checkJwt, menuItemController.deleteMenuItem);
+router.post('/', menuItemController.createMenuItem);
+router.put('/:id', menuItemController.updateMenuItem);
+router.delete('/:id', menuItemController.deleteMenuItem);
 
 module.exports = router;
