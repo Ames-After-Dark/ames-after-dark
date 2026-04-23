@@ -146,3 +146,78 @@ exports.createRecurringDeal = async (dealData) => {
     occurrences
   };
 };
+
+exports.searchDeals = async (searchParams) => {
+  const { id, startDateTime, endDateTime, locationId } = searchParams;
+
+  // Build the where clause for deal_occurrences
+  const occurrenceWhere = {};
+  if (startDateTime) {
+    occurrenceWhere.start_time_utc = { gte: new Date(startDateTime) };
+  }
+  if (endDateTime) {
+    occurrenceWhere.end_time_utc = { lte: new Date(endDateTime) };
+  }
+
+  // If we have date filters, search through occurrences to get deals
+  if (startDateTime || endDateTime) {
+    const occurrences = await prisma.deal_occurrences.findMany({
+      where: occurrenceWhere,
+      include: {
+        deals: {
+          include: {
+            locations: true
+          }
+        }
+      }
+    });
+
+    if (locationId) {
+      // Filter occurrences by locationId
+      occurrences = occurrences.filter(o => o.deals.location_id === Number(locationId));
+    }
+
+    // If id is specified, filter occurrences by deal id
+    if (id) {
+      return occurrences.filter(o => o.deals.id === Number(id));
+    }
+
+    // Remove duplicates and return deals
+    const dealsMap = new Map();
+    occurrences.forEach(o => {
+      const deal = { ...o.deals, deal_occurrences: [] };
+      if (!dealsMap.has(deal.id)) {
+        dealsMap.set(deal.id, deal);
+      }
+      dealsMap.get(deal.id).deal_occurrences.push({
+        id: o.id,
+        deal_id: o.deal_id,
+        start_time_utc: o.start_time_utc,
+        end_time_utc: o.end_time_utc
+      });
+    });
+
+    return Array.from(dealsMap.values());
+  }
+
+  // If only id is specified
+  if (id) {
+    const deal = await prisma.deals.findUnique({
+      where: { id: Number(id) },
+      include: {
+        locations: true,
+        deal_occurrences: true
+      }
+    });
+    return deal ? [deal] : [];
+  }
+
+  // No filters - return all deals
+  return prisma.deals.findMany({
+    orderBy: { id: 'asc' },
+    include: {
+      locations: true,
+      deal_occurrences: true
+    }
+  });
+};

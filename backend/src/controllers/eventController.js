@@ -194,3 +194,30 @@ exports.createRecurringEvent = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// POST /api/events/search
+exports.searchEvents = async (req, res) => {
+  try {
+    const { id, startDateTime, endDateTime,locationId } = req.body;
+
+    // Validate datetime formats if provided
+    if (startDateTime && isNaN(new Date(startDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid startDateTime format. Use ISO 8601 format.' });
+    }
+    if (endDateTime && isNaN(new Date(endDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid endDateTime format. Use ISO 8601 format.' });
+    }
+
+    const events = await eventService.searchEvents({
+      id: id ? Number(id) : undefined,
+      startDateTime,
+      endDateTime,
+      locationId: locationId ? Number(locationId) : undefined
+    });
+
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

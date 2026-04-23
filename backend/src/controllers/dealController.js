@@ -195,3 +195,30 @@ exports.createRecurringDeal = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// POST /api/deals/search
+exports.searchDeals = async (req, res) => {
+  try {
+    const { id, startDateTime, endDateTime,locationId } = req.body;
+
+    // Validate datetime formats if provided
+    if (startDateTime && isNaN(new Date(startDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid startDateTime format. Use ISO 8601 format.' });
+    }
+    if (endDateTime && isNaN(new Date(endDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid endDateTime format. Use ISO 8601 format.' });
+    }
+
+    const deals = await dealService.searchDeals({
+      id: id ? Number(id) : undefined,
+      startDateTime,
+      endDateTime,
+      locationId: locationId ? Number(locationId) : undefined
+    });
+
+    res.json(deals);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

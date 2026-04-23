@@ -3,7 +3,7 @@ import { StyleSheet, View, Image, Text } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Added for background tracking
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from '@/hooks/use-auth';
 
@@ -13,6 +13,7 @@ import { UserLocationService } from '@/services/userLocationService';
 
 // Hooks
 import { useFriendsLocations, useLocationTracker } from '@/hooks/useLocationTracker';
+import { useWeeklyCheckIn } from '@/hooks/useWeeklyCheckIn';
 import { useMapLocations } from '@/hooks/useMapLocations';
 import { useGeofence, GEOFENCE_RADIUS_METERS } from '@/hooks/useGeofence';
 
@@ -26,16 +27,16 @@ import { FriendMarkers } from '@/components/map/friend-markers';
 import { calculateDistance } from '@/utils/location-utils';
 import { getFriendLocation } from '@/utils/nearby-friends';
 import { shouldForceErrorPage } from '@/utils/dev-error-pages';
-import { NIGHT_OUT_TRACKING_TASK } from '@/services/backgroundLocationTask';
+// import { NIGHT_OUT_TRACKING_TASK } from '@/services/backgroundLocationTask';
 
 const ZOOM_THRESHOLD = 0.005;
 const GHOST_MODE_DURATION_HOURS = 1;
-const BACKGROUND_TRACKING_DURATION_HOURS = 8; // How long to track in background
+// const BACKGROUND_TRACKING_DURATION_HOURS = 8; // How long to track in background
 
 export default function MapScreen() {
     const { getAccessToken } = useAuth();
     const insets = useSafeAreaInsets();
-    const { user } = useUser();
+    const { user, refetchUser } = useUser();
     const router = useRouter();
 
     const currentUserId = user?.id ? Number(user.id) : undefined;
@@ -60,6 +61,16 @@ export default function MapScreen() {
     // Track user location globally (updates DB)
     useLocationTracker(currentUserId, hasPermission);
 
+    useWeeklyCheckIn({
+        userId: currentUserId,
+        userLocation,
+        locations,
+        enabled: hasPermission,
+        onStreakUpdate: async () => {
+            await refetchUser();
+        },
+    });
+
     // --- Logic Hooks ---
     const activeFriends = useGeofence(friends, locations);
 
@@ -79,20 +90,20 @@ export default function MapScreen() {
                 if (bgStatus === 'granted') {
                     // Set expiration time in storage for the background task to read
                     // expiryTime = current time + desired tracking duration (e.g., 8 hours)
-                    const expiryTime = Date.now() + (BACKGROUND_TRACKING_DURATION_HOURS * 60 * 60 * 1000);
-                    await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
+                    // const expiryTime = Date.now() + (BACKGROUND_TRACKING_DURATION_HOURS * 60 * 60 * 1000);
+                    // await AsyncStorage.setItem('trackingExpiry', expiryTime.toString());
 
                     // Fire up the background task
-                    await Location.startLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK, {
-                        accuracy: Location.Accuracy.Balanced,
-                        distanceInterval: 15, // Update every 15 meters
-                        deferredUpdatesInterval: 1000 * 60 * 2, // Or at least every 2 mins
-                        showsBackgroundLocationIndicator: true,
-                        foregroundService: {
-                            notificationTitle: "Ames After Dark",
-                            notificationBody: "Keeping your friends updated on your location.",
-                        }
-                    });
+                    // await Location.startLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK, {
+                    //     accuracy: Location.Accuracy.Balanced,
+                    //     distanceInterval: 15, // Update every 15 meters
+                    //     deferredUpdatesInterval: 1000 * 60 * 2, // Or at least every 2 mins
+                    //     showsBackgroundLocationIndicator: true,
+                    //     foregroundService: {
+                    //         notificationTitle: "Ames After Dark",
+                    //         notificationBody: "Keeping your friends updated on your location.",
+                    //     }
+                    // });
                 }
             }
         })();

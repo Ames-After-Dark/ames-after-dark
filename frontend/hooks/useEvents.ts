@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { getActiveEvents, Event } from "@/services/eventsService";
+// TODO: Swap back to getActiveEvents when dedicated tonight API is ready
+import { getEvents, Event } from "@/services/eventsService";
 
 export function useEvents() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -9,7 +10,8 @@ export function useEvents() {
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getActiveEvents();
+      // TODO: Replace getEvents() with getActiveEvents() (or getTonightEvents()) when API is ready
+      const data = await getEvents();
       setEvents(data);
       setError(null);
     } catch (err) {

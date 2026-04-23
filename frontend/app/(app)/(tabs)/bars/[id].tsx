@@ -4,19 +4,21 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useBarDetail } from "@/hooks/useBarDetail";
 import { fetchLocationById, MapLocation } from "@/services/locationService";
-import { getNow, isActive, isBarOpen } from "@/utils/schedule";
+import { getNow, isBarOpen } from "@/utils/schedule";
+import type { TimeRule } from "@/types/types";
 import { Theme } from '@/constants/theme';
 import ErrorState from "@/components/ui/error-state";
 import { getLatestWeekAlbums, Album, getResizedImageUri } from "@/services/galleryService";
 
 import {
   BarHeader,
-  // BarStats, 
-  InfoSection,
+  // BarStats,
+  DealEventSection,
   BottomCard,
   BarMapModal,
   BarGalleryModal
 } from "@/components/bars/bar-detail-components";
+import type { DealOrEventItem } from "@/components/bars/deal-event-modal";
 import { getBarAssets } from "@/utils/bar-assets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -175,8 +177,62 @@ export default function BarProfile() {
 
   const assets = getBarAssets(bar);
   const now = getNow();
-  const activeDeals = bar.dealsScheduled?.filter(d => isActive(d.rule, now)) ?? [];
-  const activeEvents = bar.eventsScheduled?.filter(e => isActive(e.rule, now)) ?? [];
+
+  // Returns true if this rule fires on today's date (regardless of whether it's active right now)
+  function isScheduledTonight(rule: TimeRule): boolean {
+    if (rule.kind === "one-time") {
+      const start = new Date(rule.start);
+      return (
+        start.getFullYear() === now.getFullYear() &&
+        start.getMonth() === now.getMonth() &&
+        start.getDate() === now.getDate()
+      );
+    }
+    // weekly: check if today's day-of-week is in the schedule
+    const todayDow = now.getDay();
+    return rule.daysOfWeek.includes(todayDow);
+  }
+
+  function ruleToStartTime(rule: TimeRule): string | undefined {
+    if (rule.kind === "one-time") {
+      return new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(rule.start));
+    }
+    // weekly: parse startLocalTime "HH:MM" -> display string
+    const [hStr, mStr] = rule.startLocalTime.split(":");
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(d);
+  }
+
+  const tonightDeals: DealOrEventItem[] = (bar.dealsScheduled ?? [])
+    .filter(d => isScheduledTonight(d.rule))
+    .map(d => ({
+      id: d.id,
+      kind: "deal" as const,
+      title: d.title,
+      subtitle: d.subtitle,
+      startTime: ruleToStartTime(d.rule),
+    }));
+
+  const tonightEvents: DealOrEventItem[] = (bar.eventsScheduled ?? [])
+    .filter(e => isScheduledTonight(e.rule))
+    .map(e => ({
+      id: e.id,
+      kind: "event" as const,
+      title: e.name,
+      subtitle: e.description,
+      startTime: ruleToStartTime(e.rule),
+    }));
 
   const openNow = isBarOpen(
     {
@@ -216,8 +272,20 @@ export default function BarProfile() {
           <Text style={styles.menuButtonText}>View Menu</Text>
         </TouchableOpacity>
 
-        <InfoSection title="Current Events" items={activeEvents} emptyText="No active events." />
-        <InfoSection title="Deals" items={activeDeals} emptyText="No active deals." />
+        <DealEventSection
+          title="Events Tonight"
+          items={tonightEvents}
+          emptyText="No events scheduled tonight."
+          barName={bar.name}
+          barId={String(bar.id)}
+        />
+        <DealEventSection
+          title="Deals Tonight"
+          items={tonightDeals}
+          emptyText="No deals scheduled tonight."
+          barName={bar.name}
+          barId={String(bar.id)}
+        />
 
         <View style={styles.bottomRow}>
           <BottomCard
