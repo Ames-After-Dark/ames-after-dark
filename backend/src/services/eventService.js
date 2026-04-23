@@ -146,3 +146,78 @@ exports.createRecurringEvent = async (eventData) => {
     occurrences
   };
 };
+
+exports.searchEvents = async (searchParams) => {
+  const { id, startDateTime, endDateTime, locationId } = searchParams;
+
+  // Build the where clause for event_occurrences
+  const occurrenceWhere = {};
+  if (startDateTime) {
+    occurrenceWhere.start_time_utc = { gte: new Date(startDateTime) };
+  }
+  if (endDateTime) {
+    occurrenceWhere.end_time_utc = { lte: new Date(endDateTime) };
+  }
+
+  // If we have date filters, search through occurrences to get events
+  if (startDateTime || endDateTime) {
+    const occurrences = await prisma.event_occurrences.findMany({
+      where: occurrenceWhere,
+      include: {
+        events: {
+          include: {
+            locations: true
+          }
+        }
+      }
+    });
+
+    if (locationId) {
+      // Filter occurrences by locationId
+      occurrences = occurrences.filter(o => o.events.location_id === Number(locationId));
+    }
+
+    // If id is specified, filter occurrences by event id
+    if (id) {
+      return occurrences.filter(o => o.events.id === Number(id));
+    }
+
+    // Remove duplicates and return events
+    const eventsMap = new Map();
+    occurrences.forEach(o => {
+      const event = { ...o.events, event_occurrences: [] };
+      if (!eventsMap.has(event.id)) {
+        eventsMap.set(event.id, event);
+      }
+      eventsMap.get(event.id).event_occurrences.push({
+        id: o.id,
+        event_id: o.event_id,
+        start_time_utc: o.start_time_utc,
+        end_time_utc: o.end_time_utc
+      });
+    });
+
+    return Array.from(eventsMap.values());
+  }
+
+  // If only id is specified
+  if (id) {
+    const event = await prisma.events.findUnique({
+      where: { id: Number(id) },
+      include: {
+        locations: true,
+        event_occurrences: true
+      }
+    });
+    return event ? [event] : [];
+  }
+
+  // No filters - return all events
+  return prisma.events.findMany({
+    orderBy: { id: 'asc' },
+    include: {
+      locations: true,
+      event_occurrences: true
+    }
+  });
+};
