@@ -124,11 +124,55 @@ export default function FriendProfileScreen() {
             const token = await getAccessToken();
             if (!token) throw new Error("No token available");
 
-            const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
+            // Step 1: fetch profile data + my friends (needed to determine relationship)
+            const [userData, myFriends, pendingRequestsData] = await Promise.all([
                 getUserById(token, id),
-                isMe ? getUserFriends(token) : getFriendsOfFriend(token, id),
-                isMe ? Promise.resolve([]) : getMutualFriends(token, id),
+                getUserFriends(token),
                 isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
+            ]);
+
+            // Step 2: compute relationship (for non-self)
+            let computedRelationship = {
+                isFriend: false,
+                isBlocked: false,
+                sentRequest: false,
+                receivedRequest: false,
+            };
+
+            if (isMe) {
+                computedRelationship = {
+                    isFriend: true,
+                    isBlocked: false,
+                    sentRequest: false,
+                    receivedRequest: false,
+                };
+            } else {
+                const isFriend = (myFriends || []).some((f: any) => f.id.toString() === id);
+                const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
+                const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
+
+                computedRelationship = {
+                    isFriend,
+                    isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
+                    sentRequest: Boolean(incoming?.friendship_status_id === 1),
+                    receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
+                };
+            }
+
+            setRelationship(computedRelationship);
+
+            // Step 3: fetch friend-scoped lists only if allowed
+            const [friendsData, mutualData] = await Promise.all([
+                isMe
+                    ? Promise.resolve(myFriends)
+                    : computedRelationship.isFriend
+                        ? getFriendsOfFriend(token, id)
+                        : Promise.resolve([]),
+                isMe
+                    ? Promise.resolve([])
+                    : computedRelationship.isFriend
+                        ? getMutualFriends(token, id)
+                        : Promise.resolve([]),
             ]);
 
             const formattedPending = (pendingRequestsData || []).map(req => {
@@ -156,24 +200,8 @@ export default function FriendProfileScreen() {
                 const recs = await getRecommendedFriends(token);
                 setRecommendedFriends(recs || []);
 
-                setRelationship({
-                    isFriend: true,
-                    isBlocked: false,
-                    sentRequest: false,
-                    receivedRequest: false,
-                });
             } else {
-                const myFriends = await getUserFriends(token);
-                const isFriend = myFriends.some(f => f.id.toString() === id);
-                const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
-                const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
-
-                setRelationship({
-                    isFriend,
-                    isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
-                    sentRequest: Boolean(incoming?.friendship_status_id === 1),
-                    receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
-                });
+                // relationship already computed + set above
             }
         } catch (err) {
             console.error(err);
@@ -264,7 +292,11 @@ export default function FriendProfileScreen() {
             await handlePendingDecision(friendId, type, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'block') {
-            handleConfirmBlock(friendId, user.name, fetchProfile);
+            handleConfirmBlock(friendId, user.name, () => {
+                // After blocking, the backend masks the blocked profile as "not found".
+                // Don't refetch; just return to the previous screen.
+                goBack();
+            });
             setIsRespondModalVisible(false);
         } else if (type === 'remove') {
             handleRemove(friendId, targetName, fetchProfile);
