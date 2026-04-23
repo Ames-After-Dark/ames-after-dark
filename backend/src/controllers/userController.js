@@ -915,6 +915,18 @@ exports.getAdmins = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({
+        message: 'Forbidden: Insufficient permissions'
+      });
+    }
+
     const admins = await userService.getAdmins();
     res.json(admins);
   } catch (err) {

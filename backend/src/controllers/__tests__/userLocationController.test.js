@@ -1,9 +1,11 @@
 const userLocationController = require('../userLocationController');
 const userLocationService = require('../../services/userLocationService');
 const userService = require('../../services/userService');
+const friendshipService = require('../../services/friendshipService');
 
 jest.mock('../../services/userLocationService');
 jest.mock('../../services/userService');
+jest.mock('../../services/friendshipService');
 
 describe('userLocationController', () => {
     let req, res;
@@ -128,6 +130,7 @@ describe('userLocationController', () => {
             userService.getUserByAuth0Id.mockResolvedValue(mockUser);
             req.params.viewerId = '2';
             req.body = { enabled: true };
+            friendshipService.getFriends.mockResolvedValue([{ id: 2 }]);
             userLocationService.updatePermission.mockResolvedValue(true);
 
             await userLocationController.toggleLocationPermission(req, res);
@@ -141,12 +144,27 @@ describe('userLocationController', () => {
             userService.getUserByAuth0Id.mockResolvedValue(mockUser);
             req.params.viewerId = '2';
             req.body = { enabled: false };
+            friendshipService.getFriends.mockResolvedValue([{ id: 2 }]);
             userLocationService.updatePermission.mockResolvedValue(true);
 
             await userLocationController.toggleLocationPermission(req, res);
             expect(userLocationService.updatePermission).toHaveBeenCalledWith(1, 2, false);
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({ success: true, message: "Permission revoked" });
+        });
+
+        it('should return 403 if viewerId is not an accepted friend', async () => {
+            const mockUser = { id: 1 };
+            userService.getUserByAuth0Id.mockResolvedValue(mockUser);
+            req.params.viewerId = '2';
+            req.body = { enabled: true };
+            friendshipService.getFriends.mockResolvedValue([{ id: 999 }]);
+
+            await userLocationController.toggleLocationPermission(req, res);
+
+            expect(userLocationService.updatePermission).not.toHaveBeenCalled();
+            expect(res.status).toHaveBeenCalledWith(403);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden' });
         });
     });
 
