@@ -132,11 +132,12 @@ interface ProfileHeaderProps {
     onCancelEdit?: () => void;
     showInlineEditActions?: boolean;
     onEditBio?: () => void;
+    onEditName?: () => void;
     onPressFriends?: () => void;
     onPressMutuals?: () => void;
 }
 
-export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onCancelEdit, showInlineEditActions = true, onEditBio, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
+export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, friendCount, mutualCount, isEditing, onRequestEdit, onSave, onCancelEdit, showInlineEditActions = true, onEditBio, onEditName, onPressFriends, onPressMutuals }: ProfileHeaderProps): React.JSX.Element => {
     const { userStatus, getAccessToken } = useAuth();
 
     const [selectedAvatar, setSelectedAvatar] = useState<ProfileAsset>(() => getAvatarById(user?.profile_photo_id));
@@ -249,6 +250,17 @@ export const ProfileHeader = ({ user, isMe, showFriendStats, showBio, onlyBio, f
                 <View style={styles.infoContainer}>
                     <View style={styles.nameRow}>
                         <Text style={styles.profileName}>{user?.name || 'Loading...'}</Text>
+                        {isMe && isEditing && (
+                            <TouchableOpacity
+                                onPress={onEditName}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={styles.nameEditTouch}
+                            >
+                                <View style={styles.nameEditBadge}>
+                                    <FontAwesome name="pencil" size={10} color="#fff" />
+                                </View>
+                            </TouchableOpacity>
+                        )}
                     </View>
                     <Text style={styles.usernameText}>@{user?.username || 'username'}</Text>
 
@@ -374,13 +386,26 @@ const styles = StyleSheet.create({
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         marginBottom: 2,
     },
     profileName: {
         color: Theme.dark.white,
         fontSize: 22,
         fontWeight: '700',
+    },
+    nameEditTouch: {
+        marginLeft: 8,
+    },
+    nameEditBadge: {
+        backgroundColor: Theme.dark.primary,
+        borderRadius: 999,
+        width: 22,
+        height: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: Theme.dark.background,
     },
     usernameText: {
         color: Theme.container.inactiveText,
