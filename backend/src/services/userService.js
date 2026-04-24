@@ -51,10 +51,13 @@ exports.searchUsers = async (search, excludeUserId) => {
     return [];
   }
 
+  const q = search.trim();
+
   const where = {
     OR: [
-      { username: { contains: search, mode: 'insensitive' } },
-      { name: { contains: search, mode: 'insensitive' } }
+      { username: { contains: q, mode: 'insensitive' } },
+      // display name in the app maps to `users.name`
+      { name: { contains: q, mode: 'insensitive' } }
     ]
   };
 
@@ -62,21 +65,23 @@ exports.searchUsers = async (search, excludeUserId) => {
     where.NOT = { id: Number(excludeUserId) };
   }
 
-  return prisma.users.findMany({
+  const users = await prisma.users.findMany({
     where,
     select: {
       id: true,
       username: true,
       name: true,
       bio: true,
-      profile_photo: {
-        select: {
-          image_url: true
-        }
-      }
+      profile_photo: { select: { image_url: true } }
     },
     orderBy: { id: 'asc' }
   });
+
+  // Provide a convenient top-level `avatarUrl` while keeping existing nested `profile_photo`
+  return users.map((u) => ({
+    ...u,
+    avatarUrl: u.profile_photo?.image_url ?? null,
+  }));
 };
 
 exports.getUserById = async (id) => {
@@ -85,7 +90,7 @@ exports.getUserById = async (id) => {
     include: {
       roles: true,
       user_settings: true,
-  profile_photo: true,
+      profile_photo: true,
       location_permissions_location_permissions_owner_idTousers: {
         select: {
           viewer_id: true,
@@ -417,7 +422,7 @@ exports.getPublicUserById = async (id) => {
       id: true,
       name: true,
       username: true,
-  profile_photo_id: true,
+      profile_photo_id: true,
       profile_photo: true,
       bio: true,
       favorite_drink_id: true,
