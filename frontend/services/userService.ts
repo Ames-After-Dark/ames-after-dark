@@ -147,7 +147,9 @@ export async function searchUsers(token: string, query: string, excludeUserId?: 
       name: user.name,
       bio: user.bio,
       // Search endpoint seems to return profile_photo object sometimes; support both URL + bundled id.
-      avatar: user.profile_picture_url || user.profile_photo?.image_url || undefined,
+      avatar: user.avatarUrl || user.profile_picture_url || user.profile_photo?.image_url || undefined,
+      // Keep a dedicated field too since some UI paths resolve avatar from `profile_picture_url`.
+      profile_picture_url: user.avatarUrl || user.profile_picture_url || user.profile_photo?.image_url || undefined,
       profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
     }));
   } catch (error) {
