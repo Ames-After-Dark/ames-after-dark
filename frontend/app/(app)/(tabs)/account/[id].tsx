@@ -177,7 +177,7 @@ export default function FriendProfileScreen() {
 
             const formattedPending = (pendingRequestsData || []).map(req => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
-                const friend = isOutgoing
+                const friend: any = isOutgoing
                     ? req.users_friendships_user_id_2Tousers
                     : req.users_friendships_user_id_1Tousers;
 
@@ -185,7 +185,8 @@ export default function FriendProfileScreen() {
                     id: friend?.id,
                     name: friend?.name || 'Unknown User',
                     username: friend?.username || 'unknown',
-                    avatar: friend?.avatar,
+                    avatar: friend?.profile_picture_url || friend?.profile_photo?.image_url || friend?.avatar,
+                    profile_photo_id: friend?.profile_photo_id ?? friend?.profile_photo?.id ?? null,
                     type: isOutgoing ? 'SENT' : 'RECEIVED'
                 };
             });
