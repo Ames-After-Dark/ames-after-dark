@@ -5,6 +5,7 @@ import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/context/user-context';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
@@ -37,6 +38,7 @@ export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
+    const { user: currentProfileUser } = useUser();
     const { goBack } = useNavigationHistory();
 
     const isMe = useMemo(() => {
@@ -213,6 +215,21 @@ export default function FriendProfileScreen() {
     useEffect(() => {
         fetchProfile();
     }, [id, isMe]);
+
+    useEffect(() => {
+        if (!isMe || currentProfileUser?.streak === undefined || currentProfileUser?.streak === null) {
+            return;
+        }
+
+        setUser((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                ...currentProfileUser,
+                friendCount: prev.friendCount,
+            };
+        });
+    }, [currentProfileUser?.streak, isMe]);
 
     useEffect(() => {
         if (!modalConfig.visible) return;
