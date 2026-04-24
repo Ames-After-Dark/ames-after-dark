@@ -39,6 +39,7 @@ exports.getFriends = async (userId) => {
           id: true,
           name: true,
           username: true,
+          profile_photo_id: true,
           profile_photo: true,
           bio: true
         }
@@ -48,6 +49,7 @@ exports.getFriends = async (userId) => {
           id: true,
           name: true,
           username: true,
+          profile_photo_id: true,
           profile_photo: true,
           bio: true
         }
@@ -89,6 +91,7 @@ exports.getFriendsOfFriend = async (userId, friendId) => {
           id: true,
           name: true,
           username: true,
+          profile_photo_id: true,
           profile_photo: true,
           bio: true
         }
@@ -98,6 +101,7 @@ exports.getFriendsOfFriend = async (userId, friendId) => {
           id: true,
           name: true,
           username: true,
+          profile_photo_id: true,
           profile_photo: true,
           bio: true
         }

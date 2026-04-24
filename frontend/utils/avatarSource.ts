@@ -17,9 +17,14 @@ export function resolveAvatarSource(input: {
         (typeof input.profile_picture_url === 'string' && input.profile_picture_url) ||
         (typeof (input.avatar as any)?.uri === 'string' && (input.avatar as any).uri);
 
-    if (typeof urlCandidate === 'string' && urlCandidate.trim().length > 0) {
-        return { uri: urlCandidate };
-    }
+    const url = typeof urlCandidate === 'string' ? urlCandidate.trim() : '';
+    const isValidRemoteUrl =
+        url.length > 0 &&
+        url !== 'null' &&
+        url !== 'undefined' &&
+        (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://'));
+
+    if (isValidRemoteUrl) return { uri: url };
 
     if (typeof input.profile_photo_id === 'number') {
         return getAvatarById(input.profile_photo_id).source;

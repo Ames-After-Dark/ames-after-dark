@@ -5,7 +5,6 @@ import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
-import { useUser } from '@/context/user-context';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
@@ -38,7 +37,6 @@ export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
-    const { user: currentProfileUser } = useUser();
     const { goBack } = useNavigationHistory();
 
     const isMe = useMemo(() => {
@@ -177,7 +175,7 @@ export default function FriendProfileScreen() {
 
             const formattedPending = (pendingRequestsData || []).map(req => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
-                const friend = isOutgoing
+                const friend: any = isOutgoing
                     ? req.users_friendships_user_id_2Tousers
                     : req.users_friendships_user_id_1Tousers;
 
@@ -185,7 +183,8 @@ export default function FriendProfileScreen() {
                     id: friend?.id,
                     name: friend?.name || 'Unknown User',
                     username: friend?.username || 'unknown',
-                    avatar: friend?.avatar,
+                    avatar: friend?.profile_picture_url || friend?.profile_photo?.image_url || friend?.avatar,
+                    profile_photo_id: friend?.profile_photo_id ?? friend?.profile_photo?.id ?? null,
                     type: isOutgoing ? 'SENT' : 'RECEIVED'
                 };
             });
@@ -214,21 +213,6 @@ export default function FriendProfileScreen() {
     useEffect(() => {
         fetchProfile();
     }, [id, isMe]);
-
-    useEffect(() => {
-        if (!isMe || currentProfileUser?.streak === undefined || currentProfileUser?.streak === null) {
-            return;
-        }
-
-        setUser((prev: any) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                ...currentProfileUser,
-                friendCount: prev.friendCount,
-            };
-        });
-    }, [currentProfileUser?.streak, isMe]);
 
     useEffect(() => {
         if (!modalConfig.visible) return;

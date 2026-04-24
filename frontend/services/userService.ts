@@ -26,7 +26,15 @@ export async function getPendingFriendRequests(token: string): Promise<PendingFr
 export async function getRecommendedFriends(token: string, limit: number = 5): Promise<Friend[]> {
   try {
     const recommendations = await apiFetchAuth(`/friendships/recommended-friends?limit=${limit}`, token);
-    return Array.isArray(recommendations) ? recommendations : [];
+    if (!Array.isArray(recommendations)) return [];
+
+    // Backend returns flattened user objects + mutualCount.
+    // Ensure we always carry profile_photo_id so bundled avatars render for non-friends.
+    return recommendations.map((user: any) => ({
+      ...user,
+      avatar: typeof user.profile_picture_url === 'string' ? user.profile_picture_url : user.avatar,
+      profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
+    }));
   } catch (error) {
     console.error(`Failed to fetch recommended friends:`, error);
     throw error;
@@ -227,7 +235,15 @@ export const updateUser = async (
 export async function getMutualFriends(token: string, profileId: string | number): Promise<Friend[]> {
   try {
     const mutual = await apiFetchAuth(`/friendships/mutual-friends/${profileId}`, token);
-    return Array.isArray(mutual) ? mutual : [];
+    if (!Array.isArray(mutual)) return [];
+
+    return mutual.map((user: any) => ({
+      ...user,
+      avatar: typeof user.profile_picture_url === 'string'
+        ? user.profile_picture_url
+        : (user.profile_photo?.image_url || user.avatar),
+      profile_photo_id: user.profile_photo_id ?? user.profile_photo?.id ?? null,
+    }));
   } catch (error) {
     console.error(`Failed to calculate mutual friends for profile ${profileId}:`, error);
     return []; // Return empty array on failure to avoid breaking the UI
