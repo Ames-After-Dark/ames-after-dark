@@ -22,6 +22,7 @@ import {
     getPendingFriendRequests,
     searchUsers,
     updateBioByAuth,
+    updateNameByAuth,
 } from '@/services/userService';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -73,6 +74,9 @@ export default function FriendProfileScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [isBioModalVisible, setIsBioModalVisible] = useState(false);
     const [bioText, setBioText] = useState('');
+
+    const [isNameModalVisible, setIsNameModalVisible] = useState(false);
+    const [nameText, setNameText] = useState('');
 
     const [modalConfig, setModalConfig] = useState({
         visible: false,
@@ -443,6 +447,10 @@ export default function FriendProfileScreen() {
                         showFriendStats={relationship.isFriend}
                         isEditing={isEditing}
                         onRequestEdit={() => setIsEditing(true)}
+                        onEditName={() => {
+                            setNameText(user?.name || '');
+                            setIsNameModalVisible(true);
+                        }}
                         onSave={() => setIsEditing(false)}
                         onCancelEdit={() => {
                             setIsEditing(false);
@@ -462,8 +470,10 @@ export default function FriendProfileScreen() {
                         isMe={isMe}
                         isEditing={isEditing}
                         onEditBio={() => {
-                            setBioText(user?.bio || '');
-                            setIsBioModalVisible(true);
+                            // Mirror the existing bio edit UX, but allow editing display name too.
+                            // In edit mode, the pencil should open name editing (requested behavior).
+                            setNameText(user?.name || '');
+                            setIsNameModalVisible(true);
                         }}
                     />
 
@@ -578,6 +588,57 @@ export default function FriendProfileScreen() {
                                         <Text style={styles.btnText}>Save Bio</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsBioModalVisible(false)}>
+                                        <Text style={styles.cancelText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Display Name Edit Modal */}
+            <Modal visible={isNameModalVisible} transparent animationType="fade">
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                    <TouchableWithoutFeedback onPress={() => setIsNameModalVisible(false)}>
+                        <View style={styles.modalOverlay}>
+                            <TouchableWithoutFeedback>
+                                <View style={styles.responseCard}>
+                                    <Text style={styles.responseTitle}>Edit Display Name</Text>
+                                    <TextInput
+                                        style={styles.nameInput}
+                                        value={nameText}
+                                        onChangeText={setNameText}
+                                        placeholder="Your display name"
+                                        placeholderTextColor={Theme.container.inactiveText}
+                                        maxLength={40}
+                                        autoFocus
+                                    />
+                                    <Text style={styles.nameCharCount}>{nameText.trim().length}/40</Text>
+                                    <TouchableOpacity
+                                        style={[styles.responseBtn, styles.acceptBtn]}
+                                        onPress={async () => {
+                                            const trimmed = nameText.trim();
+                                            if (!trimmed) {
+                                                triggerToast('Name can\'t be empty', 'times');
+                                                return;
+                                            }
+
+                                            try {
+                                                const accessToken = await getAccessToken();
+                                                if (!accessToken) throw new Error('No access token');
+                                                await updateNameByAuth(accessToken, trimmed);
+                                                setUser((prev: any) => ({ ...prev, name: trimmed }));
+                                                setIsNameModalVisible(false);
+                                                triggerToast('Name updated!');
+                                            } catch {
+                                                triggerToast('Failed to save name', 'times');
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.btnText}>Save Name</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsNameModalVisible(false)}>
                                         <Text style={styles.cancelText}>Cancel</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -736,6 +797,23 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     bioCharCount: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        alignSelf: 'flex-end',
+        marginBottom: 16,
+    },
+    nameInput: {
+        width: '100%',
+        backgroundColor: Theme.dark.background,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        borderRadius: 12,
+        padding: 12,
+        color: Theme.dark.white,
+        fontSize: 16,
+        marginBottom: 6,
+    },
+    nameCharCount: {
         color: Theme.container.inactiveText,
         fontSize: 12,
         alignSelf: 'flex-end',
