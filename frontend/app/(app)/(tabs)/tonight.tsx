@@ -100,58 +100,75 @@ function BarGroupRow({
     }),
   [group.rest]);
 
+  // When expanded: highlight drops into the list, all items shown under "Tonight"
+  const expandedItems = isExpanded
+    ? [group.highlight, ...sortedRest]
+    : sortedRest;
+
   return (
     <View style={[groupStyles.cardShell, isExpanded && groupStyles.cardShellExpanded]}>
-      {/* Main card row — split tap zones */}
-      <View style={groupStyles.card}>
-        {/* Logo — tapping opens bar detail */}
-        <Pressable onPress={() => onBarPress(group.barId)}>
-          <Image
-            source={getLogoAssetForLocationName(group.barName)}
-            style={groupStyles.cardImage}
-            resizeMode="cover"
-          />
-        </Pressable>
+      {/* Main card row — whole card toggles dropdown (or opens popup if no extras) */}
+      <Pressable
+        style={groupStyles.card}
+        onPress={hasMore ? onToggle : () => onItemPress(group.highlight)}
+      >
+        {/* Logo */}
+        <Image
+          source={getLogoAssetForLocationName(group.barName)}
+          style={groupStyles.cardImage}
+          resizeMode="cover"
+        />
 
-        {/* Text — tapping opens popup */}
-        <Pressable style={{ flex: 1 }} onPress={() => onItemPress(group.highlight)}>
-          <Text style={groupStyles.cardTitle} numberOfLines={1}>
-            {group.highlight.title}
-          </Text>
-          {group.highlight.startTimeUtc ? (
-            <Text style={groupStyles.cardSubtitle}>{formatTime(group.highlight.startTimeUtc)}</Text>
-          ) : null}
-          <Text style={groupStyles.cardDetail}>{group.barName}</Text>
-        </Pressable>
-
-        {/* Right side — tapping toggles expand (or opens popup if no extras) */}
-        <Pressable
-          style={groupStyles.cardRight}
-          onPress={hasMore ? onToggle : () => onItemPress(group.highlight)}
-        >
-          <DealEventPill kind={group.highlight.kind} />
-          {hasMore && (
+        {/* Text area — collapsed: event name + time + bar name
+                      expanded: just bar name big, tapping closes */}
+        <View style={{ flex: 1 }}>
+          {isExpanded ? (
+            <Text style={groupStyles.cardBarNameBig} numberOfLines={1}>
+              {group.barName}
+            </Text>
+          ) : (
             <>
-              <Text style={groupStyles.moreText}>+{group.rest.length}</Text>
-              <Ionicons
-                name={isExpanded ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={Theme.search.inactiveInput}
-              />
+              {/* Title is its own Pressable so tapping it opens popup without toggling */}
+              <Pressable onPress={(e) => { e.stopPropagation?.(); onItemPress(group.highlight); }}>
+                <Text style={groupStyles.cardTitle} numberOfLines={1}>
+                  {group.highlight.title}
+                </Text>
+              </Pressable>
+              {group.highlight.startTimeUtc ? (
+                <Text style={groupStyles.cardSubtitle}>{formatTime(group.highlight.startTimeUtc)}</Text>
+              ) : null}
+              <Text style={groupStyles.cardDetail}>{group.barName}</Text>
             </>
           )}
-        </Pressable>
-      </View>
+        </View>
+
+        {/* Right side chevron */}
+        {hasMore && (
+          <View style={groupStyles.cardRight}>
+            <DealEventPill kind={group.highlight.kind} />
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={Theme.search.inactiveInput}
+            />
+          </View>
+        )}
+        {!hasMore && (
+          <View style={groupStyles.cardRight}>
+            <DealEventPill kind={group.highlight.kind} />
+          </View>
+        )}
+      </Pressable>
 
       {/* Expanded panel */}
       {isExpanded && (
         <View style={groupStyles.expandedPanel}>
           <View style={groupStyles.panelHeader}>
-            <Text style={groupStyles.panelHeaderTitle}>Also Tonight</Text>
-            <Text style={groupStyles.panelHeaderCount}>{group.rest.length}</Text>
+            <Text style={groupStyles.panelHeaderTitle}>Tonight</Text>
+            <Text style={groupStyles.panelHeaderCount}>{expandedItems.length}</Text>
           </View>
           <View style={groupStyles.itemList}>
-            {sortedRest.map((item) => (
+            {expandedItems.map((item) => (
               <Pressable
                 key={item.id}
                 style={groupStyles.itemRow}
@@ -188,16 +205,14 @@ function BarGroupedList({
   groups,
   query,
   onBarPress,
-  closeExpanded,
-  setExpandedBarId,
-  expandedBarId,
+  expandedIds,
+  toggleExpanded,
 }: {
   groups: BarGroupedTonight[];
   query: string;
   onBarPress: (id: string) => void;
-  closeExpanded: () => void;
-  setExpandedBarId: (id: string | null) => void;
-  expandedBarId: string | null;
+  expandedIds: Set<string>;
+  toggleExpanded: (id: string) => void;
 }) {
   const [selectedItem, setSelectedItem] = React.useState<BarDealOrEvent | null>(null);
   const [selectedBarId, setSelectedBarId] = React.useState<string>("");
@@ -284,8 +299,8 @@ function BarGroupedList({
           <BarGroupRow
             key={group.barId}
             group={group}
-            isExpanded={expandedBarId === group.barId}
-            onToggle={() => setExpandedBarId(expandedBarId === group.barId ? null : group.barId)}
+            isExpanded={expandedIds.has(group.barId)}
+            onToggle={() => toggleExpanded(group.barId)}
             onBarPress={onBarPress}
             onItemPress={(item) => openPopup(item, group.barId, group.barName)}
           />
@@ -355,6 +370,12 @@ const groupStyles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: Theme.container.secondaryBorder,
+  },
+  cardBarNameBig: {
+    color: Theme.container.titleText,
+    fontWeight: "800",
+    fontSize: 17,
+    letterSpacing: 0.3,
   },
   cardTitle: {
     color: Theme.container.titleText,
@@ -513,8 +534,8 @@ export default function Tonight() {
   const [activeTab, setActiveTab] = useState<TabKey>("open");
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
-  // Expanded bar in Tonight tab — lifted here so ScrollView can close it on drag
-  const [tonightExpandedBarId, setTonightExpandedBarId] = useState<string | null>(null);
+  // Expanded bars in Tonight tab — Set allows multiple open at once
+  const [tonightExpandedIds, setTonightExpandedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (isTabKey(tab)) {
@@ -659,7 +680,7 @@ export default function Tonight() {
       {!isLoading && !hasError && (
         <ScrollView
           stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
-          contentContainerStyle={{ paddingBottom: 1 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           contentInsetAdjustmentBehavior="never"
           bounces={true}
           alwaysBounceVertical={true}
@@ -676,8 +697,6 @@ export default function Tonight() {
             const clampedY = Math.max(0, Math.min(y, maxY));
             lastScrollYRef.current = clampedY;
             dragStartYRef.current = clampedY;
-            // Close any expanded dropdown when user starts scrolling
-            if (tonightExpandedBarId !== null) setTonightExpandedBarId(null);
           }}
           onScrollEndDrag={(event) => {
             const velocityY = event.nativeEvent.velocity?.y ?? 0;
@@ -824,9 +843,15 @@ export default function Tonight() {
               groups={barGroupsTonight}
               query={query}
               onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
-              expandedBarId={tonightExpandedBarId}
-              setExpandedBarId={setTonightExpandedBarId}
-              closeExpanded={() => setTonightExpandedBarId(null)}
+              expandedIds={tonightExpandedIds}
+              toggleExpanded={(id) =>
+                setTonightExpandedIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
             />
           )}
 
