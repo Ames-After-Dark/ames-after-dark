@@ -146,6 +146,9 @@ function BarGroupRow({
         {hasMore && (
           <View style={groupStyles.cardRight}>
             <DealEventPill kind={group.highlight.kind} />
+            {!isExpanded && (
+              <Text style={groupStyles.moreText}>+{group.rest.length}</Text>
+            )}
             <Ionicons
               name={isExpanded ? "chevron-up" : "chevron-down"}
               size={18}
