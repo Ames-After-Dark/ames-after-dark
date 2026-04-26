@@ -35,7 +35,6 @@ exports.updateUserSettings = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const { sms_notifications, timezone, location_sharing_preference, ghost_mode_expires_at } = req.body || {};
     const updateData = {};
     if (sms_notifications !== undefined) updateData.sms_notifications = sms_notifications;

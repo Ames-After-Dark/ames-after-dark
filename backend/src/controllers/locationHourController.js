@@ -95,7 +95,6 @@ exports.createOverride = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const {
       start_time_utc,
       end_time_utc,

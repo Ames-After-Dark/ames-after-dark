@@ -52,7 +52,6 @@ exports.createEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const { name, location_id: bodyLocationId, description, banner_id } = req.body || {};
     const createData = {
       ...(name !== undefined ? { name } : {}),
@@ -97,7 +96,6 @@ exports.updateEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const { name, location_id: body_location_id, description, banner_id } = req.body || {};
     const updateData = {
       ...(name !== undefined ? { name } : {}),
@@ -176,7 +174,6 @@ exports.createRecurringEvent = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const {
       name,
       location_id,

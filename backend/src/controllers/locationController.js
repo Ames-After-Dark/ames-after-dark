@@ -47,7 +47,6 @@ exports.createLocation = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const {
       name,
       address,
@@ -107,7 +106,6 @@ exports.updateLocation = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    // Option A: strip unknown fields (mass-assignment defense)
     const {
       name,
       address,
