@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text"
 import { useAuth } from "@/hooks/use-auth"
+import { isAuth0UserCancelledError } from "@/utils/auth0Errors"
 import {
   StyleSheet,
   View,
@@ -12,6 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function LoginScreen() {
   const { signIn, isLoading, error, isAuthenticated, isSwitching } = useAuth()
+
+  const showError = error && !isAuth0UserCancelledError(error)
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -27,8 +30,8 @@ export default function LoginScreen() {
           <ThemedText style={styles.buttonText}>Sign In</ThemedText>
         </TouchableOpacity>
 
-        {error && (
-          <ThemedText style={styles.errorText}>{error.message}</ThemedText>
+        {showError && (
+          <ThemedText style={styles.errorText}>{error!.message}</ThemedText>
         )}
       </View>
     </SafeAreaView>
