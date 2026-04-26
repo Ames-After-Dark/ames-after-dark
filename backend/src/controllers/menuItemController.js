@@ -42,7 +42,7 @@ exports.createMenuItem = async (req, res) => {
     }
 
     const {
-  menu_item_type_id,
+      menu_item_type_id,
       location_id: bodyLocationId,
       name,
       description,
