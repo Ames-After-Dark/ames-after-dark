@@ -52,7 +52,16 @@ exports.createEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const event = await eventService.createEvent(req.body);
+    // Option A: strip unknown fields (mass-assignment defense)
+    const { name, location_id: bodyLocationId, description, banner_id } = req.body || {};
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+    };
+
+    const event = await eventService.createEvent(createData);
     res.status(201).json(event);
   } catch (err) {
     console.error(err);
@@ -88,7 +97,16 @@ exports.updateEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const event = await eventService.updateEvent(id, req.body);
+    // Option A: strip unknown fields (mass-assignment defense)
+    const { name, location_id: body_location_id, description, banner_id } = req.body || {};
+    const updateData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(body_location_id !== undefined ? { location_id: body_location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+    };
+
+    const event = await eventService.updateEvent(id, updateData);
     res.json(event);
   } catch (err) {
     console.error(err);
@@ -158,7 +176,30 @@ exports.createRecurringEvent = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const eventData = req.body;
+    // Option A: strip unknown fields (mass-assignment defense)
+    const {
+      name,
+      location_id,
+      description,
+      banner_id,
+      start_time,
+      end_time,
+      start_date,
+      end_date,
+      weekdays,
+    } = req.body || {};
+
+    const eventData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(location_id !== undefined ? { location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(start_time !== undefined ? { start_time } : {}),
+      ...(end_time !== undefined ? { end_time } : {}),
+      ...(start_date !== undefined ? { start_date } : {}),
+      ...(end_date !== undefined ? { end_date } : {}),
+      ...(weekdays !== undefined ? { weekdays } : {}),
+    };
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     if (!userRoles) {
@@ -198,7 +239,7 @@ exports.createRecurringEvent = async (req, res) => {
 // POST /api/events/search
 exports.searchEvents = async (req, res) => {
   try {
-    const { id, startDateTime, endDateTime,locationId } = req.body;
+    const { id, startDateTime, endDateTime, locationId } = req.body;
 
     // Validate datetime formats if provided
     if (startDateTime && isNaN(new Date(startDateTime).getTime())) {

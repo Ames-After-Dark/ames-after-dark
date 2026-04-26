@@ -35,7 +35,13 @@ exports.updateUserLocation = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const updated = await userLocationService.updateUserLocationByUserId(user.id, req.body);
+    // Option A: strip unknown fields (mass-assignment defense)
+    const { latitude, longitude } = req.body || {};
+    const updateData = {};
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+
+    const updated = await userLocationService.updateUserLocationByUserId(user.id, updateData);
     res.json(updated);
   } catch (err) {
     console.error(err);
