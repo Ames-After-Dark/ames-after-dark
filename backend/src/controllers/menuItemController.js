@@ -41,7 +41,24 @@ exports.createMenuItem = async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
     }
 
-    const menuItem = await menuItemService.createMenuItem(req.body);
+    const {
+      location_id: bodyLocationId,
+      name,
+      description,
+      is_available,
+      price,
+    } = req.body || {};
+
+    const createData = {
+      ...(menu_item_type_id !== undefined ? { menu_item_type_id } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(name !== undefined ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(is_available !== undefined ? { is_available } : {}),
+      ...(price !== undefined ? { price } : {}),
+    };
+
+    const menuItem = await menuItemService.createMenuItem(createData);
     res.status(201).json(menuItem);
   } catch (err) {
     console.error(err);
@@ -81,7 +98,25 @@ exports.updateMenuItem = async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
     }
 
-    const menuItem = await menuItemService.updateMenuItem(id, req.body);
+    const {
+      menu_item_type_id,
+      location_id: bodyLocationId,
+      name,
+      description,
+      is_available,
+      price,
+    } = req.body || {};
+
+    const updateData = {
+      ...(menu_item_type_id !== undefined ? { menu_item_type_id } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(name !== undefined ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(is_available !== undefined ? { is_available } : {}),
+      ...(price !== undefined ? { price } : {}),
+    };
+
+    const menuItem = await menuItemService.updateMenuItem(id, updateData);
     res.json(menuItem);
   } catch (err) {
     console.error(err);
@@ -157,7 +192,12 @@ exports.createMenuItemType = async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: Only developers can create menu item types' });
     }
 
-    const menuItemType = await menuItemService.createMenuItemType(req.body);
+    const { name } = req.body || {};
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+    };
+
+    const menuItemType = await menuItemService.createMenuItemType(createData);
     res.status(201).json(menuItemType);
   } catch (err) {
     console.error(err);
