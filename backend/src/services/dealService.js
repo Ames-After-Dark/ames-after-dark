@@ -30,11 +30,11 @@ exports.createDeal = async (dealData) => {
       location_id: dealData.location_id ? Number(dealData.location_id) : null,
       deal_occurrences: occurrences && occurrences.length > 0
         ? {
-            create: occurrences.map((o) => ({
-              start_time_utc: new Date(o.start_time_utc),
-              end_time_utc: new Date(o.end_time_utc)
-            }))
-          }
+          create: occurrences.map((o) => ({
+            start_time_utc: new Date(o.start_time_utc),
+            end_time_utc: new Date(o.end_time_utc)
+          }))
+        }
         : undefined
     },
     include: {
@@ -54,12 +54,12 @@ exports.updateDeal = async (id, dealData) => {
       location_id: dealData.location_id ? Number(dealData.location_id) : undefined,
       deal_occurrences: occurrences && occurrences.length > 0
         ? {
-            deleteMany: {}, // delete old occurrences
-            create: occurrences.map((o) => ({
-              start_time_utc: new Date(o.start_time_utc),
-              end_time_utc: new Date(o.end_time_utc)
-            }))
-          }
+          deleteMany: {}, // delete old occurrences
+          create: occurrences.map((o) => ({
+            start_time_utc: new Date(o.start_time_utc),
+            end_time_utc: new Date(o.end_time_utc)
+          }))
+        }
         : undefined
     },
     include: {
@@ -161,7 +161,7 @@ exports.searchDeals = async (searchParams) => {
 
   // If we have date filters, search through occurrences to get deals
   if (startDateTime || endDateTime) {
-    const occurrences = await prisma.deal_occurrences.findMany({
+    let occurrences = await prisma.deal_occurrences.findMany({
       where: occurrenceWhere,
       include: {
         deals: {

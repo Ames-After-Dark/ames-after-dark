@@ -30,11 +30,11 @@ exports.createEvent = async (eventData) => {
       location_id: eventData.location_id ? Number(eventData.location_id) : null,
       event_occurrences: occurrences && occurrences.length > 0
         ? {
-            create: occurrences.map((o) => ({
-              start_time_utc: new Date(o.start_time_utc),
-              end_time_utc: new Date(o.end_time_utc)
-            }))
-          }
+          create: occurrences.map((o) => ({
+            start_time_utc: new Date(o.start_time_utc),
+            end_time_utc: new Date(o.end_time_utc)
+          }))
+        }
         : undefined
     },
     include: {
@@ -54,12 +54,12 @@ exports.updateEvent = async (id, eventData) => {
       location_id: eventData.location_id ? Number(eventData.location_id) : undefined,
       event_occurrences: occurrences && occurrences.length > 0
         ? {
-            deleteMany: {}, // delete old occurrences
-            create: occurrences.map((o) => ({
-              start_time_utc: new Date(o.start_time_utc),
-              end_time_utc: new Date(o.end_time_utc)
-            }))
-          }
+          deleteMany: {}, // delete old occurrences
+          create: occurrences.map((o) => ({
+            start_time_utc: new Date(o.start_time_utc),
+            end_time_utc: new Date(o.end_time_utc)
+          }))
+        }
         : undefined
     },
     include: {
@@ -161,7 +161,7 @@ exports.searchEvents = async (searchParams) => {
 
   // If we have date filters, search through occurrences to get events
   if (startDateTime || endDateTime) {
-    const occurrences = await prisma.event_occurrences.findMany({
+    let occurrences = await prisma.event_occurrences.findMany({
       where: occurrenceWhere,
       include: {
         events: {
