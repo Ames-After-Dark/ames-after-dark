@@ -107,7 +107,8 @@ exports.toggleLocationPermission = async (req, res) => {
       message: enabled ? "Permission granted" : "Permission revoked"
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -195,8 +196,8 @@ exports.checkIn = async (req, res) => {
 
     // Call the service we discussed
     const result = await userLocationService.processWeeklyCheckIn(
-      parseInt(userId), 
-      parseInt(locationId), 
+      parseInt(userId),
+      parseInt(locationId),
       timezone
     );
 
