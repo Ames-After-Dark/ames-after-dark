@@ -80,7 +80,7 @@ describe('userSettingController', () => {
             userSettingService.updateUserSettingsByUserId.mockResolvedValue(mockUpdated);
 
             await userSettingController.updateUserSettings(req, res);
-            expect(userSettingService.updateUserSettingsByUserId).toHaveBeenCalledWith(1, req.body);
+            expect(userSettingService.updateUserSettingsByUserId).toHaveBeenCalledWith(1, {});
             expect(res.json).toHaveBeenCalledWith(mockUpdated);
         });
     });

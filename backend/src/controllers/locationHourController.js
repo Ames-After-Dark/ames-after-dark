@@ -95,7 +95,21 @@ exports.createOverride = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    const override = await locationHoursService.createOverride(locationId, req.body);
+    const {
+      start_time_utc,
+      end_time_utc,
+      reason,
+      is_open,
+    } = req.body || {};
+
+    const overrideData = {
+      ...(start_time_utc !== undefined ? { start_time_utc } : {}),
+      ...(end_time_utc !== undefined ? { end_time_utc } : {}),
+      ...(reason !== undefined ? { reason } : {}),
+      ...(is_open !== undefined ? { is_open } : {}),
+    };
+
+    const override = await locationHoursService.createOverride(locationId, overrideData);
     res.status(201).json(override);
   } catch (err) {
     console.error(`Error creating override for ${locationId}:`, err);

@@ -37,7 +37,7 @@ exports.createDeal = async (req, res) => {
 
     const { location_id } = req.body;
     if (!location_id) {
-       return res.status(400).json({ error: "location_id is required" });
+      return res.status(400).json({ error: "location_id is required" });
     }
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
@@ -52,7 +52,15 @@ exports.createDeal = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const deal = await dealService.createDeal(req.body);
+    const { name, location_id: bodyLocationId, description, banner_id } = req.body || {};
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+    };
+
+    const deal = await dealService.createDeal(createData);
     res.status(201).json(deal);
   } catch (err) {
     console.error(err);
@@ -70,11 +78,11 @@ exports.updateDeal = async (req, res) => {
     if (!authId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    
+
     // We need to fetch the existing deal to know its location_id if location_id isn't in req.body
     const existingDeal = await dealService.getDealById(id);
     if (!existingDeal) return res.status(404).json({ message: 'Deal not found' });
-    
+
     const location_id = req.body.location_id || existingDeal.location_id;
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
@@ -89,7 +97,15 @@ exports.updateDeal = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const deal = await dealService.updateDeal(id, req.body);
+    const { name, location_id: body_location_id, description, banner_id } = req.body || {};
+    const updateData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(body_location_id !== undefined ? { location_id: body_location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+    };
+
+    const deal = await dealService.updateDeal(id, updateData);
     res.json(deal);
   } catch (err) {
     console.error(err);
@@ -159,7 +175,29 @@ exports.createRecurringDeal = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const dealData = req.body;
+    const {
+      name,
+      location_id,
+      description,
+      banner_id,
+      start_time,
+      end_time,
+      start_date,
+      end_date,
+      weekdays,
+    } = req.body || {};
+
+    const dealData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(location_id !== undefined ? { location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(start_time !== undefined ? { start_time } : {}),
+      ...(end_time !== undefined ? { end_time } : {}),
+      ...(start_date !== undefined ? { start_date } : {}),
+      ...(end_date !== undefined ? { end_date } : {}),
+      ...(weekdays !== undefined ? { weekdays } : {}),
+    };
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     if (!userRoles) {
@@ -199,7 +237,7 @@ exports.createRecurringDeal = async (req, res) => {
 // POST /api/deals/search
 exports.searchDeals = async (req, res) => {
   try {
-    const { id, startDateTime, endDateTime,locationId } = req.body;
+    const { id, startDateTime, endDateTime, locationId } = req.body;
 
     // Validate datetime formats if provided
     if (startDateTime && isNaN(new Date(startDateTime).getTime())) {

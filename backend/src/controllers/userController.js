@@ -823,13 +823,12 @@ exports.cancelRegistration = async (req, res) => {
     } catch (auth0Err) {
       console.error('Error deleting from Auth0:', auth0Err);
       return res.status(502).json({
-        message: 'Failed to delete Auth0 account',
-        error: auth0Err.message
+        message: 'Failed to delete Auth0 account'
       });
     }
   } catch (err) {
     console.error('Error cancelling registration:', err);
-    res.status(500).json({ message: 'Internal server error', error: err.message });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

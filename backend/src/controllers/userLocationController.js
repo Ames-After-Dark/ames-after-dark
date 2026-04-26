@@ -35,7 +35,12 @@ exports.updateUserLocation = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const updated = await userLocationService.updateUserLocationByUserId(user.id, req.body);
+    const { latitude, longitude } = req.body || {};
+    const updateData = {};
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+
+    const updated = await userLocationService.updateUserLocationByUserId(user.id, updateData);
     res.json(updated);
   } catch (err) {
     console.error(err);
@@ -107,7 +112,8 @@ exports.toggleLocationPermission = async (req, res) => {
       message: enabled ? "Permission granted" : "Permission revoked"
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -195,8 +201,8 @@ exports.checkIn = async (req, res) => {
 
     // Call the service we discussed
     const result = await userLocationService.processWeeklyCheckIn(
-      parseInt(userId), 
-      parseInt(locationId), 
+      parseInt(userId),
+      parseInt(locationId),
       timezone
     );
 

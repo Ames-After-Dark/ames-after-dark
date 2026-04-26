@@ -47,7 +47,35 @@ exports.createLocation = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    const newLocation = await locationService.createLocation(req.body);
+    const {
+      name,
+      address,
+      latitude,
+      longitude,
+      description,
+      open,
+      tags,
+      nickname,
+      location_type_id,
+      zone_id,
+      timezone,
+    } = req.body || {};
+
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(address !== undefined ? { address } : {}),
+      ...(latitude !== undefined ? { latitude } : {}),
+      ...(longitude !== undefined ? { longitude } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(open !== undefined ? { open } : {}),
+      ...(tags !== undefined ? { tags } : {}),
+      ...(nickname !== undefined ? { nickname } : {}),
+      ...(location_type_id !== undefined ? { location_type_id } : {}),
+      ...(zone_id !== undefined ? { zone_id } : {}),
+      ...(timezone !== undefined ? { timezone } : {}),
+    };
+
+    const newLocation = await locationService.createLocation(createData);
     res.status(201).json(newLocation);
   } catch (err) {
     console.error(err);
@@ -78,7 +106,35 @@ exports.updateLocation = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
     }
 
-    const updatedLocation = await locationService.updateLocation(id, req.body);
+    const {
+      name,
+      address,
+      latitude,
+      longitude,
+      description,
+      open,
+      tags,
+      nickname,
+      location_type_id,
+      zone_id,
+      timezone,
+    } = req.body || {};
+
+    const updateData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(address !== undefined ? { address } : {}),
+      ...(latitude !== undefined ? { latitude } : {}),
+      ...(longitude !== undefined ? { longitude } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(open !== undefined ? { open } : {}),
+      ...(tags !== undefined ? { tags } : {}),
+      ...(nickname !== undefined ? { nickname } : {}),
+      ...(location_type_id !== undefined ? { location_type_id } : {}),
+      ...(zone_id !== undefined ? { zone_id } : {}),
+      ...(timezone !== undefined ? { timezone } : {}),
+    };
+
+    const updatedLocation = await locationService.updateLocation(id, updateData);
     if (!updatedLocation) return res.status(404).json({ message: 'Location not found' });
     res.json(updatedLocation);
   } catch (err) {

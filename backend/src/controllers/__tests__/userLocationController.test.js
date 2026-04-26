@@ -76,7 +76,7 @@ describe('userLocationController', () => {
             userLocationService.updateUserLocationByUserId.mockResolvedValue(mockUpdated);
 
             await userLocationController.updateUserLocation(req, res);
-            expect(userLocationService.updateUserLocationByUserId).toHaveBeenCalledWith(1, req.body);
+            expect(userLocationService.updateUserLocationByUserId).toHaveBeenCalledWith(1, { latitude: 10, longitude: 20 });
             expect(res.json).toHaveBeenCalledWith(mockUpdated);
         });
     });
