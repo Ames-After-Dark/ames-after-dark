@@ -49,7 +49,7 @@ export const UserLocationService = {
     },
 
     checkWeeklyStreak: async (token: string, locationId: number, timezone: string): Promise<WeeklyCheckInResponse> => {
-        return await apiFetchAuth(`/locations/${locationId}/checkin`, token, {
+        return await apiFetchAuth(`/userlocations/checkin/${locationId}`, token, {
             method: "POST",
             body: JSON.stringify({ timezone }),
         });
