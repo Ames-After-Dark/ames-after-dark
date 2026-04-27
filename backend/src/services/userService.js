@@ -393,13 +393,17 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
     return null;
   }
 
-  // Check if role name is strictly equal to "admin" or "Admin"
-  const isAdmin = user.roles?.name?.toLowerCase() === 'admin';
-  const manageableLocations = user.location_admins.map(la => la.locations.id);
+  // Standardize role structure for controllers
+  const roleName = user.roles?.name || null;
+  const isAdmin = roleName?.toLowerCase() === 'admin';
+  const isDeveloper = roleName?.toLowerCase() === 'developer';
+  const location_admins = (user.location_admins || []).map(la => ({ location_id: la.locations.id }));
 
   return {
-    role: isAdmin,
-    location_ids: manageableLocations
+    roles: { name: roleName },
+    isAdmin,
+    isDeveloper,
+    location_admins
   };
 };
 
