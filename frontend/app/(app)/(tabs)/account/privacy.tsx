@@ -25,7 +25,7 @@ export default function PrivacyScreen() {
 
         <Text style={styles.title}>Privacy Controls</Text>
         <Text style={styles.subtitle}>
-          We take your privacy seriously. We're currently building tools to give you more control over your data and visibility in Ames.
+          We take your privacy seriously. We&apos;re currently building tools to give you more control over your data and visibility in Ames.
         </Text>
 
         <View style={styles.card}>

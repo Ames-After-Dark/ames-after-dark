@@ -210,7 +210,7 @@ export const MapBottomSheet = ({
                             onClose();
                         }}
                     >
-                        <Text style={styles.buttonText}>View {location.name}'s Profile</Text>
+                        <Text style={styles.buttonText}>{`View ${location.name}'s Profile`}</Text>
                     </TouchableOpacity>
                 ) : isSelf(location) ? (
                     <TouchableOpacity

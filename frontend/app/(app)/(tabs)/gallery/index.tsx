@@ -231,7 +231,7 @@ export default function GalleryScreen() {
           search.trim().length > 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                No albums found matching "{search}"
+                No albums found matching &quot;{search}&quot;
               </Text>
             </View>
           ) : (

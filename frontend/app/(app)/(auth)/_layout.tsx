@@ -6,7 +6,7 @@ export default function AuthLayout() {
     const { isLoading} = useAuth()
 
     if (isLoading) {
-        <View style={{
+        return <View style={{
             flex: 1,
             justifyContent: 'center',
             alignItems: 'center',

@@ -372,7 +372,7 @@ export default function LocationVisibilityScreen() {
                   <View style={styles.statusContainer}>
                     <FontAwesome name="eye-slash" size={60} color="#33CCFF" style={{ opacity: 0.6 }} />
                     <Text style={styles.statusTitle}>Ghost Mode Active</Text>
-                    <Text style={styles.statusSub}>You're off the grid. No one can see you.</Text>
+                    <Text style={styles.statusSub}>You&apos;re off the grid. No one can see you.</Text>
                   </View>
                 );
               }

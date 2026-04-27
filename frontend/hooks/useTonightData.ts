@@ -214,10 +214,7 @@ function getOpenHoursText(location: Location): string | undefined {
 // TODO: Remove this function once the backend has a dedicated "today" endpoint.
 // Keeps only deals/events that have at least one occurrence starting or active
 // on the current calendar day in America/Chicago (CDT/CST).
-function filterTonightOccurrences<T extends {
-  deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-  event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-}>(items: T[]): T[] {
+function filterTonightOccurrences<T>(items: T[]): T[] {
   const now = new Date();
 
   // Get today's date string in CDT (America/Chicago)
@@ -259,7 +256,11 @@ function filterTonightOccurrences<T extends {
   };
 
   return items.filter((item) => {
-    const occurrences = item.deal_occurrences ?? item.event_occurrences ?? [];
+    const maybeOccurrences = item as T & {
+      deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
+      event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
+    };
+    const occurrences = maybeOccurrences.deal_occurrences ?? maybeOccurrences.event_occurrences ?? [];
     return isTonight(occurrences);
   });
 }

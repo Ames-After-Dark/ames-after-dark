@@ -7,9 +7,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     const { getAccessToken } = useAuth();
+    const ownsBackgroundTaskRef = useRef(false);
 
     useEffect(() => {
         if (userId === undefined || !hasPermission) return;
+        let isEffectActive = true;
 
         const startTracking = async () => {
             try {
@@ -28,24 +30,32 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                 const initial = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Balanced
                 });
-                
+
                 await UserLocationService.updateLocation(token, {
                     latitude: initial.coords.latitude,
                     longitude: initial.coords.longitude,
                 });
 
-                // Kick off the background task
-                await Location.startLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK', {
-                    accuracy: Location.Accuracy.Balanced,
-                    distanceInterval: 15,
-                    showsBackgroundLocationIndicator: true,
-                    pausesUpdatesAutomatically: false,
-                    activityType: Location.ActivityType.Fitness,
-                    foregroundService: {
-                        notificationTitle: "Ames After Dark",
-                        notificationBody: "Keeping your location synced with friends.",
+                const alreadyRunning = await Location.hasStartedLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK');
+                if (!alreadyRunning) {
+                    // Kick off the background task
+                    await Location.startLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK', {
+                        accuracy: Location.Accuracy.Balanced,
+                        distanceInterval: 15,
+                        showsBackgroundLocationIndicator: true,
+                        pausesUpdatesAutomatically: false,
+                        activityType: Location.ActivityType.Fitness,
+                        foregroundService: {
+                            notificationTitle: "Ames After Dark",
+                            notificationBody: "Keeping your location synced with friends.",
+                        }
+                    });
+                    if (isEffectActive) {
+                        ownsBackgroundTaskRef.current = true;
                     }
-                });
+                } else if (isEffectActive) {
+                    ownsBackgroundTaskRef.current = false;
+                }
 
                 console.log("Night Out tracking active.");
 
@@ -57,9 +67,14 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         startTracking();
 
         return () => {
-            Location.stopLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK').catch(console.error);
-            SecureStore.deleteItemAsync('user_token').catch(console.error);
-            AsyncStorage.removeItem('trackingExpiry').catch(console.error);
+            isEffectActive = false;
+
+            if (ownsBackgroundTaskRef.current) {
+                Location.stopLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK').catch(console.error);
+                SecureStore.deleteItemAsync('user_token').catch(console.error);
+                AsyncStorage.removeItem('trackingExpiry').catch(console.error);
+                ownsBackgroundTaskRef.current = false;
+            }
         };
     }, [userId, hasPermission, getAccessToken]);
 }

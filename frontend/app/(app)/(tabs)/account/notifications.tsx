@@ -25,7 +25,7 @@ export default function NotificationsScreen() {
 
         <Text style={styles.title}>Stay in the Loop</Text>
         <Text style={styles.subtitle}>
-          Get notified when your friends head out to Welch Ave, when there are exclusive drink deals, or when it's time to celebrate a birthday.
+          Get notified when your friends head out to Welch Ave, when there are exclusive drink deals, or when it&apos;s time to celebrate a birthday.
         </Text>
 
         <View style={styles.card}>

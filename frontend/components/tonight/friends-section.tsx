@@ -219,7 +219,7 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
                           style={styles.detailsButton}
                           onPress={() => stackedBarTargets.paddys && onBarPress(String(stackedBarTargets.paddys.id))}
                         >
-                          <Text style={styles.detailsButtonText}>View Paddy's</Text>
+                          <Text style={styles.detailsButtonText}>View Paddy&apos;s</Text>
                         </Pressable>
                       </>
                     ) : (
