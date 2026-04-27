@@ -1,11 +1,17 @@
 import { apiFetch } from "./apiClient";
 
+export interface OccurrenceRow {
+  start_time_utc: string | Date;
+  end_time_utc: string | Date;
+}
+
 export interface Deal {
   id: string;
   locationId: string;
   title: string;
   description?: string;
   rule?: string; // e.g., "MON 17:00-22:00"
+  deal_occurrences?: OccurrenceRow[];
   // ... other deal fields as needed
 }
 

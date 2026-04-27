@@ -14,6 +14,13 @@ import { Deal } from "@/services/dealsService";
 import { Event } from "@/services/eventsService";
 import { Location } from "./useOpenBars";
 
+// Shape required by filterTonightOccurrences – items must carry at least one
+// of the occurrence arrays that the API embeds on Deal/Event responses.
+interface HasOccurrences {
+  deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
+  event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
+}
+
 export interface TonightBarData {
   id: string;
   bar: string;
@@ -214,7 +221,7 @@ function getOpenHoursText(location: Location): string | undefined {
 // TODO: Remove this function once the backend has a dedicated "today" endpoint.
 // Keeps only deals/events that have at least one occurrence starting or active
 // on the current calendar day in America/Chicago (CDT/CST).
-function filterTonightOccurrences<T>(items: T[]): T[] {
+function filterTonightOccurrences<T extends HasOccurrences>(items: T[]): T[] {
   const now = new Date();
 
   // Get today's date string in CDT (America/Chicago)
@@ -256,11 +263,7 @@ function filterTonightOccurrences<T>(items: T[]): T[] {
   };
 
   return items.filter((item) => {
-    const maybeOccurrences = item as T & {
-      deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-      event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-    };
-    const occurrences = maybeOccurrences.deal_occurrences ?? maybeOccurrences.event_occurrences ?? [];
+    const occurrences = item.deal_occurrences ?? item.event_occurrences ?? [];
     return isTonight(occurrences);
   });
 }
@@ -274,7 +277,6 @@ function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
     name?: string;
     description?: string;
     start_time_utc?: string | Date;
-    deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
     deals?: {
       id?: string | number;
       location_id?: string | number;
@@ -314,7 +316,6 @@ function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
     name?: string;
     description?: string;
     start_time_utc?: string | Date;
-    event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
     events?: {
       id?: string | number;
       location_id?: string | number;

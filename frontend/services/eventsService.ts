@@ -1,5 +1,10 @@
 import { apiFetch } from "./apiClient";
 
+export interface OccurrenceRow {
+  start_time_utc: string | Date;
+  end_time_utc: string | Date;
+}
+
 export interface Event {
   id: string;
   locationId: string;
@@ -9,6 +14,7 @@ export interface Event {
   rule?: string; // e.g., "FRI 21:00-23:59"
   start_time_utc?: string;
   end_time_utc?: string;
+  event_occurrences?: OccurrenceRow[];
   events?: {
     id?: string | number;
     location_id?: string | number;
