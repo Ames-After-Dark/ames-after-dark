@@ -47,6 +47,11 @@ export type UserDatabase = {
     [key: string]: UserProfile;
 };
 
+export interface OccurrenceRow {
+  start_time_utc: string | Date;
+  end_time_utc: string | Date;
+}
+
 // added here from bars
 export type TimeRule =
     | {
