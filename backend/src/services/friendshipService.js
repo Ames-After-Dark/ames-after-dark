@@ -153,12 +153,12 @@ exports.sendFriendRequest = async (userId, friendId) => {
   });
   if (existing) throw new Error('Friendship already exists or pending');
 
-  // Store with userId as user_id_1 and friendId as user_id_2 to track who sent the request
-  // This means user_id_1 = sender, user_id_2 = receiver (NOT ordered by ID)
+  // Store with ordered IDs to ensure only one record per pair of users
+  // This prevents duplicate records when both users send requests to each other
   return prisma.friendships.create({
     data: {
-      user_id_1: userId,
-      user_id_2: friendId,
+      user_id_1: id1,
+      user_id_2: id2,
       friendship_status_id: STATUS_PENDING
     }
   });
@@ -292,11 +292,12 @@ exports.blockFriend = async (userId, friendId) => {
     });
 
     if (!friendship) {
-      // If no friendship exists, create one with blocked status
+      // If no friendship exists, create one with blocked status (using ordered IDs)
+      const [id1, id2] = getOrderedIds(userId, friendId);
       return tx.friendships.create({
         data: {
-          user_id_1: userId,
-          user_id_2: friendId,
+          user_id_1: id1,
+          user_id_2: id2,
           friendship_status_id: STATUS_BLOCKED
         }
       });
