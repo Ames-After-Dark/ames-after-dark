@@ -36,6 +36,31 @@ const { checkJwt } = require('../middleware/authMiddleware');
  */
 router.get('/friends', checkJwt, friendshipController.getFriends);
 
+/**
+ * @swagger
+ * /api/friendships/friends/ordered-by-streak:
+ *   get:
+ *     summary: Get friends ordered by streak
+ *     description: Retrieves the list of friends for the authenticated user, ordered by current streak
+ *     tags:
+ *       - Friendships
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Friends list retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.get('/friends', checkJwt, friendshipController.getFriendsOrderedByStreak);
 
 // Get accepted friends for one of your friends
 router.get('/friends/:friendId/friends', checkJwt, friendshipController.getFriendsOfFriend);

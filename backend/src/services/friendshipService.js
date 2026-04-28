@@ -61,6 +61,49 @@ exports.getFriends = async (userId) => {
   );
 };
 
+exports.getFriendsOrderedByStreak = async (userId) => {
+  // Return all accepted friends for user, ordered by streak (highest first)
+  const friendships = await prisma.friendships.findMany({
+    where: {
+      OR: [
+        { user_id_1: userId },
+        { user_id_2: userId }
+      ],
+      friendship_status_id: STATUS_ACCEPTED
+    },
+    include: {
+      users_friendships_user_id_1Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo_id: true,
+          profile_photo: true,
+          bio: true,
+          streak: true
+        }
+      },
+      users_friendships_user_id_2Tousers: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          profile_photo_id: true,
+          profile_photo: true,
+          bio: true,
+          streak: true
+        }
+      }
+    }
+  });
+  const friends = friendships.map(f =>
+    f.user_id_1 === userId ? f.users_friendships_user_id_2Tousers : f.users_friendships_user_id_1Tousers
+  );
+  // Sort by streak in descending order (highest streak first)
+  return friends.sort((a, b) => (b.streak || 0) - (a.streak || 0));
+};
+
+
 exports.getFriendsOfFriend = async (userId, friendId) => {
   // Confirm the target user is an accepted friend first
   const friendship = await prisma.friendships.findFirst({
