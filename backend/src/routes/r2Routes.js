@@ -1,5 +1,5 @@
 const express = require('express');
-const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const router = express.Router();
@@ -180,6 +180,10 @@ router.get('/albums', async (req, res) => {
 
     for (const obj of allObjects) {
       const key = obj?.Key || '';
+
+      // Ignore any photos that have been hidden by photographers
+      if (key.includes('hidden_')) continue;
+
       const folderName = key.split('/')[0];
       const ext = key.toLowerCase().split('.').pop();
 
@@ -286,10 +290,15 @@ router.get('/photos', async (req, res) => {
     const objs = await listR2Objects(normalizedPrefix);
     if (!objs.length) return res.json([]);
 
-    const imageObjs = objs.filter(o =>
-      ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(
-        (o?.Key || '').toLowerCase().split('.').pop())
-    );
+    const imageObjs = objs.filter(o => {
+      const key = o?.Key || '';
+
+      // Ignore any photos that have been hidden by photographers
+      if (key.includes('hidden_')) return false;
+
+      const ext = key.toLowerCase().split('.').pop();
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+  });
 
     const photos = await Promise.all(imageObjs.map(async (o) => ({
       id: o.Key,
@@ -300,6 +309,74 @@ router.get('/photos', async (req, res) => {
   } catch (err) {
     console.error('Error fetching photos:', err);
     res.status(500).json({ error: 'Failed to fetch photos' });
+  }
+});
+
+/**
+ * PATCH /api/r2/photos/hide
+ * Soft deletes a photo by prepending "hidden_" to its filename in R2
+ */
+/**
+ * @swagger
+ * /api/r2/photos/hide:
+ * patch:
+ * summary: Hide a photo
+ * description: Soft-deletes a photo from the public app by renaming the object key with a 'hidden_' prefix.
+ * tags:
+ * - Storage
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * required:
+ * - key
+ * properties:
+ * key:
+ * type: string
+ * description: The S3 object key of the photo to hide
+ * responses:
+ * 200:
+ * description: Photo hidden successfully
+ * 400:
+ * description: Missing key parameter
+ * 500:
+ * description: Server error
+ */
+router.patch('/photos/hide', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (!key) return res.status(400).json({ error: 'Missing key parameter' });
+
+    // Split the path to isolate the filename from the folder
+    // e.g., "Outlaws 04-09/_DSC9171.jpg" -> folder: "Outlaws 04-09", filename: "_DSC9171.jpg"
+    const parts = key.split('/');
+    const fileName = parts.pop();
+    const folderPath = parts.join('/');
+    
+    // Inject "hidden_" right before the filename
+    const newKey = folderPath ? `${folderPath}/hidden_${fileName}` : `hidden_${fileName}`;
+
+    // Copy the object to its new "hidden_" name
+    const copyCommand = new CopyObjectCommand({
+      Bucket: CLOUDFLARE_R2_BUCKET,
+      CopySource: `${CLOUDFLARE_R2_BUCKET}/${encodeURI(key)}`,
+      Key: newKey,
+    });
+    await s3.send(copyCommand);
+
+    // Delete the old object
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: CLOUDFLARE_R2_BUCKET,
+      Key: key,
+    });
+    await s3.send(deleteCommand);
+
+    res.json({ success: true, message: 'Photo hidden successfully', newKey });
+  } catch (err) {
+    console.error('Error hiding photo:', err);
+    res.status(500).json({ error: 'Failed to hide photo' });
   }
 });
 
