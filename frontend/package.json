@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint || exit 0",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -54,12 +54,16 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "baseline-browser-mapping": "^2.10.16",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest-expo": "^55.0.16",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0",
+    "react-test-renderer": "^19.1.0",
     "typescript": "~5.9.2"
   },
   "overrides": {
