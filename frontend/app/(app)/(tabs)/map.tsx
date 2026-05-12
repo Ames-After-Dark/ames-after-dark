@@ -78,6 +78,12 @@ export default function MapScreen() {
 
     // 1. Request Permissions & Start Background Task
     useEffect(() => {
+        if (!currentUserId) {
+            setHasPermission(false);
+            setUserLocation(null);
+            return;
+        }
+
         (async () => {
             // Ask for Foreground first
             const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
@@ -107,7 +113,7 @@ export default function MapScreen() {
                 }
             }
         })();
-    }, []);
+    }, [currentUserId]);
 
     // 2. Initial Map Focus & Foreground User Location Sync
     useEffect(() => {

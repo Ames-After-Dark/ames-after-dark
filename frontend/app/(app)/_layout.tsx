@@ -1,20 +1,14 @@
-import { AuthProvider, useAuth } from "@/hooks/use-auth"
-import { NavigationContainer, DefaultTheme, DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { useAuth } from "@/hooks/use-auth"
+import { DefaultTheme, DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { useColorScheme, View, ActivityIndicator } from "react-native";
-import { Stack, useSegments, useRouter, Redirect } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { useLocationTracker } from "@/hooks/useLocationTracker";
+import { Stack, useSegments, useRouter } from 'expo-router'
+import { useEffect } from 'react'
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoading, isSwitching, setIsSwitching, userStatus, user } = useAuth()
+  const { isAuthenticated, isLoading, setIsSwitching, userStatus } = useAuth()
   const segments = useSegments()
   const router = useRouter()
   const colorScheme = useColorScheme()
-
-  useLocationTracker(
-    user?.sub, 
-    isAuthenticated && userStatus?.profileComplete === true
-  );
 
   useEffect(() => {
     if (isLoading) {
@@ -25,10 +19,11 @@ export default function AppLayout() {
     const inTabsGroup = segments[1] === "(tabs)"
     const currentPath = segments.join("/")
 
-    // If not authenticated, redirect to auth
-    if (!isAuthenticated && !inAuthGroup) {
-      console.log("Switching to (auth) screen")
-      router.navigate("/(app)/(auth)")
+    // Guests are allowed into the public tabs for App Store compliant browsing.
+    if (!isAuthenticated) {
+      if (!inTabsGroup && !inAuthGroup) {
+        router.replace("/(app)/(tabs)" as any)
+      }
       return
     }
 
@@ -48,7 +43,7 @@ export default function AppLayout() {
       // If profile complete and not on tabs, go to tabs
       else if (userStatus.profileComplete && !inTabsGroup) {
         console.log("Switching to (tabs) screen")
-        router.navigate("/(app)/(tabs)" as any)
+        router.replace("/(app)/(tabs)" as any)
         setIsSwitching(false)
       }
     }

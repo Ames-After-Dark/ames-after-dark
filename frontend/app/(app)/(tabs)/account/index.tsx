@@ -2,8 +2,7 @@ import { Redirect, type Route } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { View, ActivityIndicator } from 'react-native';
 import { Theme } from '@/constants/theme';
-
-const LOGIN_ROUTE = '/(auth)/index' as Route;
+import { GuestSignInPrompt } from '@/components/auth/GuestSignInPrompt';
 
 export default function AccountIndex() {
     const { currentUser, isLoading } = useAuth();
@@ -20,5 +19,11 @@ export default function AccountIndex() {
         return <Redirect href={`/account/${currentUser.id}` as Route} />;
     }
 
-    return <Redirect href={LOGIN_ROUTE} />;
+    return (
+        <GuestSignInPrompt
+            title="Sign in for your account"
+            message="Profiles, friends, favorites, settings, and location sharing are available after you sign in."
+            icon="person-circle-outline"
+        />
+    );
 }

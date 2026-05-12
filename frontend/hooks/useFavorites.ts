@@ -1,25 +1,36 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { favoriteService } from '@/services/favoriteService';
 import { useAuth } from './use-auth';
 
 export function useFavorites() {
 
-    const { currentUser, getAccessToken } = useAuth();
+    const { currentUser, getAccessToken, isAuthenticated } = useAuth();
     const USER_ID = currentUser?.id ? Number(currentUser.id) : null;
+    const hasValidUserId = USER_ID !== null && !isNaN(USER_ID);
 
     const [favorites, setFavorites] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (!hasValidUserId) {
+            setFavorites({});
+        }
+    }, [hasValidUserId]);
+
     const loadFavorites = useCallback(async () => {
-        if (!USER_ID || isNaN(USER_ID)) {
+        if (!hasValidUserId) {
             console.log("Skipping favorites fetch: USER_ID is not a valid number.");
+            setFavorites({});
             return;
         }
 
         setLoading(true);
         try {
 
-            const data = await favoriteService.getUserFavorites(USER_ID);
+            const token = await getAccessToken();
+            if (!token) return;
+
+            const data = await favoriteService.getUserFavorites(token, USER_ID!);
 
             const favMap: Record<string, boolean> = {};
             if (data && Array.isArray(data)) {
@@ -34,10 +45,10 @@ export function useFavorites() {
         } finally {
             setLoading(false);
         }
-    }, [USER_ID]);
+    }, [getAccessToken, hasValidUserId]);
 
     const toggleFavorite = useCallback(async (locationId: number | string) => {
-        if (!USER_ID || isNaN(USER_ID)) {
+        if (!hasValidUserId) {
             console.log("Skipping favorite toggle: USER_ID is not a valid number.");
             return;
         }
@@ -49,16 +60,26 @@ export function useFavorites() {
 
         try {
             const token = await getAccessToken();
-            if (!token) return;
+            if (!token) {
+                setFavorites((prev: Record<string, boolean>) => ({ ...prev, [idStr]: !prev[idStr] }));
+                return;
+            }
 
             const result = await favoriteService.toggleFavorite(token, idNum);
             setFavorites(prev => ({ ...prev, [idStr]: result.favorited }));
         } catch (error) {
             setFavorites((prev: Record<string, boolean>) => ({ ...prev, [idStr]: !prev[idStr] }));
         }
-    }, [USER_ID, getAccessToken]);
+    }, [getAccessToken, hasValidUserId]);
 
     const isFavorited = (locationId: number | string) => !!favorites[String(locationId)];
 
-    return { favorites, toggleFavorite, isFavorited, loadFavorites, loading };
+    return {
+        favorites,
+        toggleFavorite,
+        isFavorited,
+        loadFavorites,
+        loading,
+        canUseFavorites: isAuthenticated && hasValidUserId,
+    };
 }

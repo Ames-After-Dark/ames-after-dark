@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, NativeSyntheticEvent, NativeScrollEvent, Animated } from "react-native";
+import { View, Text, StyleSheet, FlatList, TextInput, RefreshControl, NativeSyntheticEvent, NativeScrollEvent, Animated, Alert } from "react-native";
 import { useNavigation, useRouter } from "expo-router";
 import { FontAwesome, FontAwesome5 } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,7 +21,7 @@ export default function Bars() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { topHeaderVisible, setTopHeaderVisible } = useTopHeaderVisibility();
-  const { isFavorited, toggleFavorite } = useFavorites();
+  const { isFavorited, toggleFavorite, canUseFavorites } = useFavorites();
 
   // Constants
   const HEADER_HEIGHT = 60 + insets.top;
@@ -114,6 +114,17 @@ export default function Bars() {
       setRefreshing(false);
     }
   }, [refetch]);
+
+  const promptForFavoriteSignIn = useCallback(() => {
+    Alert.alert(
+      "Sign in to save favorite bars",
+      "Create or sign in to your Ames After Dark account to keep a favorites list.",
+      [
+        { text: "Not now", style: "cancel" },
+        { text: "Sign In", onPress: () => router.replace("/(app)/(auth)" as any) },
+      ]
+    );
+  }, [router]);
 
   useEffect(() => {
     // 1. Explicitly type the parent as a BottomTabNavigationProp
@@ -209,7 +220,13 @@ export default function Bars() {
               key={option}
               label={option}
               isActive={filter === option}
-              onPress={() => setFilter(prev => (prev === option ? null : option))}
+              onPress={() => {
+                if (option === "Favorites" && !canUseFavorites) {
+                  promptForFavoriteSignIn();
+                  return;
+                }
+                setFilter(prev => (prev === option ? null : option));
+              }}
             />
           ))}
         </View>
@@ -243,7 +260,13 @@ export default function Bars() {
             <BarCard
               item={item}
               isFav={isFavorited(item.id)}
-              onToggleFav={() => toggleFavorite(item.id)}
+              onToggleFav={() => {
+                if (!canUseFavorites) {
+                  promptForFavoriteSignIn();
+                  return;
+                }
+                toggleFavorite(item.id);
+              }}
               onPress={(id) => router.replace({ pathname: "/(app)/(tabs)/bars/[id]", params: { id } })}
             />
           )}
