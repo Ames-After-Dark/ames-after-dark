@@ -30,16 +30,16 @@ describe('AccountIndex routing', () => {
     );
   });
 
-  it('redirects to the login route when no user exists', () => {
+  it('shows a guest sign-in prompt when no user exists', () => {
     (useAuth as jest.Mock).mockReturnValue({
       currentUser: null,
       isLoading: false,
+      signIn: jest.fn(),
     });
 
-    render(<AccountIndex />);
+    const { getByText } = render(<AccountIndex />);
 
-    expect((Redirect as jest.Mock).mock.calls[0][0]).toEqual(
-      expect.objectContaining({ href: '/(auth)/index' })
-    );
+    expect(getByText('Sign in for your account')).toBeTruthy();
+    expect(Redirect).not.toHaveBeenCalled();
   });
 });

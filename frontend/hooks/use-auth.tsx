@@ -170,8 +170,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const credentials = await getCredentials()
       return credentials?.accessToken || null
-    } catch (e) {
-      console.error("Error getting access token:", e)
+    } catch (e: any) {
+      const message = String(e?.message || e?.code || e || "")
+      if (!message.includes("NO_CREDENTIALS") && !message.includes("No credentials")) {
+        console.error("Error getting access token:", e)
+      }
       return null
     }
   }

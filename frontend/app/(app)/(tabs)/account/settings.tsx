@@ -67,9 +67,10 @@ export default function AccountSettingsScreen() {
   // getAvatarById always returns a valid asset (falls back to AVATAR_OPTIONS[0])
   const avatarSource = getAvatarById(fullUser?.profile_photo_id).source;
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     console.log('Signing out.');
-    signOut();
+    await signOut(true);
+    router.replace('/tonight');
   };
 
   // const handleSignOut = () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity, Animated, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
@@ -27,7 +27,7 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
     const parts = pathname.split('/');
     id = parts[2];
   }
-  const { isFavorited, toggleFavorite } = useFavorites();
+  const { isFavorited, toggleFavorite, canUseFavorites } = useFavorites();
 
   // console.log('TopHeader - Pathname:', pathname);
   // console.log('TopHeader - Bar ID param:', id);
@@ -85,7 +85,20 @@ export default function TopHeader({ visible = true }: TopHeaderProps) {
         <View style={styles.slot}>
           {isBarProfile && hasValidId ? (
             <TouchableOpacity
-              onPress={() => toggleFavorite(barIdNumeric)}
+              onPress={() => {
+                if (!canUseFavorites) {
+                  Alert.alert(
+                    "Sign in to save favorite bars",
+                    "Create or sign in to your Ames After Dark account to keep a favorites list.",
+                    [
+                      { text: "Not now", style: "cancel" },
+                      { text: "Sign In", onPress: () => router.push('/(app)/(auth)' as any) },
+                    ]
+                  );
+                  return;
+                }
+                toggleFavorite(barIdNumeric);
+              }}
               hitSlop={10}
             >
               <FontAwesome

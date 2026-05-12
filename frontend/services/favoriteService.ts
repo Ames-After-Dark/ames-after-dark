@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchAuth } from "./apiClient";
+import { apiFetchAuth } from "./apiClient";
 
 export interface FavoriteRecord {
     location_id: number;
@@ -7,9 +7,9 @@ export interface FavoriteRecord {
 
 export const favoriteService = {
 
-    getUserFavorites: async (userId: number): Promise<FavoriteRecord[]> => {
-        const responseData = await apiFetch(`/userfavorites/${userId}`);
-        console.log("Fetched favorites for user", userId, responseData);
+    getUserFavorites: async (token: string, userId: number): Promise<FavoriteRecord[]> => {
+        const responseData = await apiFetchAuth(`/userfavorites/${userId}`, token);
+        console.log("Fetched favorites for current user", responseData);
         return responseData;
     },
 

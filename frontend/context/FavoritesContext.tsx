@@ -10,14 +10,15 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
     const { currentUser } = useAuth();
     const userId = currentUser?.id;
+    const numericUserId = userId ? Number(userId) : null;
 
     useEffect(() => {
 
-        if (userId && typeof userId === 'number') {
-            console.log("Auth synced. Triggering favorites load for ID:", userId);
+        if (numericUserId && !Number.isNaN(numericUserId)) {
+            console.log("Auth synced. Triggering favorites load for ID:", numericUserId);
             favoritesLogic.loadFavorites();
         }
-    }, [userId]);
+    }, [numericUserId, favoritesLogic.loadFavorites]);
 
     return (
         <FavoritesContext.Provider value={favoritesLogic}>

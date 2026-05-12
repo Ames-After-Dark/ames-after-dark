@@ -470,10 +470,8 @@ export default function FriendProfileScreen() {
                         isMe={isMe}
                         isEditing={isEditing}
                         onEditBio={() => {
-                            // Mirror the existing bio edit UX, but allow editing display name too.
-                            // In edit mode, the pencil should open name editing (requested behavior).
-                            setNameText(user?.name || '');
-                            setIsNameModalVisible(true);
+                            setBioText(user?.bio || '');
+                            setIsBioModalVisible(true);
                         }}
                     />
 

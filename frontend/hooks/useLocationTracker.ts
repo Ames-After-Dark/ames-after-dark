@@ -5,6 +5,22 @@ import { useAuth } from './use-auth';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const NIGHT_OUT_TRACKING_TASK = 'NIGHT_OUT_TRACKING_TASK';
+
+async function stopNightOutTracking() {
+    try {
+        const hasStarted = await Location.hasStartedLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK);
+        if (hasStarted) {
+            await Location.stopLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK);
+        }
+    } catch (error: any) {
+        const message = String(error?.message || error || '');
+        if (!message.includes('not found')) {
+            console.error(error);
+        }
+    }
+}
+
 export function useLocationTracker(userId: number | undefined, hasPermission: boolean) {
     const { getAccessToken } = useAuth();
 
@@ -35,7 +51,7 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
                 });
 
                 // Kick off the background task
-                await Location.startLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK', {
+                await Location.startLocationUpdatesAsync(NIGHT_OUT_TRACKING_TASK, {
                     accuracy: Location.Accuracy.Balanced,
                     distanceInterval: 15,
                     showsBackgroundLocationIndicator: true,
@@ -57,7 +73,7 @@ export function useLocationTracker(userId: number | undefined, hasPermission: bo
         startTracking();
 
         return () => {
-            Location.stopLocationUpdatesAsync('NIGHT_OUT_TRACKING_TASK').catch(console.error);
+            stopNightOutTracking();
             SecureStore.deleteItemAsync('user_token').catch(console.error);
             AsyncStorage.removeItem('trackingExpiry').catch(console.error);
         };
@@ -77,7 +93,10 @@ export function useFriendsLocations(userId: number | undefined) {
         }
         try {
             const token = await getAccessToken();
-            if (!token) return;
+            if (!token) {
+                setLoading(false);
+                return;
+            }
 
             const data = await FriendLocationService.getFriendsLocations(token);
 
