@@ -399,11 +399,18 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
   const isDeveloper = roleName?.toLowerCase() === 'developer';
   const location_admins = (user.location_admins || []).map(la => ({ location_id: la.locations.id }));
 
+  // `role` / `location_ids`: the normalized shape the admin portal frontend consumes
+  // (GET /api/users/auth/roles). Developers are treated as the "manage every bar" tier.
+  const role = isDeveloper ? 'developer' : (isAdmin ? 'admin' : null);
+  const location_ids = location_admins.map(la => la.location_id);
+
   return {
     roles: { name: roleName },
     isAdmin,
     isDeveloper,
-    location_admins
+    location_admins,
+    role,
+    location_ids
   };
 };
 

@@ -868,8 +868,9 @@ exports.updateUserRole = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized: User not found' });
     }
 
-    // Check if requesting user is a developer (role_id = 4)
-    if (requestingUser.role_id !== 4) {
+    // Check if requesting user is a developer
+    const isDeveloper = requestingUser.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
       return res.status(403).json({
         message: 'Forbidden: Only developers can update user roles'
       });
@@ -924,100 +925,6 @@ exports.getAdmins = async (req, res) => {
       return res.status(403).json({
         message: 'Forbidden: Insufficient permissions'
       });
-    }
-
-    const admins = await userService.getAdmins();
-    res.json(admins);
-  } catch (err) {
-    console.error('Error fetching admins:', err);
-    res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-};
-
-/**
- * PATCH /api/users/:id/role
- * Update a user's role ID (admin/developer only)
- * Only users with role_id = 4 (developer) can update other users' roles
- * Body: { roleId: number }
- */
-exports.updateUserRole = async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id, 10);
-    const { roleId } = req.body;
-
-    // Validate inputs
-    if (isNaN(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
-
-    if (roleId === undefined || roleId === null) {
-      return res.status(400).json({ message: 'roleId is required' });
-    }
-
-    const parsedRoleId = parseInt(roleId, 10);
-    if (isNaN(parsedRoleId)) {
-      return res.status(400).json({ message: 'Invalid roleId - must be a number' });
-    }
-
-    // Get the requesting user
-    const authId = req.auth?.payload?.sub;
-    if (!authId) {
-      return res.status(401).json({ message: 'Unauthorized: No Auth0 ID in token' });
-    }
-
-    const requestingUser = await userService.getUserRolesByAuth0Id(authId);
-    if (!requestingUser) {
-      return res.status(401).json({ message: 'Unauthorized: User not found' });
-    }
-
-    // Check if requesting user is a developer
-    const isDeveloper = requestingUser.roles?.name?.toLowerCase() === 'developer';
-    if (!isDeveloper) {
-      return res.status(403).json({
-        message: 'Forbidden: Only developers can update user roles'
-      });
-    }
-
-    // Check if target user exists
-    const targetUser = await userService.getUserById(userId);
-    if (!targetUser) {
-      return res.status(404).json({ message: 'Target user not found' });
-    }
-
-    // Update the user's role
-    const updatedUser = await userService.updateUser(userId, { role_id: parsedRoleId });
-
-    return res.status(200).json({
-      message: 'User role updated successfully',
-      user: {
-        id: updatedUser.id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role_id: updatedUser.role_id
-      }
-    });
-  } catch (err) {
-    console.error('Error updating user role:', err);
-    res.status(500).json({
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-};
-
-/**
- * GET /api/users/admins
- * Get all admin users (role_id = 3)
- * Requires authentication
- */
-exports.getAdmins = async (req, res) => {
-  try {
-    const authId = req.auth?.payload?.sub;
-    if (!authId) {
-      return res.status(401).json({ message: 'Unauthorized' });
     }
 
     const admins = await userService.getAdmins();
