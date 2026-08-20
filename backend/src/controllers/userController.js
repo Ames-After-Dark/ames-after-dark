@@ -869,8 +869,9 @@ exports.updateUserRole = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized: User not found' });
     }
 
-    // Check if requesting user is a developer (role_id = 4)
-    if (requestingUser.role_id !== 4) {
+    // Check if requesting user is a developer
+    const isDeveloper = requestingUser.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
       return res.status(403).json({
         message: 'Forbidden: Only developers can update user roles'
       });

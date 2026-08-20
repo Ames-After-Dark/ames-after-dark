@@ -52,7 +52,16 @@ exports.createEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const event = await eventService.createEvent(req.body);
+    const { name, location_id: bodyLocationId, description, banner_id, occurrences } = req.body || {};
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(occurrences !== undefined ? { occurrences } : {}),
+    };
+
+    const event = await eventService.createEvent(createData);
     res.status(201).json(event);
   } catch (err) {
     console.error(err);
@@ -88,7 +97,16 @@ exports.updateEvent = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const event = await eventService.updateEvent(id, req.body);
+    const { name, location_id: body_location_id, description, banner_id, occurrences } = req.body || {};
+    const updateData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(body_location_id !== undefined ? { location_id: body_location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(occurrences !== undefined ? { occurrences } : {}),
+    };
+
+    const event = await eventService.updateEvent(id, updateData);
     res.json(event);
   } catch (err) {
     console.error(err);
