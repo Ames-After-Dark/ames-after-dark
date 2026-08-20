@@ -24,29 +24,28 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTonightData } from "@/hooks/useTonightData";
-// import { useFriends } from "@/hooks/useFriends";
+import type { BarGroupedTonight, BarDealOrEvent } from "@/hooks/useTonightData";
 import { useBars } from "@/hooks/useBars";
 
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
 
 import { Theme } from "@/constants/theme";
+import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 // import type { Friend } from "@/types/types";
 
 import OpenNowSection from "@/components/tonight/open-now-sections";
-import UpcomingSection from "@/components/tonight/upcomming-section";
 import FriendsSection from "@/components/tonight/friends-section";
-import DealsSection from "@/components/tonight/deals-section";
 import TonightHero from "@/components/tonight/hero-carousel";
 import { TonightSkeleton } from "@/components/tonight/tonight-skeleton";
 
-import { useUpcomingSchedule } from "@/hooks/use-upcoming-data";
 import { useTopHeaderVisibility } from '@/context/top-header-visibility';
+import { DealEventModal, DealEventPill } from "@/components/bars/deal-event-modal";
 
 // Simple static metadata that drives the tab UI (key used in logic, label shown in UI)
 const TAB_META = [
   { key: "open", label: "Open Now" },
-  { key: "deals", label: "Deals Tonight" },
+  { key: "deals", label: "Tonight" },
   { key: "friends", label: "Friends Near You" },
 ] as const;
 
@@ -62,6 +61,465 @@ const BOTTOM_DEAD_ZONE_PX = 24;
 const HIDE_SCROLL_THRESHOLD_PX = 28;
 const SHOW_SCROLL_THRESHOLD_PX = 20;
 
+// ─── Tonight Tab ─────────────────────────────────────────────────────────────
+// Renders bars grouped by deals/events, matching the Friends Near You pattern.
+
+function formatTime(d?: Date): string {
+  if (!d) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(d);
+}
+
+// DealEventPill and DealEventModal live in @/components/bars/deal-event-modal
+
+
+// ─── Bar Group Row ─────────────────────────────────────────────────────────────
+function BarGroupRow({
+  group,
+  isExpanded,
+  onToggle,
+  onBarPress,
+  onItemPress,
+}: {
+  group: BarGroupedTonight;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onBarPress: (id: string) => void;
+  onItemPress: (item: BarDealOrEvent) => void;
+}) {
+  const hasMore = group.rest.length > 0;
+
+  const sortedRest = React.useMemo(() =>
+    [...group.rest].sort((a, b) => {
+      const tA = a.startTimeUtc?.getTime() ?? Infinity;
+      const tB = b.startTimeUtc?.getTime() ?? Infinity;
+      return tA - tB;
+    }),
+  [group.rest]);
+
+  // When expanded: highlight drops into the list, all items shown under "Tonight"
+  const expandedItems = isExpanded
+    ? [group.highlight, ...sortedRest]
+    : sortedRest;
+
+  return (
+    <View style={[groupStyles.cardShell, isExpanded && groupStyles.cardShellExpanded]}>
+      {/* Main card row — whole card toggles dropdown (or opens popup if no extras) */}
+      <Pressable
+        style={groupStyles.card}
+        onPress={hasMore ? onToggle : () => onItemPress(group.highlight)}
+      >
+        {/* Logo */}
+        <Image
+          source={getLogoAssetForLocationName(group.barName)}
+          style={groupStyles.cardImage}
+          resizeMode="cover"
+        />
+
+        {/* Text area — collapsed: event name + time + bar name
+                      expanded: just bar name big, tapping closes */}
+        <View style={{ flex: 1 }}>
+          {isExpanded ? (
+            <Text style={groupStyles.cardBarNameBig} numberOfLines={1}>
+              {group.barName}
+            </Text>
+          ) : (
+            <>
+              {/* Title is its own Pressable so tapping it opens popup without toggling */}
+              <Pressable onPress={(e) => { e.stopPropagation?.(); onItemPress(group.highlight); }}>
+                <Text style={groupStyles.cardTitle} numberOfLines={1}>
+                  {group.highlight.title}
+                </Text>
+              </Pressable>
+              {group.highlight.startTimeUtc ? (
+                <Text style={groupStyles.cardSubtitle}>{formatTime(group.highlight.startTimeUtc)}</Text>
+              ) : null}
+              <Text style={groupStyles.cardDetail}>{group.barName}</Text>
+            </>
+          )}
+        </View>
+
+        {/* Right side chevron */}
+        {hasMore && (
+          <View style={groupStyles.cardRight}>
+            <DealEventPill kind={group.highlight.kind} />
+            {!isExpanded && (
+              <Text style={groupStyles.moreText}>+{group.rest.length}</Text>
+            )}
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={Theme.search.inactiveInput}
+            />
+          </View>
+        )}
+        {!hasMore && (
+          <View style={groupStyles.cardRight}>
+            <DealEventPill kind={group.highlight.kind} />
+          </View>
+        )}
+      </Pressable>
+
+      {/* Expanded panel */}
+      {isExpanded && (
+        <View style={groupStyles.expandedPanel}>
+          <View style={groupStyles.panelHeader}>
+            <Text style={groupStyles.panelHeaderTitle}>Tonight</Text>
+            <Text style={groupStyles.panelHeaderCount}>{expandedItems.length}</Text>
+          </View>
+          <View style={groupStyles.itemList}>
+            {expandedItems.map((item) => (
+              <Pressable
+                key={item.id}
+                style={groupStyles.itemRow}
+                onPress={() => onItemPress(item)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={groupStyles.itemTitle} numberOfLines={1}>{item.title}</Text>
+                  {item.startTimeUtc ? (
+                    <Text style={groupStyles.itemMeta}>{formatTime(item.startTimeUtc)}</Text>
+                  ) : null}
+                </View>
+                <DealEventPill kind={item.kind} />
+                <Ionicons name="chevron-forward" size={16} color={Theme.search.inactiveInput} />
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Action buttons */}
+          <View style={groupStyles.expandedActions}>
+            <Pressable style={groupStyles.detailsButton} onPress={() => onBarPress(group.barId)}>
+              <Text style={groupStyles.detailsButtonText}>View {group.barName} Details</Text>
+            </Pressable>
+            <Pressable style={groupStyles.closeButton} onPress={onToggle}>
+              <Text style={groupStyles.closeButtonText}>Collapse</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function BarGroupedList({
+  groups,
+  query,
+  onBarPress,
+  expandedIds,
+  toggleExpanded,
+}: {
+  groups: BarGroupedTonight[];
+  query: string;
+  onBarPress: (id: string) => void;
+  expandedIds: Set<string>;
+  toggleExpanded: (id: string) => void;
+}) {
+  const [selectedItem, setSelectedItem] = React.useState<BarDealOrEvent | null>(null);
+  const [selectedBarId, setSelectedBarId] = React.useState<string>("");
+  const [selectedBarName, setSelectedBarName] = React.useState<string>("");
+
+  const filtered = React.useMemo(() => {
+    const now = new Date();
+    const q = query.trim().toLowerCase();
+
+    let result = q
+      ? groups.filter(
+          (g) =>
+            g.barName.toLowerCase().includes(q) ||
+            g.highlight.title.toLowerCase().includes(q) ||
+            g.rest.some((r) => r.title.toLowerCase().includes(q))
+        )
+      : [...groups];
+
+    // Sort by highlight start time closest to now
+    result.sort((a, b) => {
+      const distA = a.highlight.startTimeUtc
+        ? Math.abs(a.highlight.startTimeUtc.getTime() - now.getTime())
+        : Infinity;
+      const distB = b.highlight.startTimeUtc
+        ? Math.abs(b.highlight.startTimeUtc.getTime() - now.getTime())
+        : Infinity;
+      return distA - distB;
+    });
+
+    return result;
+  }, [groups, query]);
+
+  const openPopup = (item: BarDealOrEvent, barId: string, barName: string) => {
+    setSelectedItem(item);
+    setSelectedBarId(barId);
+    setSelectedBarName(barName);
+  };
+
+  const closePopup = () => setSelectedItem(null);
+
+  if (filtered.length === 0) {
+    return (
+      <View style={groupStyles.stateContainer}>
+        <View style={groupStyles.iconCircle}>
+          <Ionicons name="pricetags-outline" size={40} color={Theme.dark.primary} />
+        </View>
+        <Text style={groupStyles.comingSoonHeader}>
+          {query.trim() ? "No matching deals or events" : "No deals or events tonight"}
+        </Text>
+        <Text style={groupStyles.emptyText}>
+          {query.trim()
+            ? "Try a different search term or clear the filter."
+            : "Check back later tonight for live deals and events."}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={groupStyles.container}>
+      <DealEventModal
+        item={selectedItem ? { id: selectedItem.id, kind: selectedItem.kind, title: selectedItem.title, subtitle: selectedItem.subtitle, startTime: selectedItem.startTimeUtc ? new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(selectedItem.startTimeUtc) : undefined } : null}
+        barName={selectedBarName}
+        barId={selectedBarId}
+        onClose={closePopup}
+        onBarPress={onBarPress}
+      />
+
+      {/* Header row */}
+      <View style={groupStyles.headerRow}>
+        <View style={groupStyles.headerIcon}>
+          <Ionicons name="pricetag" size={18} color={Theme.dark.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={groupStyles.sectionTitle}>Tonight</Text>
+          <Text style={groupStyles.sectionSubtitle}>
+            {filtered.length} bar{filtered.length === 1 ? "" : "s"} with deals or events
+          </Text>
+        </View>
+      </View>
+
+      <View style={groupStyles.cardsList}>
+        {filtered.map((group) => (
+          <BarGroupRow
+            key={group.barId}
+            group={group}
+            isExpanded={expandedIds.has(group.barId)}
+            onToggle={() => toggleExpanded(group.barId)}
+            onBarPress={onBarPress}
+            onItemPress={(item) => openPopup(item, group.barId, group.barName)}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const groupStyles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 92,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: Theme.search.background,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  sectionTitle: {
+    color: Theme.container.titleText,
+    fontSize: 16,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+  },
+  sectionSubtitle: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  cardsList: {
+    gap: 12,
+    zIndex: 1,
+  },
+  cardShell: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+    backgroundColor: Theme.container.background,
+    overflow: "hidden",
+  },
+  cardShellExpanded: {
+    borderColor: Theme.dark.primary,
+  },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+  },
+  cardImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  cardBarNameBig: {
+    color: Theme.container.titleText,
+    fontWeight: "800",
+    fontSize: 17,
+    letterSpacing: 0.3,
+  },
+  cardTitle: {
+    color: Theme.container.titleText,
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  cardSubtitle: {
+    color: Theme.container.inactiveText,
+    marginTop: 2,
+    fontSize: 13,
+  },
+  cardDetail: {
+    color: Theme.container.inactiveText,
+    marginTop: 2,
+    fontSize: 12,
+  },
+  cardRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  moreText: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  expandedPanel: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: Theme.container.secondaryBorder,
+    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+  panelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  panelHeaderTitle: {
+    color: Theme.container.titleText,
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+  },
+  panelHeaderCount: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  itemList: {
+    gap: 10,
+  },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 4,
+  },
+  itemTitle: {
+    color: Theme.container.titleText,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  itemMeta: {
+    color: Theme.container.inactiveText,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  expandedActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+    flexWrap: "wrap",
+  },
+  detailsButton: {
+    flex: 1,
+    backgroundColor: Theme.dark.primary,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  detailsButtonText: {
+    color: Theme.dark.white,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  closeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+    backgroundColor: Theme.search.background,
+  },
+  closeButtonText: {
+    color: Theme.container.titleText,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  stateContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 28,
+    paddingBottom: 92,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Theme.search.background,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Theme.container.secondaryBorder,
+  },
+  comingSoonHeader: {
+    color: Theme.container.titleText,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    color: Theme.container.inactiveText,
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 13,
+  },
+  dropdownBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+});
+
 export default function Tonight() {
 
   const insets = useSafeAreaInsets();
@@ -76,9 +534,11 @@ export default function Tonight() {
   const contentHeightRef = React.useRef(0);
 
   // Which tab the user is on
-  const [activeTab, setActiveTab] = useState<TabKey | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("open");
   // Global search query (filters both bars and friends)
   const [query, setQuery] = useState("");
+  // Expanded bars in Tonight tab — Set allows multiple open at once
+  const [tonightExpandedIds, setTonightExpandedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (isTabKey(tab)) {
@@ -161,7 +621,7 @@ export default function Tonight() {
   );
 
   // Fetch data from database using the custom hook
-  const { barsWithTonightData, allActiveDealsTonight, loading, error } = useTonightData();
+  const { barsWithTonightData, barGroupsTonight, loading, error } = useTonightData();
   const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
 
   const friendsLoading = false;
@@ -170,18 +630,10 @@ export default function Tonight() {
   const hasError = !!error || !!friendsError || shouldForceErrorPage("tonight");
   const isLoading = loading || friendsLoading || scheduledBarsLoading;
 
-  // ----- Filter for active tab -----
-  // Take the computed list and filter based on the selected tab + text query.
+  // ----- Filter for "Open Now" tab -----
   const filteredBars = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let data = barsWithTonightData;
-
-    // "Open Now" tab => only show bars that are currently open
-    if (activeTab === "open") data = data.filter((d) => d.isOpen);
-    // "Deals" tab => only bars with an active deal
-    if (activeTab === "deals") data = data.filter((d) => d.hasDeal);
-
-    // Text search across bar name, event name, and specials text
+    let data = barsWithTonightData.filter((d) => d.isOpen);
     if (q) {
       data = data.filter(
         (d) =>
@@ -191,61 +643,16 @@ export default function Tonight() {
       );
     }
     return data;
-  }, [activeTab, query, barsWithTonightData]);
-
-  // ----- Filter deals for "Deals Tonight" tab -----
-  const filteredDeals = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let data = allActiveDealsTonight || [];
-
-    if (q) {
-      data = data.filter(
-        (d) =>
-          d.bar.toLowerCase().includes(q) ||
-          d.title.toLowerCase().includes(q) ||
-          (d.subtitle ?? "").toLowerCase().includes(q)
-      );
-    }
-    return data;
-  }, [query, allActiveDealsTonight]);
+  }, [query, barsWithTonightData]);
 
   const activeSummary = useMemo(() => {
-    if (activeTab === "open") {
-      const count = filteredBars.length;
-      return {
-        icon: "time-outline" as const,
-        title: "Open Now",
-        subtitle: `${count} bar${count === 1 ? "" : "s"} currently open`,
-      };
-    }
-
-    if (activeTab === "deals") {
-      const count = filteredDeals.length;
-      return {
-        icon: "pricetag-outline" as const,
-        title: "Deals Tonight",
-        subtitle: `${count} active deal${count === 1 ? "" : "s"} tonight`,
-      };
-    }
-
-    return null;
-  }, [activeTab, filteredBars.length, filteredDeals.length, query]);
-
-  const upcomingWeekData = useUpcomingSchedule(scheduledBars, query);
-
-  const homeSummary = useMemo(() => {
-    if (activeTab !== null) {
-      return null;
-    }
-
-    const count = upcomingWeekData.items.length;
-
+    const count = filteredBars.length;
     return {
-      icon: "calendar-outline" as const,
-      title: "Upcoming This Week",
-      subtitle: `${count} upcoming deal${count === 1 ? "" : "s"} and event${count === 1 ? "" : "s"}`,
+      icon: "time-outline" as const,
+      title: "Open Now",
+      subtitle: `${count} bar${count === 1 ? "" : "s"} currently open`,
     };
-  }, [activeTab, upcomingWeekData.items.length]);
+  }, [filteredBars.length]);
 
   // Navigation helpers
   // Use router.replace (not push) so no ghost entry is added to the native stack.
@@ -276,7 +683,7 @@ export default function Tonight() {
       {!isLoading && !hasError && (
         <ScrollView
           stickyHeaderIndices={[1]} // index 1 (the "Sticky Tabs + Search" view) will stick to the top while scrolling
-          contentContainerStyle={{ paddingBottom: 1 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           contentInsetAdjustmentBehavior="never"
           bounces={true}
           alwaysBounceVertical={true}
@@ -337,16 +744,14 @@ export default function Tonight() {
           {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
           <View style={styles.stickyTabs}>
 
-            {/* Tab row: renders from TAB_META and toggles activeTab */}
+            {/* Tab row: renders from TAB_META, always switches (no toggle off) */}
             <View style={styles.tabsRow}>
               {TAB_META.map((t) => {
                 const active = activeTab === t.key;
                 return (
                   <Pressable
                     key={t.key}
-                    onPress={() =>
-                      setActiveTab((prev) => (prev === t.key ? null : t.key))
-                    }
+                    onPress={() => setActiveTab(t.key)}
                     style={[styles.tabBtn, active && styles.tabBtnActive]}
                   >
                     <Text
@@ -387,55 +792,7 @@ export default function Tonight() {
             </View>
           </View>
 
-          {/* Content area switches between: 
-                "open now" 
-                "deals" 
-                "friends near you"
-                "active deals and events ('null')" 
-          */}
-          {/* Content area logic */}
-          {/* {activeTab === null && (
-            <>
-              <View style={styles.tabSummaryRow}>
-                <View style={styles.tabSummaryIcon}>
-                  <Ionicons name={homeSummary?.icon ?? "calendar-outline"} size={18} color={Theme.dark.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
-                  <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
-                </View>
-              </View>
-              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
-            </>
-          )} */}
-
-          {/* Content area logic for "Home" (no tab selected) */}
-          {activeTab === null && (
-            <>
-              {/* 1. Show the "Upcoming This Week" header only if there is matching data */}
-              {upcomingWeekData.items.length > 0 ? (
-                <View style={styles.tabSummaryRow}>
-                  <View style={styles.tabSummaryIcon}>
-                    <Ionicons
-                      name={homeSummary?.icon ?? "calendar-outline"}
-                      size={18}
-                      color={Theme.dark.primary}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tabSummaryTitle}>{homeSummary?.title}</Text>
-                    <Text style={styles.tabSummarySubtitle}>{homeSummary?.subtitle}</Text>
-                  </View>
-                </View>
-              ) : (
-                /* 2. Spacer to keep the "No matching" message aligned across all views */
-                <View style={{ height: 48 }} />
-              )}
-
-              {/* 3. The section itself handles the "No matching" UI internally */}
-              <UpcomingSection data={upcomingWeekData} onBarPress={goToBarDetail} />
-            </>
-          )}
+          {/* Content area switches between: open now | deals tonight | friends near you */}
 
           {/* {activeTab === "open" && (
             <View style={styles.tabSummaryRow}>
@@ -484,51 +841,21 @@ export default function Tonight() {
             </>
           )}
 
-          {/* {activeTab === "deals" && (
-            <View style={styles.tabSummaryRow}>
-              <View style={styles.tabSummaryIcon}>
-                <Ionicons name={activeSummary?.icon ?? "pricetag-outline"} size={18} color={Theme.dark.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
-                <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
-              </View>
-            </View>
-          )}
-
           {activeTab === "deals" && (
-            <DealsSection data={filteredDeals} onBarPress={(id) => goToBarDetail(id, "tonight-deals")} />
-          )} */}
-
-          {activeTab === "deals" && (
-            <>
-              {/* 1. Show the Summary Row if there's data, otherwise show the spacer */}
-              {filteredDeals.length > 0 ? (
-                <View style={styles.tabSummaryRow}>
-                  <View style={styles.tabSummaryIcon}>
-                    <Ionicons
-                      name={activeSummary?.icon ?? "pricetag-outline"}
-                      size={18}
-                      color={Theme.dark.primary}
-                    />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tabSummaryTitle}>{activeSummary?.title}</Text>
-                    <Text style={styles.tabSummarySubtitle}>{activeSummary?.subtitle}</Text>
-                  </View>
-                </View>
-              ) : (
-                /* Spacer to match the Friends tab and maintain the message position */
-                <View style={{ height: 48 }} />
-              )}
-
-              {/* 2. Render the DealsSection below the header/spacer */}
-              <DealsSection
-                data={filteredDeals}
-                onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
-                query={query}
-              />
-            </>
+            <BarGroupedList
+              groups={barGroupsTonight}
+              query={query}
+              onBarPress={(id) => goToBarDetail(id, "tonight-deals")}
+              expandedIds={tonightExpandedIds}
+              toggleExpanded={(id) =>
+                setTonightExpandedIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+            />
           )}
 
           {activeTab === "friends" && (
@@ -620,7 +947,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabBtnActive: {
-    borderColor: Theme.dark.primary, // "#38bdf8"
+    borderColor: Theme.dark.primary,
+    backgroundColor: Theme.dark.primary + "22", // subtle fill
   },
   tabText: {
     color: Theme.container.inactiveText, // "#cbd5e1",

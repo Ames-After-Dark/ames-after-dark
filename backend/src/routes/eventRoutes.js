@@ -12,6 +12,51 @@ const { checkJwt } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
+ * /api/events/search:
+ *   post:
+ *     summary: Search events
+ *     description: Search for events with optional filters. All parameters are optional. Empty body returns all events.
+ *     tags:
+ *       - Events
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: number
+ *                 description: Event ID to search for
+ *               locationId:
+ *                 type: number
+ *                 description: Location ID to search for
+ *               startDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Filter events with occurrences starting at or after this datetime (ISO 8601)
+ *               endDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Filter events with occurrences ending at or before this datetime (ISO 8601)
+ *     responses:
+ *       200:
+ *         description: Events retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Event'
+ *       400:
+ *         description: Invalid datetime format
+ *       500:
+ *         description: Server error
+ */
+router.post('/search', eventController.searchEvents);
+
+/**
+ * @swagger
  * /api/events/active:
  *   get:
  *     summary: Get active events

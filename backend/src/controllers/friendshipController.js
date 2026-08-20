@@ -18,6 +18,24 @@ exports.getFriends = async (req, res) => {
   }
 };
 
+exports.getFriendsOrderedByStreak = async (req, res) => {
+  const auth0Id = req.auth?.payload?.sub;
+  if (!auth0Id) return res.status(401).json({ message: 'Unauthorized' });
+
+  try {
+    const user = await userService.getUserByAuth0Id(auth0Id);
+    if (!user) return res.status(403).json({ message: 'Forbidden' });
+    const userId = user.id;
+
+    const friends = await friendshipService.getFriendsOrderedByStreak(userId);
+    res.json(friends);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
 exports.getMutualFriends = async (req, res) => {
   const friendId = parseInt(req.params.friendId, 10);
   if (isNaN(friendId)) return res.status(400).json({ message: 'Invalid friendId' });
@@ -30,15 +48,18 @@ exports.getMutualFriends = async (req, res) => {
     if (!user) return res.status(403).json({ message: 'Forbidden' });
     const userId = user.id;
 
-    // Verify person exists
+    // Require an accepted friendship first.
+    const viewerFriends = await friendshipService.getFriends(userId);
+    const isAcceptedFriend = viewerFriends.some(f => f.id === friendId);
+
+    if (!isAcceptedFriend) return res.status(403).json({ message: 'Forbidden' });
+
+    // Verify person exists - sort of redundant
     const person = await userService.getUserById(friendId);
     if (!person) return res.status(404).json({ message: 'Person not found' });
 
     // Fetch both friend lists
-    const [viewerFriends, profileFriends] = await Promise.all([
-      friendshipService.getFriends(userId),
-      friendshipService.getFriends(friendId)
-    ]);
+    const profileFriends = await friendshipService.getFriends(friendId);
 
     // Compute mutuals in memory
     const viewerFriendIds = new Set(viewerFriends.map(f => f.id));

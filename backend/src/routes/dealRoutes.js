@@ -124,6 +124,51 @@ router.post('/recurring', checkJwt, dealController.createRecurringDeal);
 
 /**
  * @swagger
+ * /api/deals/search:
+ *   post:
+ *     summary: Search deals
+ *     description: Search for deals with optional filters. All parameters are optional. Empty body returns all deals.
+ *     tags:
+ *       - Deals
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: number
+ *                 description: Deal ID to search for
+ *               locationId:
+ *                 type: number
+ *                 description: Location ID to search for
+ *               startDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Filter deals with occurrences starting at or after this datetime (ISO 8601)
+ *               endDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Filter deals with occurrences ending at or before this datetime (ISO 8601)
+ *     responses:
+ *       200:
+ *         description: Deals retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Deal'
+ *       400:
+ *         description: Invalid datetime format
+ *       500:
+ *         description: Server error
+ */
+router.post('/search', dealController.searchDeals);
+
+/**
+ * @swagger
  * /api/deals:
  *   get:
  *     summary: Get all deals

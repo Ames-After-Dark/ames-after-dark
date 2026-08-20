@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const menuItemController = require('../controllers/menuItemController');
+const { checkJwt } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -75,6 +76,8 @@ router.get('/location/:locationId', menuItemController.getMenuItemsByLocationId)
  *     description: Creates a new menu item type (category)
  *     tags:
  *       - Locations
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -95,7 +98,7 @@ router.get('/location/:locationId', menuItemController.getMenuItemsByLocationId)
  *         description: Server error
  */
 router.get('/types', menuItemController.getMenuItemTypes);
-router.post('/types', menuItemController.createMenuItemType);
+router.post('/types', checkJwt, menuItemController.createMenuItemType);
 
 /**
  * @swagger
@@ -124,6 +127,8 @@ router.post('/types', menuItemController.createMenuItemType);
  *     description: Creates a new menu item at a location
  *     tags:
  *       - Locations
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -131,22 +136,22 @@ router.post('/types', menuItemController.createMenuItemType);
  *           schema:
  *             type: object
  *             required:
- *               - locationId
+ *               - location_id
  *               - name
- *               - type
+ *               - menu_item_type_id
  *             properties:
- *               locationId:
- *                 type: string
+ *               location_id:
+ *                 type: integer
  *               name:
  *                 type: string
+ *               menu_item_type_id:
+ *                 type: integer
  *               description:
  *                 type: string
  *               price:
  *                 type: number
- *               type:
- *                 type: string
- *               imageUrl:
- *                 type: string
+ *               is_available:
+ *                 type: boolean
  *     responses:
  *       201:
  *         description: Menu item created successfully
@@ -159,6 +164,8 @@ router.post('/types', menuItemController.createMenuItemType);
  *     description: Updates an existing menu item
  *     tags:
  *       - Locations
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -173,14 +180,18 @@ router.post('/types', menuItemController.createMenuItemType);
  *           schema:
  *             type: object
  *             properties:
+ *               location_id:
+ *                 type: integer
  *               name:
  *                 type: string
+ *               menu_item_type_id:
+ *                 type: integer
  *               description:
  *                 type: string
  *               price:
  *                 type: number
- *               imageUrl:
- *                 type: string
+ *               is_available:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Menu item updated successfully
@@ -195,6 +206,8 @@ router.post('/types', menuItemController.createMenuItemType);
  *     description: Deletes a specific menu item
  *     tags:
  *       - Locations
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -211,8 +224,8 @@ router.post('/types', menuItemController.createMenuItemType);
  *         description: Server error
  */
 router.get('/:id', menuItemController.getMenuItemById);
-router.post('/', menuItemController.createMenuItem);
-router.put('/:id', menuItemController.updateMenuItem);
-router.delete('/:id', menuItemController.deleteMenuItem);
+router.post('/', checkJwt, menuItemController.createMenuItem);
+router.put('/:id', checkJwt, menuItemController.updateMenuItem);
+router.delete('/:id', checkJwt, menuItemController.deleteMenuItem);
 
 module.exports = router;

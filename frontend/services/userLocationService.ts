@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchAuth } from "./apiClient";
+import { apiFetchAuth } from "./apiClient";
 
 export interface UserLocationData {
     latitude: number;
@@ -16,6 +16,11 @@ export type LocationSharingPreference = 'PUBLIC' | 'PRIVATE' | 'SELECTIVE';
 export interface SharingPreferenceResponse {
     success: boolean;
     preference: LocationSharingPreference;
+}
+
+export interface WeeklyCheckInResponse {
+    message: string;
+    streak: number;
 }
 
 export const UserLocationService = {
@@ -40,6 +45,13 @@ export const UserLocationService = {
         return await apiFetchAuth(`/userlocations/me/preference`, token, {
             method: "PATCH",
             body: JSON.stringify({ preference }),
+        });
+    },
+
+    checkWeeklyStreak: async (token: string, locationId: number, timezone: string): Promise<WeeklyCheckInResponse> => {
+        return await apiFetchAuth(`/userlocations/checkin/${locationId}`, token, {
+            method: "POST",
+            body: JSON.stringify({ timezone }),
         });
     },
 

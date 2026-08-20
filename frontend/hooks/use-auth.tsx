@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { useAuth0 } from "react-native-auth0"
 import { useRouter, useSegments, useRootNavigationState } from "expo-router"
 import { checkUserStatus, UserStatus, getUsernameByAuth } from "@/services/userService"
 import { config } from "@/auth0.config"
+import { isAuth0UserCancelledError } from "@/utils/auth0Errors"
 
 // Define the shape of our auth context
 type AuthContextType = {
@@ -27,7 +28,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 // Provider component that wraps the app
 //isSwitching will be used in future to prevent screen flashes
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const { authorize, clearSession, clearCredentials, user, error, getCredentials } = useAuth0()
   //set this to false to enable and uncomment user conditional in
   //useEffect below to enable auth
@@ -118,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await fetchUsername()
       }
     } catch (e: any) {
-      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+      if (isAuth0UserCancelledError(e)) {
         console.log("User cancelled login")
       } else {
         console.error("Login error:", e)
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
       }
     } catch (e: any) {
-      if (e?.message?.includes("a0.session.user_cancelled") || e?.message?.includes("The user cancelled") || e?.code === "USER_CANCELLED" || e?.name === "USER_CANCELLED") {
+      if (isAuth0UserCancelledError(e)) {
         console.log("User cancelled logout")
       } else {
         console.error("Logout error:", e)
@@ -169,8 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const credentials = await getCredentials()
       return credentials?.accessToken || null
-    } catch (e) {
-      console.error("Error getting access token:", e)
+    } catch (e: any) {
+      const message = String(e?.message || e?.code || e || "")
+      if (!message.includes("NO_CREDENTIALS") && !message.includes("No credentials")) {
+        console.error("Error getting access token:", e)
+      }
       return null
     }
   }

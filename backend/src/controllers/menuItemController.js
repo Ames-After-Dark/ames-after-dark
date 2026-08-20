@@ -1,4 +1,5 @@
 const menuItemService = require('../services/menuItemService');
+const userService = require('../services/userService');
 
 // GET /api/menuitems/:id
 exports.getMenuItemById = async (req, res) => {
@@ -18,7 +19,47 @@ exports.getMenuItemById = async (req, res) => {
 // POST /api/menuitems
 exports.createMenuItem = async (req, res) => {
   try {
-    const menuItem = await menuItemService.createMenuItem(req.body);
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { location_id } = req.body || {};
+    if (!location_id) {
+      return res.status(400).json({ error: 'location_id is required' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
+    const {
+      menu_item_type_id,
+      location_id: bodyLocationId,
+      name,
+      description,
+      is_available,
+      price,
+    } = req.body || {};
+
+    const createData = {
+      ...(menu_item_type_id !== undefined ? { menu_item_type_id } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(name !== undefined ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(is_available !== undefined ? { is_available } : {}),
+      ...(price !== undefined ? { price } : {}),
+    };
+
+    const menuItem = await menuItemService.createMenuItem(createData);
     res.status(201).json(menuItem);
   } catch (err) {
     console.error(err);
@@ -32,8 +73,51 @@ exports.updateMenuItem = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
-    const menuItem = await menuItemService.updateMenuItem(id, req.body);
-    if (!menuItem) return res.status(404).json({ message: 'Menu item not found' });
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Fetch existing item so we can authorize against its location when location_id isn't provided
+    const existingMenuItem = await menuItemService.getMenuItemById(id);
+    if (!existingMenuItem) return res.status(404).json({ message: 'Menu item not found' });
+
+    const location_id = req.body?.location_id || existingMenuItem.location_id;
+    if (!location_id) {
+      return res.status(400).json({ error: 'location_id is required' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
+    const {
+      menu_item_type_id,
+      location_id: bodyLocationId,
+      name,
+      description,
+      is_available,
+      price,
+    } = req.body || {};
+
+    const updateData = {
+      ...(menu_item_type_id !== undefined ? { menu_item_type_id } : {}),
+      ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
+      ...(name !== undefined ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(is_available !== undefined ? { is_available } : {}),
+      ...(price !== undefined ? { price } : {}),
+    };
+
+    const menuItem = await menuItemService.updateMenuItem(id, updateData);
     res.json(menuItem);
   } catch (err) {
     console.error(err);
@@ -47,6 +131,26 @@ exports.deleteMenuItem = async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ message: 'Invalid ID' });
 
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const existingMenuItem = await menuItemService.getMenuItemById(id);
+    if (!existingMenuItem) return res.status(404).json({ message: 'Menu item not found' });
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    if (!userRoles) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
+    const isDeveloper = userRoles.roles?.name?.toLowerCase() === 'developer';
+    const isLocationAdmin = userRoles.location_admins?.some(la => la.location_id === Number(existingMenuItem.location_id));
+
+    if (!isDeveloper && (!userRoles.isAdmin || !isLocationAdmin)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+    }
+
     await menuItemService.deleteMenuItem(id);
     res.status(204).send();
   } catch (err) {
@@ -78,7 +182,23 @@ exports.getMenuItemTypes = async (req, res) => {
 
 exports.createMenuItemType = async (req, res) => {
   try {
-    const menuItemType = await menuItemService.createMenuItemType(req.body);
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    const isDeveloper = userRoles?.roles?.name?.toLowerCase() === 'developer';
+    if (!isDeveloper) {
+      return res.status(403).json({ error: 'Forbidden: Only developers can create menu item types' });
+    }
+
+    const { name } = req.body || {};
+    const createData = {
+      ...(name !== undefined ? { name } : {}),
+    };
+
+    const menuItemType = await menuItemService.createMenuItemType(createData);
     res.status(201).json(menuItemType);
   } catch (err) {
     console.error(err);

@@ -176,7 +176,29 @@ exports.createRecurringEvent = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const eventData = req.body;
+    const {
+      name,
+      location_id,
+      description,
+      banner_id,
+      start_time,
+      end_time,
+      start_date,
+      end_date,
+      weekdays,
+    } = req.body || {};
+
+    const eventData = {
+      ...(name !== undefined ? { name } : {}),
+      ...(location_id !== undefined ? { location_id } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(start_time !== undefined ? { start_time } : {}),
+      ...(end_time !== undefined ? { end_time } : {}),
+      ...(start_date !== undefined ? { start_date } : {}),
+      ...(end_date !== undefined ? { end_date } : {}),
+      ...(weekdays !== undefined ? { weekdays } : {}),
+    };
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     if (!userRoles) {
@@ -210,5 +232,32 @@ exports.createRecurringEvent = async (req, res) => {
   } catch (error) {
     console.error('Error creating recurring event:', error);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// POST /api/events/search
+exports.searchEvents = async (req, res) => {
+  try {
+    const { id, startDateTime, endDateTime, locationId } = req.body;
+
+    // Validate datetime formats if provided
+    if (startDateTime && isNaN(new Date(startDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid startDateTime format. Use ISO 8601 format.' });
+    }
+    if (endDateTime && isNaN(new Date(endDateTime).getTime())) {
+      return res.status(400).json({ error: 'Invalid endDateTime format. Use ISO 8601 format.' });
+    }
+
+    const events = await eventService.searchEvents({
+      id: id ? Number(id) : undefined,
+      startDateTime,
+      endDateTime,
+      locationId: locationId ? Number(locationId) : undefined
+    });
+
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -5,6 +5,7 @@ import { useNavigationHistory } from '@/context/NavigationHistoryContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/context/user-context';
 import { Theme } from '@/constants/theme';
 import ErrorState from '@/components/ui/error-state';
 import { Friend } from '@/types/types';
@@ -21,6 +22,7 @@ import {
     getPendingFriendRequests,
     searchUsers,
     updateBioByAuth,
+    updateNameByAuth,
 } from '@/services/userService';
 
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -37,6 +39,7 @@ export default function FriendProfileScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { currentUser, userStatus, getAccessToken } = useAuth();
+    const { user: currentProfileUser } = useUser();
     const { goBack } = useNavigationHistory();
 
     const isMe = useMemo(() => {
@@ -71,6 +74,9 @@ export default function FriendProfileScreen() {
     const [isEditing, setIsEditing] = useState(false);
     const [isBioModalVisible, setIsBioModalVisible] = useState(false);
     const [bioText, setBioText] = useState('');
+
+    const [isNameModalVisible, setIsNameModalVisible] = useState(false);
+    const [nameText, setNameText] = useState('');
 
     const [modalConfig, setModalConfig] = useState({
         visible: false,
@@ -122,16 +128,60 @@ export default function FriendProfileScreen() {
             const token = await getAccessToken();
             if (!token) throw new Error("No token available");
 
-            const [userData, friendsData, mutualData, pendingRequestsData] = await Promise.all([
+            // Step 1: fetch profile data + my friends (needed to determine relationship)
+            const [userData, myFriends, pendingRequestsData] = await Promise.all([
                 getUserById(token, id),
-                isMe ? getUserFriends(token) : getFriendsOfFriend(token, id),
-                isMe ? Promise.resolve([]) : getMutualFriends(token, id),
+                getUserFriends(token),
                 isMe ? getPendingFriendRequests(token) : Promise.resolve([]),
+            ]);
+
+            // Step 2: compute relationship (for non-self)
+            let computedRelationship = {
+                isFriend: false,
+                isBlocked: false,
+                sentRequest: false,
+                receivedRequest: false,
+            };
+
+            if (isMe) {
+                computedRelationship = {
+                    isFriend: true,
+                    isBlocked: false,
+                    sentRequest: false,
+                    receivedRequest: false,
+                };
+            } else {
+                const isFriend = (myFriends || []).some((f: any) => f.id.toString() === id);
+                const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
+                const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
+
+                computedRelationship = {
+                    isFriend,
+                    isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
+                    sentRequest: Boolean(incoming?.friendship_status_id === 1),
+                    receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
+                };
+            }
+
+            setRelationship(computedRelationship);
+
+            // Step 3: fetch friend-scoped lists only if allowed
+            const [friendsData, mutualData] = await Promise.all([
+                isMe
+                    ? Promise.resolve(myFriends)
+                    : computedRelationship.isFriend
+                        ? getFriendsOfFriend(token, id)
+                        : Promise.resolve([]),
+                isMe
+                    ? Promise.resolve([])
+                    : computedRelationship.isFriend
+                        ? getMutualFriends(token, id)
+                        : Promise.resolve([]),
             ]);
 
             const formattedPending = (pendingRequestsData || []).map(req => {
                 const isOutgoing = req.user_id_1 === userStatus.userId;
-                const friend = isOutgoing
+                const friend: any = isOutgoing
                     ? req.users_friendships_user_id_2Tousers
                     : req.users_friendships_user_id_1Tousers;
 
@@ -139,7 +189,8 @@ export default function FriendProfileScreen() {
                     id: friend?.id,
                     name: friend?.name || 'Unknown User',
                     username: friend?.username || 'unknown',
-                    avatar: friend?.avatar,
+                    avatar: friend?.profile_picture_url || friend?.profile_photo?.image_url || friend?.avatar,
+                    profile_photo_id: friend?.profile_photo_id ?? friend?.profile_photo?.id ?? null,
                     type: isOutgoing ? 'SENT' : 'RECEIVED'
                 };
             });
@@ -154,24 +205,8 @@ export default function FriendProfileScreen() {
                 const recs = await getRecommendedFriends(token);
                 setRecommendedFriends(recs || []);
 
-                setRelationship({
-                    isFriend: true,
-                    isBlocked: false,
-                    sentRequest: false,
-                    receivedRequest: false,
-                });
             } else {
-                const myFriends = await getUserFriends(token);
-                const isFriend = myFriends.some(f => f.id.toString() === id);
-                const outgoing = userData?.friendships_friendships_user_id_1Tousers?.find((r: any) => r.user_id_2 === userStatus.userId);
-                const incoming = userData?.friendships_friendships_user_id_2Tousers?.find((r: any) => r.user_id_1 === userStatus.userId);
-
-                setRelationship({
-                    isFriend,
-                    isBlocked: (outgoing?.friendship_status_id === 4 || incoming?.friendship_status_id === 4),
-                    sentRequest: Boolean(incoming?.friendship_status_id === 1),
-                    receivedRequest: Boolean(outgoing?.friendship_status_id === 1),
-                });
+                // relationship already computed + set above
             }
         } catch (err) {
             console.error(err);
@@ -184,6 +219,21 @@ export default function FriendProfileScreen() {
     useEffect(() => {
         fetchProfile();
     }, [id, isMe]);
+
+    useEffect(() => {
+        if (!isMe || currentProfileUser?.streak === undefined || currentProfileUser?.streak === null) {
+            return;
+        }
+
+        setUser((prev: any) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                ...currentProfileUser,
+                friendCount: prev.friendCount,
+            };
+        });
+    }, [currentProfileUser?.streak, isMe]);
 
     useEffect(() => {
         if (!modalConfig.visible) return;
@@ -247,7 +297,11 @@ export default function FriendProfileScreen() {
             await handlePendingDecision(friendId, type, fetchProfile);
             setIsRespondModalVisible(false);
         } else if (type === 'block') {
-            handleConfirmBlock(friendId, user.name, fetchProfile);
+            handleConfirmBlock(friendId, user.name, () => {
+                // After blocking, the backend masks the blocked profile as "not found".
+                // Don't refetch; just return to the previous screen.
+                goBack();
+            });
             setIsRespondModalVisible(false);
         } else if (type === 'remove') {
             handleRemove(friendId, targetName, fetchProfile);
@@ -393,6 +447,10 @@ export default function FriendProfileScreen() {
                         showFriendStats={relationship.isFriend}
                         isEditing={isEditing}
                         onRequestEdit={() => setIsEditing(true)}
+                        onEditName={() => {
+                            setNameText(user?.name || '');
+                            setIsNameModalVisible(true);
+                        }}
                         onSave={() => setIsEditing(false)}
                         onCancelEdit={() => {
                             setIsEditing(false);
@@ -528,6 +586,57 @@ export default function FriendProfileScreen() {
                                         <Text style={styles.btnText}>Save Bio</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsBioModalVisible(false)}>
+                                        <Text style={styles.cancelText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Display Name Edit Modal */}
+            <Modal visible={isNameModalVisible} transparent animationType="fade">
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                    <TouchableWithoutFeedback onPress={() => setIsNameModalVisible(false)}>
+                        <View style={styles.modalOverlay}>
+                            <TouchableWithoutFeedback>
+                                <View style={styles.responseCard}>
+                                    <Text style={styles.responseTitle}>Edit Display Name</Text>
+                                    <TextInput
+                                        style={styles.nameInput}
+                                        value={nameText}
+                                        onChangeText={setNameText}
+                                        placeholder="Your display name"
+                                        placeholderTextColor={Theme.container.inactiveText}
+                                        maxLength={40}
+                                        autoFocus
+                                    />
+                                    <Text style={styles.nameCharCount}>{nameText.trim().length}/40</Text>
+                                    <TouchableOpacity
+                                        style={[styles.responseBtn, styles.acceptBtn]}
+                                        onPress={async () => {
+                                            const trimmed = nameText.trim();
+                                            if (!trimmed) {
+                                                triggerToast('Name can\'t be empty', 'times');
+                                                return;
+                                            }
+
+                                            try {
+                                                const accessToken = await getAccessToken();
+                                                if (!accessToken) throw new Error('No access token');
+                                                await updateNameByAuth(accessToken, trimmed);
+                                                setUser((prev: any) => ({ ...prev, name: trimmed }));
+                                                setIsNameModalVisible(false);
+                                                triggerToast('Name updated!');
+                                            } catch {
+                                                triggerToast('Failed to save name', 'times');
+                                            }
+                                        }}
+                                    >
+                                        <Text style={styles.btnText}>Save Name</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsNameModalVisible(false)}>
                                         <Text style={styles.cancelText}>Cancel</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -686,6 +795,23 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     bioCharCount: {
+        color: Theme.container.inactiveText,
+        fontSize: 12,
+        alignSelf: 'flex-end',
+        marginBottom: 16,
+    },
+    nameInput: {
+        width: '100%',
+        backgroundColor: Theme.dark.background,
+        borderWidth: 1,
+        borderColor: Theme.container.mainBorder,
+        borderRadius: 12,
+        padding: 12,
+        color: Theme.dark.white,
+        fontSize: 16,
+        marginBottom: 6,
+    },
+    nameCharCount: {
         color: Theme.container.inactiveText,
         fontSize: 12,
         alignSelf: 'flex-end',

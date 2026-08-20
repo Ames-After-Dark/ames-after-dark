@@ -134,7 +134,7 @@ describe('locationHourController authorization', () => {
 
             await locationHourController.createOverride(req, res);
 
-            expect(locationHoursService.createOverride).toHaveBeenCalledWith(3, req.body);
+            expect(locationHoursService.createOverride).toHaveBeenCalledWith(3, {});
             expect(res.status).toHaveBeenCalledWith(201);
             expect(res.json).toHaveBeenCalledWith({ id: 5 });
         });

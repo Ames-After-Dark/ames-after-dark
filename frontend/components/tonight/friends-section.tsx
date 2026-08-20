@@ -9,6 +9,7 @@ import { groupFriendsByNearbyBar } from "@/utils/nearby-friends";
 import { formatLastActive } from "@/utils/location-utils";
 import { getLogoAssetForLocationName } from "@/utils/locationLogos";
 import type { Location as MapLocation } from "@/services/locationService";
+import { GuestSignInPrompt } from "@/components/auth/GuestSignInPrompt";
 
 type FriendsSectionProps = {
   query: string;
@@ -63,15 +64,11 @@ export default function FriendsSection({ query, onBarPress, onFriendPress }: Fri
 
   if (!user?.id) {
     return (
-      <View style={styles.stateContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="people-outline" size={40} color={Theme.dark.primary} />
-        </View>
-        <Text style={styles.comingSoonHeader}>Connect your account</Text>
-        <Text style={styles.emptyText}>
-          Sign in to see which friends are currently hanging out nearby.
-        </Text>
-      </View>
+      <GuestSignInPrompt
+        title="Sign in to see friends"
+        message="Add friends and see friend locations after you sign in and opt in to sharing."
+        icon="people-outline"
+      />
     );
   }
 

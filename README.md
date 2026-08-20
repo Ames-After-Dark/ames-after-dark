@@ -21,7 +21,7 @@
 ## Infrastructure Overview
 * **Host:** AWS EC2 (Ubuntu 24.04)
 * **Public IP:** 44.222.117.9
-* **Domain:** amesafterdark.com (Managed via Squarespace DNS)
+* **Domain:** amesafterdark.com (Managed via Cloudflare DNS)
 * **Reverse Proxy:** Caddy (Handles HTTPS/SSL automatically)
 * **App Port:** Runs on localhost:3000 (Not exposed publicly)
 

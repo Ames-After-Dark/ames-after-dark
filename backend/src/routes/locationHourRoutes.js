@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const locationHoursController = require('../controllers/locationHourController');
+const { checkJwt } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -55,7 +56,7 @@ const locationHoursController = require('../controllers/locationHourController')
  *       500:
  *         description: Server error
  */
-router.put('/:locationId/weekly', locationHoursController.updateWeeklyHours);
+router.put('/:locationId/weekly', checkJwt, locationHoursController.updateWeeklyHours);
 
 /**
  * @swagger
@@ -104,7 +105,7 @@ router.put('/:locationId/weekly', locationHoursController.updateWeeklyHours);
  *       500:
  *         description: Server error
  */
-router.post('/:locationId/overrides', locationHoursController.createOverride);
+router.post('/:locationId/overrides', checkJwt, locationHoursController.createOverride);
 
 /**
  * @swagger
@@ -129,7 +130,7 @@ router.post('/:locationId/overrides', locationHoursController.createOverride);
  *       500:
  *         description: Server error
  */
-router.delete('/overrides/:overrideId', locationHoursController.deleteOverride);
+router.delete('/overrides/:overrideId', checkJwt, locationHoursController.deleteOverride);
 
 /**
  * @swagger

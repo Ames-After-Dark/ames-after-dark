@@ -1,9 +1,5 @@
-import { useColorScheme, View, ActivityIndicator } from "react-native";
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
-      <ActivityIndicator size="large" color="#2563eb" />
-    </View>
-  )
+  return <Redirect href="/tonight" />;
 }

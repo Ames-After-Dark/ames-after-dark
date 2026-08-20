@@ -99,7 +99,7 @@ describe('locationController', () => {
 
       await locationController.createLocation(req, res);
 
-      expect(locationService.createLocation).toHaveBeenCalledWith(req.body);
+      expect(locationService.createLocation).toHaveBeenCalledWith({ name: 'New' });
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({ id: 10, name: 'New' });
     });
@@ -133,7 +133,7 @@ describe('locationController', () => {
 
       await locationController.updateLocation(req, res);
 
-      expect(locationService.updateLocation).toHaveBeenCalledWith(5, req.body);
+      expect(locationService.updateLocation).toHaveBeenCalledWith(5, { name: 'Updated' });
       expect(res.json).toHaveBeenCalledWith({ id: 5, name: 'Updated' });
     });
 
