@@ -137,9 +137,9 @@ exports.getLocationsByDeveloperId = async (developerId) => {
   const isDeveloper = developer ? await prisma.roles.findFirst({
     where: {
       name: 'Developer',
-      users_roles: {
+      users: {
         some: {
-          user_id: developer.id
+          id: developer.id
         }
       }
     }

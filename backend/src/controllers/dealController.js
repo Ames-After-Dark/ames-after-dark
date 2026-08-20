@@ -52,12 +52,13 @@ exports.createDeal = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const { name, location_id: bodyLocationId, description, banner_id } = req.body || {};
+    const { name, location_id: bodyLocationId, description, banner_id, occurrences } = req.body || {};
     const createData = {
       ...(name !== undefined ? { name } : {}),
       ...(bodyLocationId !== undefined ? { location_id: bodyLocationId } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(occurrences !== undefined ? { occurrences } : {}),
     };
 
     const deal = await dealService.createDeal(createData);
@@ -97,12 +98,13 @@ exports.updateDeal = async (req, res) => {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
 
-    const { name, location_id: body_location_id, description, banner_id } = req.body || {};
+    const { name, location_id: body_location_id, description, banner_id, occurrences } = req.body || {};
     const updateData = {
       ...(name !== undefined ? { name } : {}),
       ...(body_location_id !== undefined ? { location_id: body_location_id } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(banner_id !== undefined ? { banner_id } : {}),
+      ...(occurrences !== undefined ? { occurrences } : {}),
     };
 
     const deal = await dealService.updateDeal(id, updateData);

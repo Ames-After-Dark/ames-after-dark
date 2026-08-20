@@ -342,9 +342,9 @@ router.get('/', locationController.getLocations);
  *         description: Server error
  */
 router.get('/:id', locationController.getLocationById);
-router.post('/', locationController.createLocation);
-router.put('/:id', locationController.updateLocation);
-router.delete('/:id', locationController.deleteLocation);
+router.post('/', checkJwt, locationController.createLocation);
+router.put('/:id', checkJwt, locationController.updateLocation);
+router.delete('/:id', checkJwt, locationController.deleteLocation);
 
 /**
  * @swagger
