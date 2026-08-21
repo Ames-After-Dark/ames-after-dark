@@ -32,13 +32,14 @@ function barNamesMatch(a, b) {
 
 /**
  * Resolve which bar (folder) names a user is allowed to upload/delete for.
- * Developers get null (no restriction). Photographers get the bar names
- * from their location_admins links. Everyone else gets an empty list.
+ * Developers get null (no restriction). Photographers and bar owners
+ * (admin role) get the bar names from their location_admins links.
+ * Everyone else gets an empty list.
  */
 async function allowedBarNamesFor(userRoles) {
   if (userRoles?.isDeveloper) return null; // null = unrestricted
   const roleName = userRoles?.roles?.name?.toLowerCase();
-  if (roleName !== 'photographer') return [];
+  if (roleName !== 'photographer' && roleName !== 'admin') return [];
   return (userRoles.location_admins || []).map((la) => la.location_name).filter(Boolean);
 }
 
@@ -421,7 +422,9 @@ router.get('/photos', async (req, res) => {
 
 /**
  * PATCH /api/r2/photos/hide
- * Soft deletes a photo by prepending "hidden_" to its filename in R2
+ * Soft deletes a photo by prepending "hidden_" to its filename in R2.
+ * Requires photographer, bar owner (admin), or developer role, scoped to
+ * the caller's assigned bars.
  */
 /**
  * @swagger
@@ -448,13 +451,33 @@ router.get('/photos', async (req, res) => {
  * description: Photo hidden successfully
  * 400:
  * description: Missing key parameter
+ * 401:
+ * description: Unauthorized
+ * 403:
+ * description: Forbidden - not assigned to this bar
  * 500:
  * description: Server error
  */
-router.patch('/photos/hide', async (req, res) => {
+router.patch('/photos/hide', checkJwt, async (req, res) => {
   try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    const roleName = userRoles?.roles?.name?.toLowerCase();
+    if (roleName !== 'photographer' && roleName !== 'admin' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer, bar owner, or developer role' });
+    }
+
     const { key } = req.body;
     if (!key) return res.status(400).json({ error: 'Missing key parameter' });
+
+    const folderName = String(key).split('/')[0];
+    const allowedBarNames = await allowedBarNamesFor(userRoles);
+    const { displayName: folderBarName } = parseFolderName(folderName);
+    if (!isFolderAllowed(folderBarName, allowedBarNames)) {
+      return res.status(403).json({ error: `Forbidden: not assigned to "${folderBarName}"` });
+    }
 
     // Split the path to isolate the filename from the folder
     // e.g., "Outlaws 04-09/_DSC9171.jpg" -> folder: "Outlaws 04-09", filename: "_DSC9171.jpg"
@@ -549,8 +572,8 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     const roleName = userRoles?.roles?.name?.toLowerCase();
-    if (roleName !== 'photographer' && roleName !== 'developer') {
-      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    if (roleName !== 'photographer' && roleName !== 'admin' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer, bar owner, or developer role' });
     }
 
     const { folder, files } = req.body || {};
@@ -628,8 +651,8 @@ router.get('/my-bars', checkJwt, async (req, res) => {
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     const roleName = userRoles?.roles?.name?.toLowerCase();
-    if (roleName !== 'photographer' && roleName !== 'developer') {
-      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    if (roleName !== 'photographer' && roleName !== 'admin' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer, bar owner, or developer role' });
     }
 
     if (userRoles.isDeveloper) {
@@ -687,8 +710,8 @@ router.delete('/albums', checkJwt, async (req, res) => {
 
     const userRoles = await userService.getUserRolesByAuth0Id(authId);
     const roleName = userRoles?.roles?.name?.toLowerCase();
-    if (roleName !== 'photographer' && roleName !== 'developer') {
-      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    if (roleName !== 'photographer' && roleName !== 'admin' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer, bar owner, or developer role' });
     }
 
     const safeFolder = sanitizeFolderName(req.query.folder);
