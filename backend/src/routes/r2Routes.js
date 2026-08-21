@@ -1,8 +1,17 @@
 const express = require('express');
-const { S3Client, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { checkJwt } = require('../middleware/authMiddleware');
+const userService = require('../services/userService');
 
 const router = express.Router();
+
+const ALLOWED_UPLOAD_CONTENT_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
 
 const {
   CLOUDFLARE_R2_ACCESS_KEY_ID,
@@ -116,6 +125,68 @@ function formatDateStr(dateStr) {
   if (!dateStr) return null;
   const [m, d] = dateStr.split('-');
   return `${m.padStart(2, '0')}/${d.padStart(2, '0')}`;
+}
+
+/**
+ * Validate a top-level album folder name (e.g. "Outlaws_04-09").
+ * Must be a single path segment matching the naming convention the
+ * read endpoints already parse (parseFolderName) - no nested paths,
+ * no traversal, reasonable charset.
+ */
+function sanitizeFolderName(folder) {
+  const trimmed = String(folder || '').trim();
+  if (!trimmed || trimmed.includes('/') || trimmed.includes('..')) return null;
+  if (!/^[\w\s-]+$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/**
+ * Validate an uploaded filename: basename only (no path separators),
+ * and its extension must match the declared content type.
+ */
+function sanitizeFilename(filename, contentType) {
+  const base = String(filename || '').split(/[\\/]/).pop().trim();
+  if (!base || base.includes('..')) return null;
+
+  const expectedExt = ALLOWED_UPLOAD_CONTENT_TYPES[contentType];
+  if (!expectedExt) return null;
+
+  const actualExt = base.toLowerCase().split('.').pop();
+  const jpgAliases = expectedExt === 'jpg' ? ['jpg', 'jpeg'] : [expectedExt];
+  if (!jpgAliases.includes(actualExt)) return null;
+
+  return base;
+}
+
+/**
+ * Check whether an object already exists at the given key.
+ */
+async function objectExists(key) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: key }));
+    return true;
+  } catch (err) {
+    if (err?.$metadata?.httpStatusCode === 404 || err?.name === 'NotFound') return false;
+    throw err;
+  }
+}
+
+/**
+ * Given a desired key, return a key guaranteed not to collide with an
+ * existing object - appends a short suffix if needed.
+ */
+async function uniqueKeyFor(folder, filename) {
+  const dot = filename.lastIndexOf('.');
+  const base = dot === -1 ? filename : filename.slice(0, dot);
+  const ext = dot === -1 ? '' : filename.slice(dot);
+
+  let candidate = `${folder}/${filename}`;
+  let suffix = 0;
+  while (await objectExists(candidate)) {
+    suffix += 1;
+    candidate = `${folder}/${base}-${Date.now().toString(36)}${suffix > 1 ? `-${suffix}` : ''}${ext}`;
+  }
+  return candidate;
 }
 
 /**
@@ -377,6 +448,111 @@ router.patch('/photos/hide', async (req, res) => {
   } catch (err) {
     console.error('Error hiding photo:', err);
     res.status(500).json({ error: 'Failed to hide photo' });
+  }
+});
+
+/**
+ * POST /api/r2/upload-urls
+ * Generate presigned PUT URLs so a photographer's browser can upload
+ * JPG/PNG/GIF/WebP files directly to R2. Requires a photographer or
+ * developer role. Files upload to {folder}/{filename}, matching the
+ * existing album-folder naming convention (parseFolderName above) -
+ * pass an existing album's id to add to it, or a new "BarName_MM-DD"
+ * string to start one.
+ */
+/**
+ * @swagger
+ * /api/r2/upload-urls:
+ *   post:
+ *     summary: Get presigned upload URLs for photos
+ *     description: Generates presigned PUT URLs for uploading images directly to R2. Requires photographer or developer role.
+ *     tags:
+ *       - Storage
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - folder
+ *               - files
+ *             properties:
+ *               folder:
+ *                 type: string
+ *                 description: Album folder name, e.g. "Outlaws_04-09"
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     filename:
+ *                       type: string
+ *                     contentType:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Presigned upload URLs generated successfully
+ *       400:
+ *         description: Invalid folder, filenames, or content types
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires photographer or developer role
+ *       500:
+ *         description: Server error
+ */
+router.post('/upload-urls', checkJwt, async (req, res) => {
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    const roleName = userRoles?.roles?.name?.toLowerCase();
+    if (roleName !== 'photographer' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    }
+
+    const { folder, files } = req.body || {};
+
+    const safeFolder = sanitizeFolderName(folder);
+    if (!safeFolder) {
+      return res.status(400).json({ error: 'Invalid folder name' });
+    }
+
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'files must be a non-empty array' });
+    }
+    if (files.length > 100) {
+      return res.status(400).json({ error: 'Too many files in one request (max 100)' });
+    }
+
+    const uploads = [];
+    for (const file of files) {
+      const safeFilename = sanitizeFilename(file?.filename, file?.contentType);
+      if (!safeFilename) {
+        return res.status(400).json({ error: `Invalid filename or content type: ${file?.filename}` });
+      }
+
+      const key = await uniqueKeyFor(safeFolder, safeFilename);
+      const command = new PutObjectCommand({
+        Bucket: CLOUDFLARE_R2_BUCKET,
+        Key: key,
+        ContentType: file.contentType,
+      });
+      const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 900 }); // 15 minutes
+
+      uploads.push({ filename: file.filename, key, uploadUrl });
+    }
+
+    res.json({ uploads });
+  } catch (err) {
+    console.error('Error generating upload URLs:', err);
+    res.status(500).json({ error: 'Failed to generate upload URLs' });
   }
 });
 
