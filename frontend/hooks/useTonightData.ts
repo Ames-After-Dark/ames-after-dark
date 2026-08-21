@@ -9,7 +9,11 @@ import { useEvents } from "./useEvents";
 // The hooks should return the same { deals, events, loading, error } shape.
 // Remove filterTonightOccurrences() below once the API does the filtering.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useOpenBars } from "./useOpenBars";
+// Note: this intentionally uses useAllBars (every location), not useOpenBars
+// (currently-open-only) — Tonight should show bars with deals/events later
+// tonight even if they haven't opened their doors yet. See isBarOpenNow()
+// below for the per-bar open/closed status shown alongside each listing.
+import { useAllBars } from "./useAllBars";
 import { Deal } from "@/services/dealsService";
 import { Event } from "@/services/eventsService";
 import { Location } from "./useOpenBars";
@@ -187,6 +191,45 @@ function getHoursFromSchedule(location: Location): string | undefined {
   return undefined;
 }
 
+function isBarOpenNow(location: Location): boolean {
+  const locationWithHours = location as Location & {
+    timezone?: string;
+    location_hours?: LocationHourRow[];
+  };
+
+  const schedule = locationWithHours.location_hours;
+  if (!Array.isArray(schedule) || !schedule.length) return false;
+
+  const timezone = locationWithHours.timezone || "America/Chicago";
+  const now = new Date();
+  const todayId = getWeekdayIdInTimezone(now, timezone);
+  const yesterdayId = todayId === 1 ? 7 : todayId - 1;
+  const currentMinutes = getTimeInMinutesInTimezone(now, timezone);
+
+  return schedule.some((row) => {
+    const weekdayId = Number(row.weekday_id);
+    const openMinutes = parseTimeToMinutes(row.open_time);
+    const closeMinutes = parseTimeToMinutes(row.close_time);
+
+    if (!weekdayId || openMinutes == null || closeMinutes == null) return false;
+
+    const isOvernight = closeMinutes <= openMinutes;
+
+    if (!isOvernight) {
+      return (
+        weekdayId === todayId &&
+        currentMinutes >= openMinutes &&
+        currentMinutes <= closeMinutes
+      );
+    }
+
+    const isFirstHalf = weekdayId === todayId && currentMinutes >= openMinutes;
+    const isSecondHalf = weekdayId === yesterdayId && currentMinutes <= closeMinutes;
+
+    return isFirstHalf || isSecondHalf;
+  });
+}
+
 function getOpenHoursText(location: Location): string | undefined {
   const locationWithFallbacks = location as Location & {
     openingTime?: string;
@@ -353,7 +396,7 @@ function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
 export function useTonightData() {
   const { deals, loading: dealsLoading, error: dealsError } = useDeals();
   const { events, loading: eventsLoading, error: eventsError } = useEvents();
-  const { bars, loading: barsLoading, error: barsError } = useOpenBars();
+  const { bars, loading: barsLoading, error: barsError } = useAllBars();
 
   const loading = dealsLoading || eventsLoading || barsLoading;
   const error = dealsError || eventsError || barsError;
@@ -408,7 +451,8 @@ export function useTonightData() {
   }, [activeEvents]);
 
   // Combine location data with deals and events
-  // Note: 'bars' is already filtered to only open locations via the /locations/open endpoint
+  // Note: 'bars' now comes from useAllBars (every location), so a bar that
+  // hasn't opened yet tonight still shows up if it has something scheduled.
   const barsWithTonightData = useMemo(() => {
     return bars.map((location: Location) => {
       const locationId = String(location.id);
@@ -422,19 +466,16 @@ export function useTonightData() {
         event: locationEvents[0]?.name ?? "",
         specials: locationDeals[0]?.title ?? "",
         openHours: getOpenHoursText(location),
-        isOpen: true, // Data from /locations/open endpoint is guaranteed to be open
+        isOpen: isBarOpenNow(location),
         hasDeal: locationDeals.length > 0,
         image: location.logoUrl,
       } as TonightBarData;
     });
   }, [bars, dealsByLocation, eventsByLocation]);
 
-  // Flatten all deals from open locations for "Deals Tonight" tab
+  // Flatten all of tonight's deals, from every bar (open now or opening later tonight)
   const allActiveDealsTonight = useMemo(() => {
-    const openLocationIds = new Set(bars.map((b) => String(b.id)));
-
     return activeDeals
-      .filter((deal) => openLocationIds.has(deal.locationId))
       .map((deal) => {
         const bar = bars.find((b) => String(b.id) === deal.locationId);
         if (!bar) return null;
@@ -447,7 +488,7 @@ export function useTonightData() {
           bar: bar.name,
           title: deal.title,
           subtitle: deal.subtitle,
-          isActiveNow: true,
+          isActiveNow: isBarOpenNow(bar),
         } as TonightDealData;
       })
       .filter((item): item is TonightDealData => Boolean(item));
@@ -457,7 +498,6 @@ export function useTonightData() {
   // Each bar gets one highlighted item (event preferred, then deal) and the rest collapsed
   const barGroupsTonight = useMemo((): BarGroupedTonight[] => {
     const now = new Date();
-    const openLocationIds = new Set(bars.map((b) => String(b.id)));
 
     // Helper: distance from now in ms (for sorting by proximity)
     const distFromNow = (d?: Date) =>
@@ -467,7 +507,6 @@ export function useTonightData() {
 
     bars.forEach((location) => {
       const locationId = String(location.id);
-      if (!openLocationIds.has(locationId)) return;
 
       // Collect all events for this bar
       const barEvents: BarDealOrEvent[] = activeEvents
