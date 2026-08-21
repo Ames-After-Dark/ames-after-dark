@@ -132,11 +132,28 @@ describe('dealService', () => {
     expect(res).toBe(sample);
   });
 
-  test('getDealsByLocationId filters by numeric location id', async () => {
+  test('getDealsByLocationId filters by numeric location id and excludes fully expired deals by default', async () => {
     const sample = [{ id: 1, location_id: 4 }];
     mockPrisma.deals.findMany.mockResolvedValue(sample);
 
     const res = await dealService.getDealsByLocationId('4');
+
+    expect(mockPrisma.deals.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          location_id: 4,
+          deal_occurrences: { some: { end_time_utc: expect.any(Object) } },
+        }),
+      })
+    );
+    expect(res).toBe(sample);
+  });
+
+  test('getDealsByLocationId includes expired deals when includeHistory is true', async () => {
+    const sample = [{ id: 1, location_id: 4 }];
+    mockPrisma.deals.findMany.mockResolvedValue(sample);
+
+    const res = await dealService.getDealsByLocationId('4', true);
 
     expect(mockPrisma.deals.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { location_id: 4 } })

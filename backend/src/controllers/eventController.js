@@ -160,8 +160,9 @@ exports.getActiveEvents = async (req, res) => {
 
 exports.getEventsByLocationId = async (req, res) => {
   const locationId = req.params.locationId;
+  const includeHistory = req.query.includeHistory === 'true';
   try {
-    const events = await eventService.getEventsByLocationId(locationId);
+    const events = await eventService.getEventsByLocationId(locationId, includeHistory);
     res.json(events);
   } catch (err) {
     console.error(err);

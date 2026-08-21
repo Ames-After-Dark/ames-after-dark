@@ -37,7 +37,7 @@ router.get('/active', dealController.getActiveDeals);
  * /api/deals/location/{locationId}:
  *   get:
  *     summary: Get deals by location
- *     description: Retrieves all deals for a specific location
+ *     description: Retrieves deals for a specific location. By default only returns deals with at least one current or upcoming occurrence, and only includes those occurrences (fully expired deals/occurrences are omitted). Pass includeHistory=true to get everything, including fully expired deals.
  *     tags:
  *       - Deals
  *     parameters:
@@ -47,6 +47,12 @@ router.get('/active', dealController.getActiveDeals);
  *         schema:
  *           type: string
  *         description: Location ID
+ *       - name: includeHistory
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: If true, includes fully expired deals and past occurrences
  *     responses:
  *       200:
  *         description: Location deals retrieved successfully

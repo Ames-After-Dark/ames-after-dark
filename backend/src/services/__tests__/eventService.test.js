@@ -115,10 +115,25 @@ describe('eventService', () => {
     );
   });
 
-  test('getEventsByLocationId filters by numeric location id', async () => {
+  test('getEventsByLocationId filters by numeric location id and excludes fully expired events by default', async () => {
     mockPrisma.events.findMany.mockResolvedValue([{ id: 1 }]);
 
     await eventService.getEventsByLocationId('4');
+
+    expect(mockPrisma.events.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          location_id: 4,
+          event_occurrences: { some: { end_time_utc: expect.any(Object) } },
+        }),
+      })
+    );
+  });
+
+  test('getEventsByLocationId includes expired events when includeHistory is true', async () => {
+    mockPrisma.events.findMany.mockResolvedValue([{ id: 1 }]);
+
+    await eventService.getEventsByLocationId('4', true);
 
     expect(mockPrisma.events.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { location_id: 4 } })

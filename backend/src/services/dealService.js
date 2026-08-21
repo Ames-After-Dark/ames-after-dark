@@ -93,13 +93,21 @@ exports.getActiveDeals = async () => {
   });
 };
 
-exports.getDealsByLocationId = async (locationId) => {
+exports.getDealsByLocationId = async (locationId, includeHistory = false) => {
+  const now = new Date();
   return prisma.deals.findMany({
-    where: { location_id: Number(locationId) },
+    where: {
+      location_id: Number(locationId),
+      ...(includeHistory ? {} : { deal_occurrences: { some: { end_time_utc: { gte: now } } } })
+    },
     include: {
-      deal_occurrences: true,
+      deal_occurrences: includeHistory ? true : {
+        where: { end_time_utc: { gte: now } },
+        orderBy: { start_time_utc: 'asc' }
+      },
       locations: true
-    }
+    },
+    orderBy: { id: 'asc' }
   });
 };
 

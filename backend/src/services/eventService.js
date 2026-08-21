@@ -93,13 +93,21 @@ exports.getActiveEvents = async () => {
   });
 };
 
-exports.getEventsByLocationId = async (locationId) => {
+exports.getEventsByLocationId = async (locationId, includeHistory = false) => {
+  const now = new Date();
   return prisma.events.findMany({
-    where: { location_id: Number(locationId) },
+    where: {
+      location_id: Number(locationId),
+      ...(includeHistory ? {} : { event_occurrences: { some: { end_time_utc: { gte: now } } } })
+    },
     include: {
-      event_occurrences: true,
+      event_occurrences: includeHistory ? true : {
+        where: { end_time_utc: { gte: now } },
+        orderBy: { start_time_utc: 'asc' }
+      },
       locations: true
-    }
+    },
+    orderBy: { id: 'asc' }
   });
 };
 

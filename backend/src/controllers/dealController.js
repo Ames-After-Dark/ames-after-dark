@@ -161,8 +161,9 @@ exports.getActiveDeals = async (req, res) => {
 
 exports.getDealsByLocationId = async (req, res) => {
   const locationId = req.params.locationId;
+  const includeHistory = req.query.includeHistory === 'true';
   try {
-    const deals = await dealService.getDealsByLocationId(locationId);
+    const deals = await dealService.getDealsByLocationId(locationId, includeHistory);
     res.json(deals);
   } catch (err) {
     console.error(err);
