@@ -397,9 +397,10 @@ exports.getUserRolesByAuth0Id = async (auth0Id) => {
   const roleName = user.roles?.name || null;
   const isAdmin = roleName?.toLowerCase() === 'admin';
   const isDeveloper = roleName?.toLowerCase() === 'developer';
-  const location_admins = (user.location_admins || []).map(la => ({ location_id: la.locations.id }));
+  const location_admins = (user.location_admins || []).map(la => ({ location_id: la.locations.id, location_name: la.locations.name }));
 
   return {
+    id: user.id,
     roles: { name: roleName },
     isAdmin,
     isDeveloper,

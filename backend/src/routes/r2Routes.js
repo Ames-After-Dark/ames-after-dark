@@ -3,6 +3,7 @@ const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, Head
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { checkJwt } = require('../middleware/authMiddleware');
 const userService = require('../services/userService');
+const locationService = require('../services/locationService');
 
 const router = express.Router();
 
@@ -12,6 +13,39 @@ const ALLOWED_UPLOAD_CONTENT_TYPES = {
   'image/webp': 'webp',
   'image/gif': 'gif',
 };
+
+/**
+ * Loosely normalize a bar name for matching R2's free-typed folder names
+ * (e.g. "Sip's", "Cy's Roost") against the canonical app.locations.name -
+ * strip everything but letters/digits and lowercase.
+ */
+function normalizeBarName(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function barNamesMatch(a, b) {
+  const na = normalizeBarName(a);
+  const nb = normalizeBarName(b);
+  if (!na || !nb) return false;
+  return na.startsWith(nb) || nb.startsWith(na);
+}
+
+/**
+ * Resolve which bar (folder) names a user is allowed to upload/delete for.
+ * Developers get null (no restriction). Photographers get the bar names
+ * from their location_admins links. Everyone else gets an empty list.
+ */
+async function allowedBarNamesFor(userRoles) {
+  if (userRoles?.isDeveloper) return null; // null = unrestricted
+  const roleName = userRoles?.roles?.name?.toLowerCase();
+  if (roleName !== 'photographer') return [];
+  return (userRoles.location_admins || []).map((la) => la.location_name).filter(Boolean);
+}
+
+function isFolderAllowed(folderDisplayName, allowedNames) {
+  if (allowedNames === null) return true; // developer, unrestricted
+  return allowedNames.some((name) => barNamesMatch(folderDisplayName, name));
+}
 
 const {
   CLOUDFLARE_R2_ACCESS_KEY_ID,
@@ -292,13 +326,15 @@ router.get('/albums', async (req, res) => {
           name: meta.displayName,
           barName: meta.displayName,
           date: formatDateStr(meta.dateStr),
+          sortDate: meta.date.getTime(),
           coverUrl,
           albumUri: `${folderName}/`,
         };
       })
     );
 
-    albums.sort((a, b) => a.barName.localeCompare(b.barName));
+    // Newest first
+    albums.sort((a, b) => b.sortDate - a.sortDate);
     res.json(albums);
   } catch (err) {
     console.error('Error fetching albums:', err);
@@ -524,6 +560,12 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
       return res.status(400).json({ error: 'Invalid folder name' });
     }
 
+    const allowedBarNames = await allowedBarNamesFor(userRoles);
+    const { displayName: folderBarName } = parseFolderName(safeFolder);
+    if (!isFolderAllowed(folderBarName, allowedBarNames)) {
+      return res.status(403).json({ error: `Forbidden: not assigned to "${folderBarName}"` });
+    }
+
     if (!Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: 'files must be a non-empty array' });
     }
@@ -553,6 +595,126 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
   } catch (err) {
     console.error('Error generating upload URLs:', err);
     res.status(500).json({ error: 'Failed to generate upload URLs' });
+  }
+});
+
+/**
+ * GET /api/r2/my-bars
+ * Bars the current user may upload/delete photos for - all bars for
+ * developers, only their assigned bars for photographers.
+ */
+/**
+ * @swagger
+ * /api/r2/my-bars:
+ *   get:
+ *     summary: Get bars the current user can manage photos for
+ *     description: Developers get every bar; photographers get only the bars they're assigned to via location_admins.
+ *     tags:
+ *       - Storage
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of { id, name } bars
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires photographer or developer role
+ */
+router.get('/my-bars', checkJwt, async (req, res) => {
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    const roleName = userRoles?.roles?.name?.toLowerCase();
+    if (roleName !== 'photographer' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    }
+
+    if (userRoles.isDeveloper) {
+      const allLocations = await locationService.getLocations();
+      return res.json(allLocations.map((l) => ({ id: l.id, name: l.name })));
+    }
+
+    const myBars = (userRoles.location_admins || []).map((la) => ({ id: la.location_id, name: la.location_name }));
+    res.json(myBars);
+  } catch (err) {
+    console.error('Error fetching my-bars:', err);
+    res.status(500).json({ error: 'Failed to fetch bars' });
+  }
+});
+
+/**
+ * DELETE /api/r2/albums?folder=:folder
+ * Delete an entire album (every object under that folder prefix).
+ * Requires photographer or developer role, and the folder's bar must be
+ * one the caller is assigned to (developers can delete any album).
+ */
+/**
+ * @swagger
+ * /api/r2/albums:
+ *   delete:
+ *     summary: Delete an entire album
+ *     description: Permanently deletes every photo in the given album folder. Requires photographer or developer role, scoped to the caller's assigned bars.
+ *     tags:
+ *       - Storage
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: folder
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Album folder name to delete
+ *     responses:
+ *       200:
+ *         description: Album deleted successfully
+ *       400:
+ *         description: Missing or invalid folder
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not assigned to this bar
+ *       500:
+ *         description: Server error
+ */
+router.delete('/albums', checkJwt, async (req, res) => {
+  try {
+    const authId = req.auth?.payload?.sub;
+    if (!authId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const userRoles = await userService.getUserRolesByAuth0Id(authId);
+    const roleName = userRoles?.roles?.name?.toLowerCase();
+    if (roleName !== 'photographer' && roleName !== 'developer') {
+      return res.status(403).json({ error: 'Forbidden: requires photographer or developer role' });
+    }
+
+    const safeFolder = sanitizeFolderName(req.query.folder);
+    if (!safeFolder) {
+      return res.status(400).json({ error: 'Invalid folder name' });
+    }
+
+    const allowedBarNames = await allowedBarNamesFor(userRoles);
+    const { displayName: folderBarName } = parseFolderName(safeFolder);
+    if (!isFolderAllowed(folderBarName, allowedBarNames)) {
+      return res.status(403).json({ error: `Forbidden: not assigned to "${folderBarName}"` });
+    }
+
+    const objects = await listR2Objects(`${safeFolder}/`);
+    if (objects.length === 0) {
+      return res.status(404).json({ error: 'Album not found or already empty' });
+    }
+
+    await Promise.all(objects.map((obj) =>
+      s3.send(new DeleteObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: obj.Key }))
+    ));
+
+    res.json({ success: true, deletedCount: objects.length });
+  } catch (err) {
+    console.error('Error deleting album:', err);
+    res.status(500).json({ error: 'Failed to delete album' });
   }
 });
 
