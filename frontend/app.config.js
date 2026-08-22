@@ -3,9 +3,9 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 
 export default {
   expo: {
-    name: "Ames-After-Dark",
+    name: "Ames After Dark",
     slug: "Ames-After-Dark",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/images/aad_icon.png",
     scheme: "com.amesafterdark.app",
@@ -22,13 +22,15 @@ export default {
     },
 
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: IS_DEV ? "com.amesafterdark.app.dev" : "com.amesafterdark.app",
-      buildNumber: "4", //increment this from last successful upload
+      buildNumber: "23", //increment this from last successful upload
+      usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         "UIBackgroundModes": ["location", "fetch"],
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location in the background to keep your friends updated while you are out!"
+        "NSLocationWhenInUseUsageDescription": "Ames After Dark uses your location to show you nearby bars, events, and drink specials on the map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Ames After Dark requires background location access to actively share your live location on the interactive map with your approved friends while you are out. This is limited to mutual friends and can be configured in privacy settings."
       },
     },
 
