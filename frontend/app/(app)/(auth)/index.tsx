@@ -1,11 +1,11 @@
 import { ThemedText } from "@/components/themed-text"
 import { useAuth } from "@/hooks/use-auth"
 import { isAuth0UserCancelledError } from "@/utils/auth0Errors"
+import { Ionicons } from "@expo/vector-icons"
 import {
   StyleSheet,
   View,
   TouchableOpacity,
-  ActivityIndicator,
   Platform,
   StatusBar,
 } from "react-native"
@@ -22,12 +22,33 @@ export default function LoginScreen() {
         <View style={{ width: '100%' }}>
           <ThemedText type="title" style={styles.title}>Ames After Dark</ThemedText>
         </View>
+
+        {Platform.OS === "ios" && (
+          <TouchableOpacity
+            style={[styles.button, styles.appleButton]}
+            onPress={() => signIn("apple")}
+            disabled={isLoading}
+          >
+            <Ionicons name="logo-apple" size={20} color="#fff" style={styles.buttonIcon} />
+            <ThemedText style={styles.appleButtonText}>Continue with Apple</ThemedText>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
-          style={styles.button}
-          onPress={signIn}
+          style={[styles.button, styles.googleButton]}
+          onPress={() => signIn("google-oauth2")}
           disabled={isLoading}
         >
-          <ThemedText style={styles.buttonText}>Sign In</ThemedText>
+          <Ionicons name="logo-google" size={20} color="#1a1a1a" style={styles.buttonIcon} />
+          <ThemedText style={styles.googleButtonText}>Continue with Google</ThemedText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.emailButton}
+          onPress={() => signIn()}
+          disabled={isLoading}
+        >
+          <ThemedText style={styles.emailButtonText}>Continue with Email</ThemedText>
         </TouchableOpacity>
 
         {showError && (
@@ -75,18 +96,46 @@ const styles = StyleSheet.create({
     color: "#ccc",
   },
   button: {
-    backgroundColor: "#ff3399",
+    flexDirection: "row",
     paddingVertical: 14,
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
+    marginBottom: 12,
   },
-  buttonText: {
+  buttonIcon: {
+    marginRight: 8,
+  },
+  appleButton: {
+    backgroundColor: "#000",
+  },
+  appleButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  googleButton: {
+    backgroundColor: "#fff",
+  },
+  googleButtonText: {
+    color: "#1a1a1a",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emailButton: {
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    marginTop: 4,
+  },
+  emailButtonText: {
+    color: "#ccc",
+    fontSize: 15,
+    fontWeight: "500",
+    textDecorationLine: "underline",
   },
   errorText: {
     color: "#f87171",

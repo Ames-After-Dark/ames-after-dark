@@ -24,7 +24,7 @@ export function GuestSignInPrompt({
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
-      <TouchableOpacity style={styles.button} onPress={signIn} disabled={isLoading}>
+      <TouchableOpacity style={styles.button} onPress={() => signIn()} disabled={isLoading}>
         {isLoading ? (
           <ActivityIndicator size="small" color={Theme.dark.white} />
         ) : (

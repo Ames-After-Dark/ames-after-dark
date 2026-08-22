@@ -7,7 +7,7 @@ import { isAuth0UserCancelledError } from "@/utils/auth0Errors"
 
 // Define the shape of our auth context
 type AuthContextType = {
-  signIn: () => Promise<void>
+  signIn: (connection?: string) => Promise<void>
   signOut: (forceClearLocal?: boolean) => Promise<void>
   isAuthenticated: boolean
   isLoading: boolean
@@ -104,9 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signIn = async () => {
+  const signIn = async (connection?: string) => {
     try {
-      await authorize({ audience: config.audience })
+      await authorize({ audience: config.audience, ...(connection ? { connection } : {}) })
       const credentials = await getCredentials()
       console.log("Auth credentials obtained:", credentials ? "YES" : "NO")
       if (credentials?.accessToken) {
