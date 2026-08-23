@@ -5,7 +5,7 @@ export default {
   expo: {
     name: "Ames After Dark",
     slug: "Ames-After-Dark",
-    version: "1.1.0",
+    version: "1.1.1",
     orientation: "portrait",
     icon: "./assets/images/aad_icon.png",
     scheme: "com.amesafterdark.app",
