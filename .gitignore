@@ -2,4 +2,6 @@
 .vscode
 .idea
 .gitignore
-frontend/env
+frontend/env.development
+Backups/
+.claude/
