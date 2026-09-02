@@ -4,4 +4,4 @@
 .gitignore
 frontend/env.development
 Backups/
-.claude/
+.claude/.worktrees/
