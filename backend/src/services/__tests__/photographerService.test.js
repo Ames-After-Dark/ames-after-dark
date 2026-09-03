@@ -14,6 +14,7 @@ const mockPrisma = {
         findFirst: jest.fn(),
         update: jest.fn(),
     },
+    $transaction: jest.fn(),
 };
 
 jest.mock('@prisma/client', () => ({
@@ -133,6 +134,21 @@ describe('photographerService', () => {
                 albums: [{ folderName: 'Outlaws 09-06', locationId: 9, barName: 'Outlaws' }],
             });
         });
+
+        test('filters by photographer role in the database query itself (not just post-query)', async () => {
+            mockPrisma.users.findFirst.mockResolvedValue(null);
+
+            await photographerService.getPublicProfileByUsername('kirstyn');
+
+            expect(mockPrisma.users.findFirst).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: {
+                        username: 'kirstyn',
+                        roles: { name: { equals: 'photographer', mode: 'insensitive' } },
+                    },
+                })
+            );
+        });
     });
 
     describe('getMyProfile', () => {
@@ -182,6 +198,37 @@ describe('photographerService', () => {
                 data: { photographer_photo_url: 'photographer-photos/87.jpg' },
             });
             expect(mockPrisma.photographer_links.deleteMany).not.toHaveBeenCalled();
+        });
+
+        // Finding 2: the delete-then-insert of links must be atomic. A too-long
+        // label/url causes createMany to throw - if deleteMany and createMany
+        // were awaited independently, deleteMany's effect would already be
+        // committed by the time createMany throws, wiping all of a
+        // photographer's links on a simple typo. Verify at the mock level that
+        // both operations are bundled into a single $transaction call, rather
+        // than each being awaited independently against the live client.
+        test('bundles deleteMany and createMany into a single $transaction call so a createMany failure cannot leave deleteMany committed', async () => {
+            const deleteManyOp = Symbol('deleteMany-op');
+            const createManyOp = Symbol('createMany-op');
+            mockPrisma.photographer_links.deleteMany.mockReturnValue(deleteManyOp);
+            mockPrisma.photographer_links.createMany.mockReturnValue(createManyOp);
+
+            await photographerService.updateMyProfile(87, {
+                links: [{ label: 'Instagram', url: 'https://instagram.com/a' }],
+            });
+
+            expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+            expect(mockPrisma.$transaction).toHaveBeenCalledWith([deleteManyOp, createManyOp]);
+        });
+
+        test('bundles only deleteMany into the transaction when the new links array is empty', async () => {
+            const deleteManyOp = Symbol('deleteMany-op');
+            mockPrisma.photographer_links.deleteMany.mockReturnValue(deleteManyOp);
+
+            await photographerService.updateMyProfile(87, { links: [] });
+
+            expect(mockPrisma.photographer_links.createMany).not.toHaveBeenCalled();
+            expect(mockPrisma.$transaction).toHaveBeenCalledWith([deleteManyOp]);
         });
     });
 });

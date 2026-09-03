@@ -25,7 +25,7 @@ exports.deleteAlbumRecord = async (folderName) => {
 
 exports.getPublicProfileByUsername = async (username) => {
   const user = await prisma.users.findFirst({
-    where: { username },
+    where: { username, roles: { name: { equals: 'photographer', mode: 'insensitive' } } },
     include: {
       roles: true,
       photographer_links: { orderBy: { sort_order: 'asc' }, select: { label: true, url: true } },
@@ -71,11 +71,12 @@ exports.updateMyProfile = async (userId, { bio, links, photoKey }) => {
     await prisma.users.update({ where: { id: userId }, data });
   }
   if (links !== undefined) {
-    await prisma.photographer_links.deleteMany({ where: { user_id: userId } });
+    const operations = [prisma.photographer_links.deleteMany({ where: { user_id: userId } })];
     if (links.length > 0) {
-      await prisma.photographer_links.createMany({
+      operations.push(prisma.photographer_links.createMany({
         data: links.map((link, i) => ({ user_id: userId, label: link.label, url: link.url, sort_order: i })),
-      });
+      }));
     }
+    await prisma.$transaction(operations);
   }
 };

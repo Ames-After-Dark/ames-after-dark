@@ -462,6 +462,13 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
       return res.status(403).json({ error: `Forbidden: not assigned to "${folderBarName}"` });
     }
 
+    if (!Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: 'files must be a non-empty array' });
+    }
+    if (files.length > 100) {
+      return res.status(400).json({ error: 'Too many files in one request (max 100)' });
+    }
+
     if (roleName === 'photographer') {
       const matchedBar = (userRoles.location_admins || []).find((la) => barNamesMatch(folderBarName, la.location_name));
       if (matchedBar) {
@@ -471,13 +478,6 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
           photographerId: userRoles.id,
         });
       }
-    }
-
-    if (!Array.isArray(files) || files.length === 0) {
-      return res.status(400).json({ error: 'files must be a non-empty array' });
-    }
-    if (files.length > 100) {
-      return res.status(400).json({ error: 'Too many files in one request (max 100)' });
     }
 
     const uploads = [];
