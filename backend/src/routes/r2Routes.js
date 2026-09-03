@@ -160,8 +160,9 @@ router.get('/albums', async (req, res) => {
     for (const obj of allObjects) {
       const key = obj?.Key || '';
 
-      // Ignore any photos that have been hidden by photographers
-      if (key.includes('hidden_')) continue;
+      // Ignore any photos that have been hidden by photographers, or that
+      // are cached preview thumbnails rather than real photos
+      if (key.includes('hidden_') || key.includes('thumb_')) continue;
 
       const folderName = key.split('/')[0];
       const ext = key.toLowerCase().split('.').pop();
@@ -274,8 +275,9 @@ router.get('/photos', async (req, res) => {
     const imageObjs = objs.filter(o => {
       const key = o?.Key || '';
 
-      // Ignore any photos that have been hidden by photographers
-      if (key.includes('hidden_')) return false;
+      // Ignore any photos that have been hidden by photographers, or that
+      // are cached preview thumbnails rather than real photos
+      if (key.includes('hidden_') || key.includes('thumb_')) return false;
 
       const ext = key.toLowerCase().split('.').pop();
       return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
