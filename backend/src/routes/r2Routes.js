@@ -1,5 +1,5 @@
 const express = require('express');
-const { PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { PutObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { checkJwt } = require('../middleware/authMiddleware');
 const userService = require('../services/userService');
@@ -10,6 +10,7 @@ const {
   CLOUDFLARE_R2_BUCKET,
   ALLOWED_UPLOAD_CONTENT_TYPES,
   signedUrlForKey,
+  objectExists,
   listR2Objects,
   parseFolderName,
   parseDateStr,
@@ -64,19 +65,6 @@ function sanitizeFolderName(folder) {
   if (!trimmed || trimmed.includes('/') || trimmed.includes('..')) return null;
   if (!/^[\w\s-]+$/.test(trimmed)) return null;
   return trimmed;
-}
-
-/**
- * Check whether an object already exists at the given key.
- */
-async function objectExists(key) {
-  try {
-    await s3.send(new HeadObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: key }));
-    return true;
-  } catch (err) {
-    if (err?.$metadata?.httpStatusCode === 404 || err?.name === 'NotFound') return false;
-    throw err;
-  }
 }
 
 /**

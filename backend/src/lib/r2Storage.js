@@ -1,4 +1,4 @@
-const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, ListObjectsV2Command, GetObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const ALLOWED_UPLOAD_CONTENT_TYPES = {
@@ -33,6 +33,19 @@ async function signedUrlForKey(key) {
     Key: key,
   });
   return await getSignedUrl(s3, command, { expiresIn: 3600 });
+}
+
+/**
+ * Check whether an object already exists at the given key.
+ */
+async function objectExists(key) {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: key }));
+    return true;
+  } catch (err) {
+    if (err?.$metadata?.httpStatusCode === 404 || err?.name === 'NotFound') return false;
+    throw err;
+  }
 }
 
 /**
@@ -143,6 +156,7 @@ module.exports = {
   CLOUDFLARE_R2_BUCKET,
   ALLOWED_UPLOAD_CONTENT_TYPES,
   signedUrlForKey,
+  objectExists,
   listR2Objects,
   parseFolderName,
   parseDateStr,
