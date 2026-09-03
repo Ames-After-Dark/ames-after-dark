@@ -63,12 +63,19 @@ exports.getMyProfile = async (userId) => {
   };
 };
 
-exports.updateMyProfile = async (userId, { bio, links }) => {
-  await prisma.users.update({ where: { id: userId }, data: { bio } });
-  await prisma.photographer_links.deleteMany({ where: { user_id: userId } });
-  if (links.length > 0) {
-    await prisma.photographer_links.createMany({
-      data: links.map((link, i) => ({ user_id: userId, label: link.label, url: link.url, sort_order: i })),
-    });
+exports.updateMyProfile = async (userId, { bio, links, photoKey }) => {
+  const data = {};
+  if (bio !== undefined) data.bio = bio;
+  if (photoKey !== undefined) data.photographer_photo_url = photoKey;
+  if (Object.keys(data).length > 0) {
+    await prisma.users.update({ where: { id: userId }, data });
+  }
+  if (links !== undefined) {
+    await prisma.photographer_links.deleteMany({ where: { user_id: userId } });
+    if (links.length > 0) {
+      await prisma.photographer_links.createMany({
+        data: links.map((link, i) => ({ user_id: userId, label: link.label, url: link.url, sort_order: i })),
+      });
+    }
   }
 };

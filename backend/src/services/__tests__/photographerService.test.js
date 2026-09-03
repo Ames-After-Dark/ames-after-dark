@@ -173,5 +173,15 @@ describe('photographerService', () => {
                 ],
             });
         });
+
+        test('updates only photoKey when bio/links are omitted', async () => {
+            await photographerService.updateMyProfile(87, { photoKey: 'photographer-photos/87.jpg' });
+
+            expect(mockPrisma.users.update).toHaveBeenCalledWith({
+                where: { id: 87 },
+                data: { photographer_photo_url: 'photographer-photos/87.jpg' },
+            });
+            expect(mockPrisma.photographer_links.deleteMany).not.toHaveBeenCalled();
+        });
     });
 });
