@@ -4,6 +4,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { checkJwt } = require('../middleware/authMiddleware');
 const userService = require('../services/userService');
 const locationService = require('../services/locationService');
+const photographerService = require('../services/photographerService');
 const {
   s3,
   CLOUDFLARE_R2_BUCKET,
@@ -461,6 +462,17 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
       return res.status(403).json({ error: `Forbidden: not assigned to "${folderBarName}"` });
     }
 
+    if (roleName === 'photographer') {
+      const matchedBar = (userRoles.location_admins || []).find((la) => barNamesMatch(folderBarName, la.location_name));
+      if (matchedBar) {
+        await photographerService.recordAlbumIfNew({
+          folderName: safeFolder,
+          locationId: matchedBar.location_id,
+          photographerId: userRoles.id,
+        });
+      }
+    }
+
     if (!Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: 'files must be a non-empty array' });
     }
@@ -605,6 +617,8 @@ router.delete('/albums', checkJwt, async (req, res) => {
     await Promise.all(objects.map((obj) =>
       s3.send(new DeleteObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: obj.Key }))
     ));
+
+    await photographerService.deleteAlbumRecord(safeFolder);
 
     res.json({ success: true, deletedCount: objects.length });
   } catch (err) {
