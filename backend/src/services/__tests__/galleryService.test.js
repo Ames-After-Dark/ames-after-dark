@@ -48,6 +48,18 @@ describe('galleryService', () => {
             expect(galleryService.isValidPhotoKey('Outlaws 09-06/thumb__DSC1234.jpg')).toBe(false);
             expect(galleryService.isValidPhotoKey('Outlaws 09-06/hidden__DSC1234.jpg')).toBe(false);
         });
+
+        test('rejects a bare filename with no dot at all, even if it matches an allowed extension token', () => {
+            expect(galleryService.isValidPhotoKey('someFolder/jpg')).toBe(false);
+        });
+
+        test('rejects a filename that is just a dot with nothing after it', () => {
+            expect(galleryService.isValidPhotoKey('someFolder/.')).toBe(false);
+        });
+
+        test('rejects a filename starting with a dot and nothing meaningful before the extension', () => {
+            expect(galleryService.isValidPhotoKey('someFolder/.jpg')).toBe(false);
+        });
     });
 
     describe('getOrCreatePreviewUrl', () => {

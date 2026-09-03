@@ -30,7 +30,9 @@ exports.isValidPhotoKey = (key) => {
   if (!folder || !filename) return false;
   if (filename.startsWith('thumb_') || filename.startsWith('hidden_')) return false;
 
-  const ext = filename.toLowerCase().split('.').pop();
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0) return false;
+  const ext = filename.slice(dotIndex + 1).toLowerCase();
   return ALLOWED_EXTENSIONS.includes(ext);
 };
 
