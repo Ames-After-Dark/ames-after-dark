@@ -1,18 +1,23 @@
 const express = require('express');
-const { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { PutObjectCommand, HeadObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { checkJwt } = require('../middleware/authMiddleware');
 const userService = require('../services/userService');
 const locationService = require('../services/locationService');
+const photographerService = require('../services/photographerService');
+const {
+  s3,
+  CLOUDFLARE_R2_BUCKET,
+  ALLOWED_UPLOAD_CONTENT_TYPES,
+  signedUrlForKey,
+  listR2Objects,
+  parseFolderName,
+  parseDateStr,
+  formatDateStr,
+  sanitizeFilename,
+} = require('../lib/r2Storage');
 
 const router = express.Router();
-
-const ALLOWED_UPLOAD_CONTENT_TYPES = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-};
 
 /**
  * Loosely normalize a bar name for matching R2's free-typed folder names
@@ -48,120 +53,6 @@ function isFolderAllowed(folderDisplayName, allowedNames) {
   return allowedNames.some((name) => barNamesMatch(folderDisplayName, name));
 }
 
-const {
-  CLOUDFLARE_R2_ACCESS_KEY_ID,
-  CLOUDFLARE_R2_SECRET_ACCESS_KEY,
-  CLOUDFLARE_R2_BUCKET,
-  CLOUDFLARE_R2_S3_ENDPOINT,
-} = process.env;
-
-// Initialize S3 client for R2 (used for generating signed URLs if needed)
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: CLOUDFLARE_R2_S3_ENDPOINT,
-  credentials: {
-    accessKeyId: CLOUDFLARE_R2_ACCESS_KEY_ID,
-    secretAccessKey: CLOUDFLARE_R2_SECRET_ACCESS_KEY,
-  },
-});
-
-/**
- * Generate a signed URL for an R2 object key, valid for 1 hour.
- */
-async function signedUrlForKey(key) {
-  const command = new GetObjectCommand({
-    Bucket: CLOUDFLARE_R2_BUCKET,
-    Key: key,
-  });
-  return await getSignedUrl(s3, command, { expiresIn: 3600 }); // Change expiresIn to adjust duration
-}
-
-/**
- * List objects in R2 with pagination to bypass 1000 object limit
- */
-async function listR2Objects(prefix = '') {
-  let isTruncated = true;
-  let continuationToken = undefined;
-  const allContents = [];
-
-  try {
-    while (isTruncated) {
-      const command = new ListObjectsV2Command({
-        Bucket: CLOUDFLARE_R2_BUCKET,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      });
-
-      const response = await s3.send(command);
-
-      if (response.Contents) {
-        allContents.push(...response.Contents);
-      }
-      
-      // Check if there are more results to fetch
-      isTruncated = response.IsTruncated;
-      continuationToken = response.NextContinuationToken;
-    }
-
-    return allContents;
-  } catch (err) {
-    console.warn('R2 list error:', err);
-    return [];
-  }
-}
-
-/**
- * Parse a folder name into display name and date string.
- * If no date found, returns display name as-is and dateStr as null.
- */
-function parseFolderName(folderName) {
-  const cleaned = folderName.trim();
-  const match = cleaned.match(/^(.+?)[\s_]+(\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?)$/);
-  
-  if (match) {
-    const displayName = match[1].replace(/_+$/, '').trim();
-    return { displayName, dateStr: match[2] };
-  }
-
-  return { displayName: cleaned, dateStr: null };
-}
-
-/**
- * Parse a date string like "03-12" into a Date object.
- * If date is in the future, roll back to previous year.
- */
-function parseDateStr(dateStr) {
-  if (!dateStr) return null;
-  const parts = dateStr.split(/[-\/]/);
-  if (parts.length < 2) return null;
-  
-  const month = parseInt(parts[0], 10) - 1;
-  const day = parseInt(parts[1], 10);
-  if (isNaN(month) || isNaN(day)) return null;
-
-  const now = new Date();
-  let year = now.getFullYear();
-
-  if (parts.length === 3) {
-    const providedYear = parseInt(parts[2].trim(), 10);
-    year = providedYear < 100 ? 2000 + providedYear : providedYear;
-  }
-  
-  let candidate = new Date(year, month, day);
-  if (candidate > now && parts.length !== 3) candidate = new Date(year - 1, month, day);
-
-  return candidate;
-}
-
-/**
- * Format date string like "3-12" into "03/12" for display.
- */
-function formatDateStr(dateStr) {
-  if (!dateStr) return null;
-  const [m, d] = dateStr.split('-');
-  return `${m.padStart(2, '0')}/${d.padStart(2, '0')}`;
-}
-
 /**
  * Validate a top-level album folder name (e.g. "Outlaws_04-09").
  * Must be a single path segment matching the naming convention the
@@ -173,24 +64,6 @@ function sanitizeFolderName(folder) {
   if (!trimmed || trimmed.includes('/') || trimmed.includes('..')) return null;
   if (!/^[\w\s-]+$/.test(trimmed)) return null;
   return trimmed;
-}
-
-/**
- * Validate an uploaded filename: basename only (no path separators),
- * and its extension must match the declared content type.
- */
-function sanitizeFilename(filename, contentType) {
-  const base = String(filename || '').split(/[\\/]/).pop().trim();
-  if (!base || base.includes('..')) return null;
-
-  const expectedExt = ALLOWED_UPLOAD_CONTENT_TYPES[contentType];
-  if (!expectedExt) return null;
-
-  const actualExt = base.toLowerCase().split('.').pop();
-  const jpgAliases = expectedExt === 'jpg' ? ['jpg', 'jpeg'] : [expectedExt];
-  if (!jpgAliases.includes(actualExt)) return null;
-
-  return base;
 }
 
 /**
@@ -596,6 +469,17 @@ router.post('/upload-urls', checkJwt, async (req, res) => {
       return res.status(400).json({ error: 'Too many files in one request (max 100)' });
     }
 
+    if (roleName === 'photographer') {
+      const matchedBar = (userRoles.location_admins || []).find((la) => barNamesMatch(folderBarName, la.location_name));
+      if (matchedBar) {
+        await photographerService.recordAlbumIfNew({
+          folderName: safeFolder,
+          locationId: matchedBar.location_id,
+          photographerId: userRoles.id,
+        });
+      }
+    }
+
     const uploads = [];
     for (const file of files) {
       const safeFilename = sanitizeFilename(file?.filename, file?.contentType);
@@ -733,6 +617,8 @@ router.delete('/albums', checkJwt, async (req, res) => {
     await Promise.all(objects.map((obj) =>
       s3.send(new DeleteObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: obj.Key }))
     ));
+
+    await photographerService.deleteAlbumRecord(safeFolder);
 
     res.json({ success: true, deletedCount: objects.length });
   } catch (err) {
