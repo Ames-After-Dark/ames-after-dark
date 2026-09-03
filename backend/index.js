@@ -77,6 +77,7 @@ const menuItemRoutes = require('./src/routes/menuItemRoutes');
 const r2Routes = require('./src/routes/r2Routes');
 const bannerRoutes = require('./src/routes/bannerRoutes');
 const photographerRoutes = require('./src/routes/photographerRoutes');
+const galleryRoutes = require('./src/routes/galleryRoutes');
 
 app.use('/api/locations', locationRoutes);
 app.use('/api/locationhours', locationHourRoutes);
@@ -91,6 +92,7 @@ app.use('/api/menuitems', menuItemRoutes);
 app.use('/api/r2', r2Routes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/photographers', photographerRoutes);
+app.use('/api/gallery', galleryRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
