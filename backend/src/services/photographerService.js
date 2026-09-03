@@ -5,9 +5,14 @@ exports.recordAlbumIfNew = async ({ folderName, locationId, photographerId }) =>
   const existing = await prisma.photo_albums.findUnique({ where: { folder_name: folderName } });
   if (existing) return null;
 
-  return prisma.photo_albums.create({
-    data: { folder_name: folderName, location_id: locationId, photographer_id: photographerId },
-  });
+  try {
+    return await prisma.photo_albums.create({
+      data: { folder_name: folderName, location_id: locationId, photographer_id: photographerId },
+    });
+  } catch (err) {
+    if (err.code !== 'P2002') throw err; // P2002 = unique constraint violation (race condition), safe no-op
+    return null;
+  }
 };
 
 exports.deleteAlbumRecord = async (folderName) => {
@@ -19,7 +24,7 @@ exports.deleteAlbumRecord = async (folderName) => {
 };
 
 exports.getPublicProfileByUsername = async (username) => {
-  const user = await prisma.users.findUnique({
+  const user = await prisma.users.findFirst({
     where: { username },
     include: {
       roles: true,

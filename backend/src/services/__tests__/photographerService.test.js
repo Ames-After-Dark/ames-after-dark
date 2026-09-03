@@ -11,6 +11,7 @@ const mockPrisma = {
     },
     users: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
     },
 };
@@ -56,6 +57,19 @@ describe('photographerService', () => {
             expect(mockPrisma.photo_albums.create).not.toHaveBeenCalled();
             expect(result).toBeNull();
         });
+
+        test('handles P2002 unique constraint error (race condition)', async () => {
+            mockPrisma.photo_albums.findUnique.mockResolvedValue(null);
+            mockPrisma.photo_albums.create.mockRejectedValue({ code: 'P2002' });
+
+            const result = await photographerService.recordAlbumIfNew({
+                folderName: 'Outlaws 09-06',
+                locationId: 9,
+                photographerId: 87,
+            });
+
+            expect(result).toBeNull();
+        });
     });
 
     describe('deleteAlbumRecord', () => {
@@ -76,7 +90,7 @@ describe('photographerService', () => {
 
     describe('getPublicProfileByUsername', () => {
         test('returns null when no user has that username', async () => {
-            mockPrisma.users.findUnique.mockResolvedValue(null);
+            mockPrisma.users.findFirst.mockResolvedValue(null);
 
             const result = await photographerService.getPublicProfileByUsername('nobody');
 
@@ -84,7 +98,7 @@ describe('photographerService', () => {
         });
 
         test('returns null when the user is not a photographer', async () => {
-            mockPrisma.users.findUnique.mockResolvedValue({
+            mockPrisma.users.findFirst.mockResolvedValue({
                 id: 1, username: 'bob', roles: { name: 'admin' },
             });
 
@@ -94,7 +108,7 @@ describe('photographerService', () => {
         });
 
         test('returns the profile shape for a photographer', async () => {
-            mockPrisma.users.findUnique.mockResolvedValue({
+            mockPrisma.users.findFirst.mockResolvedValue({
                 id: 87,
                 username: 'kirstyn',
                 name: 'Kirstyn Henningsen',
@@ -117,6 +131,25 @@ describe('photographerService', () => {
                 photoKey: 'photographer-photos/87.jpg',
                 links: [{ label: 'Instagram', url: 'https://instagram.com/kirstyn' }],
                 albums: [{ folderName: 'Outlaws 09-06', locationId: 9, barName: 'Outlaws' }],
+            });
+        });
+    });
+
+    describe('getMyProfile', () => {
+        test('returns user profile with bio, photoKey, and links', async () => {
+            mockPrisma.users.findUnique.mockResolvedValue({
+                id: 87,
+                bio: 'Nightlife photographer.',
+                photographer_photo_url: 'photographer-photos/87.jpg',
+                photographer_links: [{ label: 'Instagram', url: 'https://instagram.com/kirstyn' }],
+            });
+
+            const result = await photographerService.getMyProfile(87);
+
+            expect(result).toEqual({
+                bio: 'Nightlife photographer.',
+                photoKey: 'photographer-photos/87.jpg',
+                links: [{ label: 'Instagram', url: 'https://instagram.com/kirstyn' }],
             });
         });
     });
