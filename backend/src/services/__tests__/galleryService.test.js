@@ -1,8 +1,12 @@
+const actualR2Storage = jest.requireActual('../../lib/r2Storage');
+
 const mockR2Storage = {
     s3: { send: jest.fn() },
     CLOUDFLARE_R2_BUCKET: 'test-bucket',
     signedUrlForKey: jest.fn(),
     objectExists: jest.fn(),
+    parseFolderName: actualR2Storage.parseFolderName,
+    parseDateStr: actualR2Storage.parseDateStr,
 };
 
 jest.mock('../../lib/r2Storage', () => mockR2Storage);
@@ -59,6 +63,14 @@ describe('galleryService', () => {
 
         test('rejects a filename starting with a dot and nothing meaningful before the extension', () => {
             expect(galleryService.isValidPhotoKey('someFolder/.jpg')).toBe(false);
+        });
+
+        test('rejects a key whose folder does not look like a real album (no date)', () => {
+            expect(galleryService.isValidPhotoKey('photographer-photos/12.jpg')).toBe(false);
+        });
+
+        test('accepts a key whose folder does look like a real album', () => {
+            expect(galleryService.isValidPhotoKey('Outlaws 09-06/_DSC1.jpg')).toBe(true);
         });
     });
 

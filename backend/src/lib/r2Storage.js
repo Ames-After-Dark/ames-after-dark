@@ -151,6 +151,17 @@ function sanitizeFilename(filename, contentType) {
   return base;
 }
 
+/**
+ * Whether an R2 object key should be treated as a real, listable photo -
+ * excludes soft-deleted ("hidden_") and cached preview ("thumb_") files,
+ * and requires a supported image extension.
+ */
+function isListablePhotoKey(key) {
+  if (key.includes('hidden_') || key.includes('thumb_')) return false;
+  const ext = key.toLowerCase().split('.').pop();
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+}
+
 module.exports = {
   s3,
   CLOUDFLARE_R2_BUCKET,
@@ -162,4 +173,5 @@ module.exports = {
   parseDateStr,
   formatDateStr,
   sanitizeFilename,
+  isListablePhotoKey,
 };

@@ -11,8 +11,12 @@ exports.getPreview = async (req, res) => {
     }
 
     const url = await galleryService.getOrCreatePreviewUrl(key);
+    res.set('Cache-Control', 'public, max-age=1800');
     res.redirect(url);
   } catch (err) {
+    if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
     console.error('Error generating preview:', err);
     res.status(500).json({ error: 'Failed to generate preview' });
   }

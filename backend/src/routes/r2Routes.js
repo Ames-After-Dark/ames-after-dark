@@ -16,6 +16,7 @@ const {
   parseDateStr,
   formatDateStr,
   sanitizeFilename,
+  isListablePhotoKey,
 } = require('../lib/r2Storage');
 
 const router = express.Router();
@@ -148,15 +149,10 @@ router.get('/albums', async (req, res) => {
     for (const obj of allObjects) {
       const key = obj?.Key || '';
 
-      // Ignore any photos that have been hidden by photographers, or that
-      // are cached preview thumbnails rather than real photos
-      if (key.includes('hidden_') || key.includes('thumb_')) continue;
-
       const folderName = key.split('/')[0];
-      const ext = key.toLowerCase().split('.').pop();
 
-      // Skip if no bar folder or doesn't look like an image
-      if (!folderName || !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) continue;
+      // Skip if no bar folder, or this isn't a real listable photo
+      if (!folderName || !isListablePhotoKey(key)) continue;
 
       if (!photosByFolder[folderName]) photosByFolder[folderName] = [];
       photosByFolder[folderName].push(obj);
@@ -260,16 +256,7 @@ router.get('/photos', async (req, res) => {
     const objs = await listR2Objects(normalizedPrefix);
     if (!objs.length) return res.json([]);
 
-    const imageObjs = objs.filter(o => {
-      const key = o?.Key || '';
-
-      // Ignore any photos that have been hidden by photographers, or that
-      // are cached preview thumbnails rather than real photos
-      if (key.includes('hidden_') || key.includes('thumb_')) return false;
-
-      const ext = key.toLowerCase().split('.').pop();
-      return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-  });
+    const imageObjs = objs.filter(o => isListablePhotoKey(o?.Key || ''));
 
     const photos = await Promise.all(imageObjs.map(async (o) => ({
       id: o.Key,
@@ -365,6 +352,13 @@ router.patch('/photos/hide', checkJwt, async (req, res) => {
       Key: key,
     });
     await s3.send(deleteCommand);
+
+    // Best-effort: also remove any cached preview thumbnail for this photo,
+    // so a hidden photo doesn't stay reachable via the public preview endpoint
+    const thumbKey = folderPath ? `${folderPath}/thumb_${fileName}` : `thumb_${fileName}`;
+    if (await objectExists(thumbKey)) {
+      await s3.send(new DeleteObjectCommand({ Bucket: CLOUDFLARE_R2_BUCKET, Key: thumbKey }));
+    }
 
     res.json({ success: true, message: 'Photo hidden successfully', newKey });
   } catch (err) {

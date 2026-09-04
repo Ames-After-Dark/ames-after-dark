@@ -10,6 +10,7 @@ function mockRes() {
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
     res.redirect = jest.fn().mockReturnValue(res);
+    res.set = jest.fn().mockReturnValue(res);
     return res;
 }
 
@@ -39,7 +40,20 @@ describe('galleryController', () => {
             await galleryController.getPreview(req, res);
 
             expect(galleryService.getOrCreatePreviewUrl).toHaveBeenCalledWith('Outlaws 09-06/_DSC1.jpg');
+            expect(res.set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=1800');
             expect(res.redirect).toHaveBeenCalledWith('https://example.com/thumb.jpg');
+        });
+
+        test('returns 404 when the underlying photo does not exist', async () => {
+            galleryService.isValidPhotoKey.mockReturnValue(true);
+            galleryService.getOrCreatePreviewUrl.mockRejectedValue({ name: 'NoSuchKey' });
+            const req = { query: { key: 'Outlaws 09-06/_DSC1.jpg' } };
+            const res = mockRes();
+
+            await galleryController.getPreview(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(404);
+            expect(res.json).toHaveBeenCalledWith({ error: 'Photo not found' });
         });
     });
 
