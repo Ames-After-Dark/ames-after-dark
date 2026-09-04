@@ -130,28 +130,77 @@ function getWeekdayIdInTimezone(now: Date, timezone: string): number {
   return inTimezoneDate.getDay() + 1; // 1=Sun..7=Sat
 }
 
-function deriveDisplayHours(
+function getTimeInMinutesInTimezone(now: Date, timezone: string): number {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(now).map((part) => [part.type, part.value])
+  );
+
+  return Number(parts.hour) * 60 + Number(parts.minute);
+}
+
+// Resolves a location's weekly schedule against the current moment.
+// Deliberately never borrows another day's hours as a fallback (e.g.
+// `schedule[0]`) — a day with no row means the location has no scheduled
+// hours that day, not "reuse whichever entry happens to be first." Doing
+// that previously made every bar with no explicit Sunday hours look open
+// on Sunday using some other weekday's evening/overnight hours, since the
+// day-agnostic open/closed check downstream just compares clock time.
+function resolveScheduleStatus(
   schedule: LocationHourRow[] | undefined,
   timezone = "America/Chicago"
-): { openingTime?: string; closingTime?: string } {
+): { openingTime?: string; closingTime?: string; isOpenNow: boolean } {
   if (!Array.isArray(schedule) || !schedule.length) {
-    return {};
+    return { isOpenNow: false };
   }
 
-  const todayId = getWeekdayIdInTimezone(new Date(), timezone);
-  const entry = schedule.find((row) => Number(row.weekday_id) === todayId) ?? schedule[0];
-  if (!entry) {
-    return {};
-  }
+  const now = new Date();
+  const todayId = getWeekdayIdInTimezone(now, timezone);
+  const yesterdayId = todayId === 1 ? 7 : todayId - 1;
+  const currentMinutes = getTimeInMinutesInTimezone(now, timezone);
+
+  const parseRow = (row: LocationHourRow) => {
+    const openMinutes = parseTimeToMinutes(row.open_time ?? row.open_time_utc);
+    const closeMinutes = parseTimeToMinutes(row.close_time ?? row.close_time_utc);
+    if (openMinutes == null || closeMinutes == null) return null;
+    return { openMinutes, closeMinutes, isOvernight: closeMinutes <= openMinutes };
+  };
+
+  const todayRow = schedule.find((row) => Number(row.weekday_id) === todayId);
+  const todayParsed = todayRow ? parseRow(todayRow) : null;
+  const isActiveFromToday =
+    !!todayParsed &&
+    (todayParsed.isOvernight
+      ? currentMinutes >= todayParsed.openMinutes
+      : currentMinutes >= todayParsed.openMinutes && currentMinutes <= todayParsed.closeMinutes);
+
+  // Yesterday's overnight window (e.g. Sat 8PM-2AM) can still be carrying
+  // us into this morning even when today has no row of its own.
+  const yesterdayRow = schedule.find((row) => Number(row.weekday_id) === yesterdayId);
+  const yesterdayParsed = yesterdayRow ? parseRow(yesterdayRow) : null;
+  const isActiveFromYesterday =
+    !!yesterdayParsed && yesterdayParsed.isOvernight && currentMinutes <= yesterdayParsed.closeMinutes;
+
+  const isOpenNow = isActiveFromToday || isActiveFromYesterday;
+
+  // For display text, prefer whichever row is actually keeping the bar open
+  // right now; otherwise show today's own scheduled hours if there are any.
+  const displayRow = isActiveFromYesterday && !isActiveFromToday ? yesterdayRow : todayRow;
 
   const openingTime = formatMinutesAs12Hour(
-    parseTimeToMinutes(entry.open_time ?? entry.open_time_utc ?? null)
+    parseTimeToMinutes(displayRow?.open_time ?? displayRow?.open_time_utc ?? null)
   );
   const closingTime = formatMinutesAs12Hour(
-    parseTimeToMinutes(entry.close_time ?? entry.close_time_utc ?? null)
+    parseTimeToMinutes(displayRow?.close_time ?? displayRow?.close_time_utc ?? null)
   );
 
-  return { openingTime, closingTime };
+  return { openingTime, closingTime, isOpenNow };
 }
 
 function toIsoOrNull(value?: string | null): string | null {
@@ -360,7 +409,7 @@ export async function getBars(): Promise<Bar[]> {
             : []
       ) as LocationHourRow[];
 
-      const { openingTime, closingTime } = deriveDisplayHours(
+      const { openingTime, closingTime, isOpenNow } = resolveScheduleStatus(
         schedule,
         hoursResponse?.timezone || "America/Chicago"
       );
@@ -372,6 +421,7 @@ export async function getBars(): Promise<Bar[]> {
         open: location.open,
         openingTime,
         closingTime,
+        isOpenNow,
         dealsScheduled,
         eventsScheduled,
         location_type_id: location.location_type_id,
@@ -454,7 +504,7 @@ export async function getBarById(id: string): Promise<Bar | null> {
           : []
     ) as LocationHourRow[];
 
-    const { openingTime, closingTime } = deriveDisplayHours(
+    const { openingTime, closingTime, isOpenNow } = resolveScheduleStatus(
       schedule,
       hoursResponse?.timezone || "America/Chicago"
     );
@@ -466,6 +516,7 @@ export async function getBarById(id: string): Promise<Bar | null> {
       open: location.open,
       openingTime,
       closingTime,
+      isOpenNow,
       dealsScheduled,
       eventsScheduled,
       menu: {

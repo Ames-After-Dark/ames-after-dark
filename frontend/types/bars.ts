@@ -57,6 +57,7 @@ export type Bar = {
   open?: boolean;            // from backend (whether bar is open today)
   openingTime?: string;     // display string (e.g., "4:00 PM")
   closingTime?: string;     // display string (e.g., "2:00 AM")
+  isOpenNow?: boolean;      // resolved from the weekly hours schedule, day-aware (see barsService.resolveScheduleStatus)
   status?: "Open" | "Closed";
   visits?: number;
   friends?: number;

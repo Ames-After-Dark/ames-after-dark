@@ -40,7 +40,10 @@ export function useBars(filters?: BarsFilters) {
   }, [loadData]);
 
   const withOpenFlag = useMemo(
-    () => bars.map(b => ({ ...b, __openNow: isBarOpen(b, now) })),
+    // Prefer the day-aware isOpenNow resolved from the bar's weekly hours
+    // schedule; isBarOpen() only compares clock time and has no concept of
+    // day-of-week, so it's kept only as a fallback for bars without it.
+    () => bars.map(b => ({ ...b, __openNow: typeof b.isOpenNow === "boolean" ? b.isOpenNow : isBarOpen(b, now) })),
     [bars, now]
   );
 

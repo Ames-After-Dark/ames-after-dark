@@ -234,14 +234,16 @@ export default function BarProfile() {
       startTime: ruleToStartTime(e.rule),
     }));
 
-  const openNow = isBarOpen(
-    {
-      openingTime: bar.openingTime,
-      closingTime: bar.closingTime,
-      status: bar.status ?? (bar.open ? "Open" : "Closed"),
-    },
-    now
-  );
+  const openNow = typeof bar.isOpenNow === "boolean"
+    ? bar.isOpenNow
+    : isBarOpen(
+        {
+          openingTime: bar.openingTime,
+          closingTime: bar.closingTime,
+          status: bar.status ?? (bar.open ? "Open" : "Closed"),
+        },
+        now
+      );
   const statusText = openNow
     ? (bar.closingTime ? `Open • Closes at ${bar.closingTime}` : "Open")
     : (bar.openingTime ? `Closed • Opens at ${bar.openingTime}` : "Closed");
