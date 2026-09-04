@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useDeals } from "./useDeals";
 import { useEvents } from "./useEvents";
 
@@ -7,7 +7,7 @@ import { useEvents } from "./useEvents";
 //   useDeals()  →  useTonightDeals()   (hits /api/deals/today or similar)
 //   useEvents() →  useTonightEvents()  (hits /api/events/today or similar)
 // The hooks should return the same { deals, events, loading, error } shape.
-// Remove filterTonightOccurrences() below once the API does the filtering.
+// Remove findCurrentOccurrence()/findNextOccurrenceTonight() below once the API does the filtering.
 // ─────────────────────────────────────────────────────────────────────────────
 // Note: this intentionally uses useAllBars (every location), not useOpenBars
 // (currently-open-only) — Tonight should show bars with deals/events later
@@ -253,62 +253,69 @@ function getOpenHoursText(location: Location): string | undefined {
   return getHoursFromSchedule(location);
 }
 
-// ─── Tonight Filter ──────────────────────────────────────────────────────────
-// TODO: Remove this function once the backend has a dedicated "today" endpoint.
-// Keeps only deals/events that have at least one occurrence starting or active
-// on the current calendar day in America/Chicago (CDT/CST).
-function filterTonightOccurrences<T extends {
-  deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-  event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
-}>(items: T[]): T[] {
-  const now = new Date();
+// ─── Tonight Occurrence Selection ───────────────────────────────────────────
+// TODO: Remove this once the backend has dedicated "active now" / "later
+// tonight" endpoints.
+// "Open Now" and "Tonight" must be mutually exclusive: a deal/event that has
+// already started belongs in Open Now (it's happening right now), and only a
+// deal/event that hasn't started yet — but will, later today — belongs in
+// Tonight. Each helper below picks the single occurrence (if any) of an item
+// that matches its bucket, rather than just checking "does today's date
+// match," which is what previously let already-active items leak into both
+// tabs at once.
+type Occurrence = { start_time_utc: string | Date; end_time_utc: string | Date };
 
-  // Get today's date string in CDT (America/Chicago)
-  const todayStr = new Intl.DateTimeFormat("en-US", {
+function findCurrentOccurrence(occurrences: Occurrence[], now: Date): Occurrence | undefined {
+  return occurrences.find((occ) => {
+    const start = new Date(occ.start_time_utc);
+    const end = new Date(occ.end_time_utc);
+    return start <= now && now <= end;
+  });
+}
+
+function findNextOccurrenceTonight(
+  occurrences: Occurrence[],
+  now: Date,
+  todayStr: string
+): Occurrence | undefined {
+  const upcoming = occurrences.filter((occ) => {
+    const start = new Date(occ.start_time_utc);
+
+    // Must not have started yet — an already-active occurrence belongs to
+    // Open Now, not Tonight.
+    if (start <= now) return false;
+
+    const startStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(start);
+
+    return startStr === todayStr;
+  });
+
+  if (!upcoming.length) return undefined;
+
+  return upcoming.reduce((soonest, occ) =>
+    new Date(occ.start_time_utc) < new Date(soonest.start_time_utc) ? occ : soonest
+  );
+}
+
+function getChicagoDateStr(now: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(now);
-
-  // Also include yesterday's date to catch overnight deals (e.g. started 10PM, ends 2AM)
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(yesterday);
-
-  const isTonight = (occurrences: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>) => {
-    return occurrences.some((occ) => {
-      const start = new Date(occ.start_time_utc);
-      const end = new Date(occ.end_time_utc);
-
-      // Must not have already ended
-      if (end < now) return false;
-
-      // Start must be today or yesterday (overnight) in CDT
-      const startStr = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Chicago",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(start);
-
-      return startStr === todayStr || startStr === yesterdayStr;
-    });
-  };
-
-  return items.filter((item) => {
-    const occurrences = item.deal_occurrences ?? item.event_occurrences ?? [];
-    return isTonight(occurrences);
-  });
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
+function normalizeActiveDeal(
+  deal: Deal,
+  occurrenceStartUtc?: string | Date
+): NormalizedActiveDeal | null {
   const rawDeal = deal as Deal & {
     id?: string | number;
     location_id?: string | number;
@@ -316,7 +323,6 @@ function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
     name?: string;
     description?: string;
     start_time_utc?: string | Date;
-    deal_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
     deals?: {
       id?: string | number;
       location_id?: string | number;
@@ -335,11 +341,13 @@ function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
   const title = rawDeal.title ?? rawDeal.name ?? rawDeal.deals?.title ?? rawDeal.deals?.name ?? "Deal";
   const subtitle = rawDeal.description ?? rawDeal.deals?.description;
 
-  // Try top-level start_time_utc first (active endpoint), then first nested occurrence (all endpoint)
-  const startTimeUtc = rawDeal.start_time_utc
-    ? new Date(rawDeal.start_time_utc)
-    : rawDeal.deal_occurrences?.[0]?.start_time_utc
-      ? new Date(rawDeal.deal_occurrences[0].start_time_utc)
+  // The caller resolves which occurrence (current or upcoming) this deal
+  // matched to; fall back to the top-level start_time_utc for endpoints that
+  // already return a single active occurrence per item.
+  const startTimeUtc = occurrenceStartUtc
+    ? new Date(occurrenceStartUtc)
+    : rawDeal.start_time_utc
+      ? new Date(rawDeal.start_time_utc)
       : undefined;
 
   const normalizedDeal: NormalizedActiveDeal = { dealId, locationId, title };
@@ -349,14 +357,16 @@ function normalizeActiveDeal(deal: Deal): NormalizedActiveDeal | null {
   return normalizedDeal;
 }
 
-function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
+function normalizeActiveEvent(
+  event: Event,
+  occurrenceStartUtc?: string | Date
+): NormalizedActiveEvent | null {
   const rawEvent = event as Event & {
     id?: string | number;
     location_id?: string | number;
     name?: string;
     description?: string;
     start_time_utc?: string | Date;
-    event_occurrences?: Array<{ start_time_utc: string | Date; end_time_utc: string | Date }>;
     events?: {
       id?: string | number;
       location_id?: string | number;
@@ -379,11 +389,13 @@ function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
     "Event";
   const description = rawEvent.description ?? rawEvent.events?.description;
 
-  // Try top-level start_time_utc first (active endpoint), then first nested occurrence (all endpoint)
-  const startTimeUtc = rawEvent.start_time_utc
-    ? new Date(rawEvent.start_time_utc)
-    : rawEvent.event_occurrences?.[0]?.start_time_utc
-      ? new Date(rawEvent.event_occurrences[0].start_time_utc)
+  // The caller resolves which occurrence (current or upcoming) this event
+  // matched to; fall back to the top-level start_time_utc for endpoints that
+  // already return a single active occurrence per item.
+  const startTimeUtc = occurrenceStartUtc
+    ? new Date(occurrenceStartUtc)
+    : rawEvent.start_time_utc
+      ? new Date(rawEvent.start_time_utc)
       : undefined;
 
   const normalizedEvent: NormalizedActiveEvent = { eventId, locationId, name };
@@ -394,31 +406,80 @@ function normalizeActiveEvent(event: Event): NormalizedActiveEvent | null {
 }
 
 export function useTonightData() {
-  const { deals, loading: dealsLoading, error: dealsError } = useDeals();
-  const { events, loading: eventsLoading, error: eventsError } = useEvents();
-  const { bars, loading: barsLoading, error: barsError } = useAllBars();
+  const { deals, loading: dealsLoading, error: dealsError, refetch: refetchDeals } = useDeals();
+  const { events, loading: eventsLoading, error: eventsError, refetch: refetchEvents } = useEvents();
+  const { bars, loading: barsLoading, error: barsError, refetch: refetchBars } = useAllBars();
 
   const loading = dealsLoading || eventsLoading || barsLoading;
   const error = dealsError || eventsError || barsError;
 
-  const activeDeals = useMemo(() => {
-    // TODO: When API swap is done, remove filterTonightOccurrences() call here
-    return filterTonightOccurrences(deals)
-      .map((deal) => normalizeActiveDeal(deal))
+  // Re-fetches everything Tonight depends on. Pass showLoadingState=false
+  // (e.g. on tab focus) to refresh quietly in the background without
+  // flashing the full-screen skeleton; pull-to-refresh can still show its
+  // own spinner independently of this.
+  const refetch = useCallback(
+    (showLoadingState = true) => {
+      return Promise.all([
+        refetchDeals(showLoadingState),
+        refetchEvents(showLoadingState),
+        refetchBars(showLoadingState),
+      ]);
+    },
+    [refetchDeals, refetchEvents, refetchBars]
+  );
+
+  // "Open Now" needs deals/events that are actively happening right now.
+  const currentDeals = useMemo(() => {
+    const now = new Date();
+    return deals
+      .map((deal) => {
+        const occurrences = (deal as Deal & { deal_occurrences?: Occurrence[] }).deal_occurrences;
+        const occurrence = occurrences ? findCurrentOccurrence(occurrences, now) : undefined;
+        return occurrence ? normalizeActiveDeal(deal, occurrence.start_time_utc) : null;
+      })
       .filter((deal): deal is NormalizedActiveDeal => Boolean(deal));
   }, [deals]);
 
-  const activeEvents = useMemo(() => {
-    // TODO: When API swap is done, remove filterTonightOccurrences() call here
-    return filterTonightOccurrences(events)
-      .map((event) => normalizeActiveEvent(event))
+  const currentEvents = useMemo(() => {
+    const now = new Date();
+    return events
+      .map((event) => {
+        const occurrences = (event as Event & { event_occurrences?: Occurrence[] }).event_occurrences;
+        const occurrence = occurrences ? findCurrentOccurrence(occurrences, now) : undefined;
+        return occurrence ? normalizeActiveEvent(event, occurrence.start_time_utc) : null;
+      })
       .filter((event): event is NormalizedActiveEvent => Boolean(event));
   }, [events]);
 
-  // Organize deals by locationId for quick lookup
+  // "Tonight" needs deals/events that haven't started yet but will, later today.
+  const upcomingDeals = useMemo(() => {
+    const now = new Date();
+    const todayStr = getChicagoDateStr(now);
+    return deals
+      .map((deal) => {
+        const occurrences = (deal as Deal & { deal_occurrences?: Occurrence[] }).deal_occurrences ?? [];
+        const occurrence = findNextOccurrenceTonight(occurrences, now, todayStr);
+        return occurrence ? normalizeActiveDeal(deal, occurrence.start_time_utc) : null;
+      })
+      .filter((deal): deal is NormalizedActiveDeal => Boolean(deal));
+  }, [deals]);
+
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    const todayStr = getChicagoDateStr(now);
+    return events
+      .map((event) => {
+        const occurrences = (event as Event & { event_occurrences?: Occurrence[] }).event_occurrences ?? [];
+        const occurrence = findNextOccurrenceTonight(occurrences, now, todayStr);
+        return occurrence ? normalizeActiveEvent(event, occurrence.start_time_utc) : null;
+      })
+      .filter((event): event is NormalizedActiveEvent => Boolean(event));
+  }, [events]);
+
+  // Organize currently-active deals by locationId for quick lookup (Open Now cards)
   const dealsByLocation = useMemo(() => {
     const map = new Map<string, Deal[]>();
-    activeDeals.forEach((deal) => {
+    currentDeals.forEach((deal) => {
       if (!map.has(deal.locationId)) {
         map.set(deal.locationId, []);
       }
@@ -430,12 +491,12 @@ export function useTonightData() {
       } as Deal);
     });
     return map;
-  }, [activeDeals]);
+  }, [currentDeals]);
 
-  // Organize events by locationId for quick lookup
+  // Organize currently-active events by locationId for quick lookup (Open Now cards)
   const eventsByLocation = useMemo(() => {
     const map = new Map<string, Event[]>();
-    activeEvents.forEach((event) => {
+    currentEvents.forEach((event) => {
       const locationId = String(event.locationId);
       if (!map.has(locationId)) {
         map.set(locationId, []);
@@ -448,7 +509,7 @@ export function useTonightData() {
       } as Event);
     });
     return map;
-  }, [activeEvents]);
+  }, [currentEvents]);
 
   // Combine location data with deals and events
   // Note: 'bars' now comes from useAllBars (every location), so a bar that
@@ -473,9 +534,9 @@ export function useTonightData() {
     });
   }, [bars, dealsByLocation, eventsByLocation]);
 
-  // Flatten all of tonight's deals, from every bar (open now or opening later tonight)
+  // Flatten all of tonight's upcoming deals (not yet started) from every bar
   const allActiveDealsTonight = useMemo(() => {
-    return activeDeals
+    return upcomingDeals
       .map((deal) => {
         const bar = bars.find((b) => String(b.id) === deal.locationId);
         if (!bar) return null;
@@ -492,7 +553,7 @@ export function useTonightData() {
         } as TonightDealData;
       })
       .filter((item): item is TonightDealData => Boolean(item));
-  }, [bars, activeDeals]);
+  }, [bars, upcomingDeals]);
 
   // Build grouped bar view for "Deals Tonight" tab
   // Each bar gets one highlighted item (event preferred, then deal) and the rest collapsed
@@ -508,8 +569,8 @@ export function useTonightData() {
     bars.forEach((location) => {
       const locationId = String(location.id);
 
-      // Collect all events for this bar
-      const barEvents: BarDealOrEvent[] = activeEvents
+      // Collect all upcoming (not-yet-started) events for this bar
+      const barEvents: BarDealOrEvent[] = upcomingEvents
         .filter((e) => e.locationId === locationId)
         .map((e) => ({
           id: `event-${e.eventId}`,
@@ -520,8 +581,8 @@ export function useTonightData() {
         }))
         .sort((a, b) => distFromNow(a.startTimeUtc) - distFromNow(b.startTimeUtc));
 
-      // Collect all deals for this bar
-      const barDeals: BarDealOrEvent[] = activeDeals
+      // Collect all upcoming (not-yet-started) deals for this bar
+      const barDeals: BarDealOrEvent[] = upcomingDeals
         .filter((d) => d.locationId === locationId)
         .map((d) => ({
           id: `deal-${d.dealId}`,
@@ -550,7 +611,7 @@ export function useTonightData() {
 
     // Sort bars alphabetically
     return groups.sort((a, b) => a.barName.localeCompare(b.barName));
-  }, [bars, activeEvents, activeDeals]);
+  }, [bars, upcomingEvents, upcomingDeals]);
 
   return {
     barsWithTonightData,
@@ -558,5 +619,6 @@ export function useTonightData() {
     barGroupsTonight,
     loading,
     error,
+    refetch,
   };
 }

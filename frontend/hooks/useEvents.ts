@@ -7,9 +7,9 @@ export function useEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (showLoadingState = true) => {
     try {
-      setLoading(true);
+      if (showLoadingState) setLoading(true);
       // TODO: Replace getEvents() with getActiveEvents() (or getTonightEvents()) when API is ready
       const data = await getEvents();
       setEvents(data);

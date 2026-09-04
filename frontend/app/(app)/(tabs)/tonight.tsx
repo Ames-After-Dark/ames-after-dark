@@ -13,6 +13,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  RefreshControl,
   StyleSheet,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -621,14 +622,43 @@ export default function Tonight() {
   );
 
   // Fetch data from database using the custom hook
-  const { barsWithTonightData, barGroupsTonight, loading, error } = useTonightData();
-  const { bars: scheduledBars, loading: scheduledBarsLoading } = useBars();
+  const { barsWithTonightData, barGroupsTonight, loading, error, refetch } = useTonightData();
+  const { bars: scheduledBars, loading: scheduledBarsLoading, refetch: refetchScheduledBars } = useBars();
 
   const friendsLoading = false;
   const friendsError = null;
 
   const hasError = !!error || !!friendsError || shouldForceErrorPage("tonight");
   const isLoading = loading || friendsLoading || scheduledBarsLoading;
+
+  // Deals/events/bars are only fetched once on mount and this screen stays
+  // mounted across tab switches, so without this, anything that changes on
+  // the backend after the first visit (a new event, a corrected time, a
+  // deal starting later tonight) never reaches the tab until the app is
+  // fully restarted. Refetch quietly (no skeleton) every time the tab
+  // regains focus; skip the very first focus since the mount-time fetch
+  // already covers it.
+  const hasFocusedBeforeRef = React.useRef(false);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!hasFocusedBeforeRef.current) {
+        hasFocusedBeforeRef.current = true;
+        return;
+      }
+      refetch(false);
+      refetchScheduledBars(false);
+    }, [refetch, refetchScheduledBars])
+  );
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handlePullToRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetch(false), refetchScheduledBars(false)]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch, refetchScheduledBars]);
 
   // ----- Filter for "Open Now" tab -----
   const filteredBars = useMemo(() => {
@@ -725,6 +755,13 @@ export default function Tonight() {
           }}
           onScroll={handleVerticalScroll}
           scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handlePullToRefresh}
+              tintColor={Theme.dark.primary}
+            />
+          }
         >
           {/* HERO deals carousel */}
           <ScrollView
