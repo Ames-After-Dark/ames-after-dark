@@ -26,9 +26,23 @@ covered by this spec.
   for every viewer, and a visitor could right-click "Save Image" on that
   URL without ever logging in — defeating both the bandwidth goal and the
   account requirement. This spec's core addition is a preview layer that
-  makes both real: anonymous browsing only ever receives small preview
-  images; the full-resolution file is reachable only through the new
-  authenticated download endpoint.
+  makes the bandwidth goal real: the gallery UI never renders or fetches
+  that full-resolution field, only the new preview endpoint's cheap
+  thumbnails.
+  **Known limitation, accepted as a post-implementation finding (final
+  review, 2026-09-03):** the account requirement is *not* fully closed by
+  this design as shipped. `GET /api/photos` itself still returns each
+  photo's full-resolution signed URL in its JSON response body regardless
+  of caller — the gallery frontend simply doesn't use that field, but
+  nothing stops an anonymous visitor from reading it directly from the
+  network response (e.g. via browser devtools) and downloading the
+  original without ever logging in. Closing this fully would require
+  changing `GET /api/photos` itself (e.g. an opt-out flag omitting
+  `image.uri`, or gating that field behind auth) — out of scope for this
+  branch since that endpoint is shared with the mobile app's own Gallery
+  tab. The bandwidth goal is unaffected (actual bytes transferred by the
+  web gallery are the cheap previews); only the "must have an account to
+  get the original" guarantee is softer than originally designed here.
 - No bulk/zip download, and no attempt to verify the visitor has installed
   the mobile app — an existing Ames After Dark account (any role,
   including the default `user` role from normal app signup) is sufficient
