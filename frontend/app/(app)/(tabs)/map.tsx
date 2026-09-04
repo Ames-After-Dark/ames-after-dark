@@ -385,28 +385,6 @@ export default function MapScreen() {
                         />
 
                         <Circle
-                            center={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
-                            radius={200}
-                            fillColor="rgba(0, 234, 255, 0.1)"
-                            strokeColor="#00EAFF"
-                            strokeWidth={2}
-                            lineDashPattern={[5, 5]}
-                        />
-
-                        <Marker
-                            key="coming-soon-ames"
-                            coordinate={{ latitude: 42.0255627805003, longitude: -93.65721506480799 }}
-                            onPress={(e) => e.stopPropagation()}
-                        >
-                            <View style={styles.comingSoonBubble}>
-                                <View style={styles.comingSoonContent}>
-                                    <Text style={styles.comingSoonText}>Coming Soon</Text>
-                                </View>
-                                <View style={styles.comingSoonTail} />
-                            </View>
-                        </Marker>
-
-                        <Circle
                             center={{ latitude: 42.02550266479028, longitude: -93.61474917818076 }}
                             radius={500}
                             fillColor="rgba(0, 234, 255, 0.1)"
