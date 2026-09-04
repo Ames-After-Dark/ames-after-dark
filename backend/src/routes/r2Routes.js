@@ -166,14 +166,20 @@ router.get('/albums', async (req, res) => {
       folderMeta[folderName] = { displayName, dateStr, date };
     }
 
+    // Folders that pass the date filter below are the ones we'll actually
+    // return - look up photographer attribution for exactly those, in one
+    // batch query rather than one per folder.
+    const validFolderNames = Object.keys(photosByFolder).filter(
+      (folderName) => folderMeta[folderName].date != null
+    );
+    const attributionByFolder = await photographerService.getAttributionForFolders(validFolderNames);
+
     // Build albums for folders that have a valid date
     const albums = await Promise.all(
-      Object.entries(photosByFolder).filter(([folderName]) => {
+      validFolderNames.map(async (folderName) => {
+        const objects = photosByFolder[folderName];
         const meta = folderMeta[folderName];
-        return meta.date != null;
-      })
-      .map(async ([folderName, objects]) => {
-        const meta = folderMeta[folderName];
+        const attribution = attributionByFolder.get(folderName);
 
         // Pick most recently modified photo as cover
         const cover = objects.reduce((a, b) =>
@@ -188,6 +194,8 @@ router.get('/albums', async (req, res) => {
           sortDate: meta.date.getTime(),
           coverUrl,
           albumUri: `${folderName}/`,
+          photographerUsername: attribution?.photographerUsername ?? null,
+          photographerName: attribution?.photographerName ?? null,
         };
       })
     );

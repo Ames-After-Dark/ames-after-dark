@@ -1,6 +1,7 @@
 const mockPrisma = {
     photo_albums: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
         create: jest.fn(),
         delete: jest.fn(),
     },
@@ -86,6 +87,33 @@ describe('photographerService', () => {
             mockPrisma.photo_albums.delete.mockRejectedValue({ code: 'P2025' });
 
             await expect(photographerService.deleteAlbumRecord('nope')).resolves.toBeUndefined();
+        });
+    });
+
+    describe('getAttributionForFolders', () => {
+        test('returns an empty map without querying when given no folders', async () => {
+            const result = await photographerService.getAttributionForFolders([]);
+
+            expect(mockPrisma.photo_albums.findMany).not.toHaveBeenCalled();
+            expect(result.size).toBe(0);
+        });
+
+        test('maps each attributed folder to its photographer', async () => {
+            mockPrisma.photo_albums.findMany.mockResolvedValue([
+                { folder_name: 'Outlaws 09-06', users: { username: 'kirstyn', name: 'Kirstyn Henningsen' } },
+            ]);
+
+            const result = await photographerService.getAttributionForFolders(['Outlaws 09-06', 'Sips 09-07']);
+
+            expect(mockPrisma.photo_albums.findMany).toHaveBeenCalledWith({
+                where: { folder_name: { in: ['Outlaws 09-06', 'Sips 09-07'] } },
+                select: { folder_name: true, users: { select: { username: true, name: true } } },
+            });
+            expect(result.get('Outlaws 09-06')).toEqual({
+                photographerUsername: 'kirstyn',
+                photographerName: 'Kirstyn Henningsen',
+            });
+            expect(result.has('Sips 09-07')).toBe(false);
         });
     });
 

@@ -23,6 +23,20 @@ exports.deleteAlbumRecord = async (folderName) => {
   }
 };
 
+exports.getAttributionForFolders = async (folderNames) => {
+  if (!folderNames.length) return new Map();
+
+  const rows = await prisma.photo_albums.findMany({
+    where: { folder_name: { in: folderNames } },
+    select: { folder_name: true, users: { select: { username: true, name: true } } },
+  });
+
+  return new Map(rows.map((row) => [row.folder_name, {
+    photographerUsername: row.users.username,
+    photographerName: row.users.name,
+  }]));
+};
+
 exports.getPublicProfileByUsername = async (username) => {
   const user = await prisma.users.findFirst({
     where: { username, roles: { name: { equals: 'photographer', mode: 'insensitive' } } },
