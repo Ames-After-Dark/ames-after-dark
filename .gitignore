@@ -6,3 +6,4 @@ frontend/env.development
 Backups/
 .claude/
 .worktrees/
+graphify-out/
