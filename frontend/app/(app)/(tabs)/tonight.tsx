@@ -27,6 +27,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTonightData } from "@/hooks/useTonightData";
 import type { BarGroupedTonight, BarDealOrEvent } from "@/hooks/useTonightData";
 import { useBars } from "@/hooks/useBars";
+import { useActiveBanners } from "@/hooks/useActiveBanners";
 
 import { shouldForceErrorPage } from "@/utils/dev-error-pages";
 import ErrorState from "@/components/ui/error-state";
@@ -624,6 +625,7 @@ export default function Tonight() {
   // Fetch data from database using the custom hook
   const { barsWithTonightData, barGroupsTonight, loading, error, refetch } = useTonightData();
   const { bars: scheduledBars, loading: scheduledBarsLoading, refetch: refetchScheduledBars } = useBars();
+  const { banners, refetch: refetchBanners } = useActiveBanners();
 
   const friendsLoading = false;
   const friendsError = null;
@@ -647,18 +649,19 @@ export default function Tonight() {
       }
       refetch(false);
       refetchScheduledBars(false);
-    }, [refetch, refetchScheduledBars])
+      refetchBanners(false);
+    }, [refetch, refetchScheduledBars, refetchBanners])
   );
 
   const [refreshing, setRefreshing] = useState(false);
   const handlePullToRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetch(false), refetchScheduledBars(false)]);
+      await Promise.all([refetch(false), refetchScheduledBars(false), refetchBanners(false)]);
     } finally {
       setRefreshing(false);
     }
-  }, [refetch, refetchScheduledBars]);
+  }, [refetch, refetchScheduledBars, refetchBanners]);
 
   // ----- Filter for "Open Now" tab -----
   const filteredBars = useMemo(() => {
@@ -764,19 +767,22 @@ export default function Tonight() {
           }
         >
           {/* HERO deals carousel */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-            style={{ marginBottom: 12 }}
-          >
-            <View style={styles.carouselWrapper}>
-              <TonightHero
-                scheduledBars={scheduledBars}
-                onPosterPress={goToBarDetail}
-              />
-            </View>
-          </ScrollView>
+          {banners.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
+              style={{ marginBottom: 12 }}
+            >
+              <View style={styles.carouselWrapper}>
+                <TonightHero
+                  banners={banners}
+                  scheduledBars={scheduledBars}
+                  onPosterPress={goToBarDetail}
+                />
+              </View>
+            </ScrollView>
+          )}
 
           {/* Sticky Tabs + Search (this whole block is sticky due to stickyHeaderIndices) */}
           <View style={styles.stickyTabs}>

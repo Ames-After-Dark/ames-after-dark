@@ -2,68 +2,41 @@ import React, { useMemo, useState } from "react";
 import { View, Pressable, Image, StyleSheet, Dimensions } from "react-native";
 import Carousel from 'react-native-reanimated-carousel';
 
-import { IMG } from "@/assets/assets";
+import type { ActiveBanner } from "@/services/bannerService";
 import { Theme } from "@/constants/theme";
 
 const { width } = Dimensions.get("window");
 
-// Types
-interface HeroPoster {
-  id: string;
-  barName: string;
-  image: any;
-}
-
 type BackTarget = "home" | "bars" | "map" | "tonight-open" | "tonight-deals";
 
 interface TonightHeroProps {
+  banners: ActiveBanner[];
   scheduledBars: any[];
   onPosterPress: (id: string, backTo: BackTarget) => void;
 }
 
-// Static Poster Data
-const HERO_POSTERS: HeroPoster[] = [
-  {
-    id: "outlaws-tuesday",
-    barName: "Outlaws",
-    image: IMG.DealOutlawsTuesday,
-  },
-  {
-    id: "blue-owl-pool-tuesday",
-    barName: "The Blue Owl Bar",
-    image: IMG.DealBlueOwlPoolTuesday,
-  },
-  {
-    id: "paddys-disney-trivia",
-    barName: "Paddy's Irish Pub",
-    image: IMG.DealPaddysDisneyTrivia,
-  },
-  {
-    id: "cys-cherry-bombs",
-    barName: "Cy's Roost",
-    image: IMG.DealCysCherryBombs,
-  },
-] as const;
-
-export default function TonightHero({ scheduledBars, onPosterPress }: TonightHeroProps) {
+export default function TonightHero({ banners, scheduledBars, onPosterPress }: TonightHeroProps) {
 
   // State to track current slide for pagination dots
   const [activeIndex, setActiveIndex] = useState(0);
 
   const processedData = useMemo(() => {
-    const normalize = (val: string) => val.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return banners
+      .map((banner) => {
+        const matchedBar = scheduledBars.find(
+          (bar) => Number(bar.id) === Number(banner.location_id)
+        );
 
-    return HERO_POSTERS.map((poster) => {
-      const posterKey = normalize(poster.barName);
-      const matchedBar = scheduledBars.find((bar) => normalize(bar.name) === posterKey);
+        return {
+          id: String(banner.id),
+          barId: matchedBar ? String(matchedBar.id) : null,
+          image: { uri: banner.image_url },
+        };
+      })
+      .filter((item) => item.barId !== null);
+  }, [banners, scheduledBars]);
 
-      return {
-        id: poster.id,
-        barId: matchedBar ? String(matchedBar.id) : null,
-        image: poster.image,
-      };
-    }).filter(item => item.barId !== null);
-  }, [scheduledBars]);
+  if (!processedData.length) return null;
 
   return (
     <View style={styles.container}>

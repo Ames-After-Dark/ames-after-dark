@@ -52,11 +52,22 @@ exports.getActiveBanners = async () => {
       image_url: banner.image_url,
       // Helper fields for frontend navigation
       target_type: activeEvent ? 'EVENT' : (activeDeal ? 'DEAL' : 'NONE'),
-      target_id: activeEvent?.id || activeDeal?.id || null
+      target_id: activeEvent?.id || activeDeal?.id || null,
+      location_id: activeEvent?.location_id ?? activeDeal?.location_id ?? null
     };
   }).filter(b => b.target_type !== 'NONE'); // Only return banners that actually have something active
 };
 
+
+exports.getAllBanners = async () => {
+  return prisma.banners.findMany({
+    include: {
+      deals: { select: { id: true, name: true, location_id: true } },
+      events: { select: { id: true, name: true, location_id: true } }
+    },
+    orderBy: { id: 'desc' }
+  });
+};
 
 exports.createBanner = async (bannerData) => {
   return await prisma.banners.create({
@@ -65,6 +76,30 @@ exports.createBanner = async (bannerData) => {
       image_url: bannerData.image_url,
     }
   });
+};
+
+exports.updateBanner = async (id, bannerData) => {
+  const data = {};
+  if (bannerData.name !== undefined) data.name = bannerData.name;
+  if (bannerData.image_url !== undefined) data.image_url = bannerData.image_url;
+
+  return prisma.banners.update({
+    where: { id: Number(id) },
+    data
+  });
+};
+
+// Unlinks the banner from any deal/event before deleting it, since
+// deals.banner_id/events.banner_id are optional FKs that would otherwise
+// block (or silently orphan, depending on the DB's constraint) the delete.
+exports.deleteBanner = async (id) => {
+  const bannerId = Number(id);
+
+  await prisma.$transaction([
+    prisma.deals.updateMany({ where: { banner_id: bannerId }, data: { banner_id: null } }),
+    prisma.events.updateMany({ where: { banner_id: bannerId }, data: { banner_id: null } }),
+    prisma.banners.delete({ where: { id: bannerId } })
+  ]);
 };
 
 exports.getBannersByDateRange = async (startDate, endDate) => {

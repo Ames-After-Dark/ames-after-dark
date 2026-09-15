@@ -3,7 +3,16 @@ const mockPrisma = {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
     },
+    deals: {
+        updateMany: jest.fn(),
+    },
+    events: {
+        updateMany: jest.fn(),
+    },
+    $transaction: jest.fn(),
 };
 
 jest.mock('@prisma/client', () => ({
@@ -39,8 +48,8 @@ describe('bannerService', () => {
                 id: 1,
                 name: 'B1',
                 image_url: 'http://x',
-                events: [{ id: 99 }],
-                deals: [{ id: 11 }],
+                events: [{ id: 99, location_id: 7 }],
+                deals: [{ id: 11, location_id: 3 }],
             },
         ]);
 
@@ -56,6 +65,7 @@ describe('bannerService', () => {
                 image_url: 'http://x',
                 target_type: 'EVENT',
                 target_id: 99,
+                location_id: 7,
             },
         ]);
     });
@@ -67,7 +77,7 @@ describe('bannerService', () => {
                 name: 'B2',
                 image_url: 'http://y',
                 events: [],
-                deals: [{ id: 12 }],
+                deals: [{ id: 12, location_id: 3 }],
             },
         ]);
 
@@ -75,6 +85,7 @@ describe('bannerService', () => {
 
         expect(res[0].target_type).toBe('DEAL');
         expect(res[0].target_id).toBe(12);
+        expect(res[0].location_id).toBe(3);
     });
 
     test('getActiveBanners filters out banners with NONE targets', async () => {
@@ -97,6 +108,53 @@ describe('bannerService', () => {
             data: { name: 'N', image_url: 'u' },
         });
         expect(res).toBe(created);
+    });
+
+    test('getAllBanners lists every banner with linked deal/event info, newest first', async () => {
+        const sample = [{ id: 2 }, { id: 1 }];
+        mockPrisma.banners.findMany.mockResolvedValue(sample);
+
+        const res = await bannerService.getAllBanners();
+
+        expect(mockPrisma.banners.findMany).toHaveBeenCalledWith({
+            include: {
+                deals: { select: { id: true, name: true, location_id: true } },
+                events: { select: { id: true, name: true, location_id: true } },
+            },
+            orderBy: { id: 'desc' },
+        });
+        expect(res).toBe(sample);
+    });
+
+    test('updateBanner only includes fields that were actually provided', async () => {
+        const updated = { id: 5, name: 'New Name' };
+        mockPrisma.banners.update.mockResolvedValue(updated);
+
+        const res = await bannerService.updateBanner('5', { name: 'New Name', image_url: undefined });
+
+        expect(mockPrisma.banners.update).toHaveBeenCalledWith({
+            where: { id: 5 },
+            data: { name: 'New Name' },
+        });
+        expect(res).toBe(updated);
+    });
+
+    test('deleteBanner unlinks deals/events before deleting the banner, in one transaction', async () => {
+        mockPrisma.$transaction.mockResolvedValue(undefined);
+
+        await bannerService.deleteBanner('7');
+
+        expect(mockPrisma.deals.updateMany).toHaveBeenCalledWith({
+            where: { banner_id: 7 },
+            data: { banner_id: null },
+        });
+        expect(mockPrisma.events.updateMany).toHaveBeenCalledWith({
+            where: { banner_id: 7 },
+            data: { banner_id: null },
+        });
+        expect(mockPrisma.banners.delete).toHaveBeenCalledWith({ where: { id: 7 } });
+        expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+        expect(mockPrisma.$transaction.mock.calls[0][0]).toHaveLength(3);
     });
 
     test('getBannersByDateRange queries prisma with OR across deals/events', async () => {
